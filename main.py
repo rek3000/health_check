@@ -13,6 +13,9 @@ def print_file(path):
         count = 0
         for line in range(0, len(content)):
             print(line + 1, ': ', content[line], sep='', end='')
+def save_file(file, content):
+    with open(file, 'w') as file:
+        file.write(content)
 
 def main():
 
