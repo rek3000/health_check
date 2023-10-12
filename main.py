@@ -151,8 +151,8 @@ def save_file(file, content):
         file.write(content)
 
 def run():
-    serial = input('Enter serial number: ')
-    path = extract_file(serial, 'zip')
+    # serial = input('Enter serial number: ')
+    # path = extract_file(serial, 'zip')
     serial2 = input('Enter serial number (2): ')
     path = extract_file(serial2, 'tar.gz') ### Quick test 
     print('PATH: ', path)
