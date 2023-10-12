@@ -1,12 +1,9 @@
 #!/bin/env python
-import os
-import shutil
-import glob
-import re
+import os, sys
+import shutil, glob
 import json
-import zipfile
-import tarfile
-import sys
+import zipfile, tarfile
+import argparse
 
 ##### DEFAULT PATHS #####
 ## ORACLE LINUX
@@ -18,9 +15,9 @@ PARTITION_LINUX='/disks/df-kl.out'
 RAID='' 
 NETWORK='/sysconfig/ifconfig-a.out'
 CPU_ULTILIZATION=''
-CPU_LOAD=''
-MEMORY=''
-SWAP=''
+CPU_LOAD_LINUX=''
+MEM_LINUX=''
+SWAP_SOL=''
 EXTRACT_LOCATION='./temp/'
 ##
 ## ORACLE SOLARIS
@@ -28,13 +25,13 @@ FAULT_SOL='/fma/@usr@local@bin@fmadm_faulty.out'
 TEMP_SOL='/ilom/@usr@local@bin@collect_properties.out'
 FIRMWARE_SOL='/ilom/@usr@local@bin@collect_properties.out'
 IMAGE_SOL='/etc/release'
-PARTITION='/disks/df-kl.out'
+PARTITION_SOL='/disks/df-kl.out'
 RAID='' 
-NETWORK='/sysconfig/ifconfig-a.out'
-CPU_ULTILIZATION=''
-CPU_LOAD=''
-MEMORY=''
-SWAP=''
+NETWORK_SOL='/netinfo/ipadm.out'
+CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
+CPU_LOAD_SOL='/sysconfig/prstat-L.out'
+MEM_SOL='/disks/zfs/mdb/mdb-memstat.out'
+SWAP_SOL='/disks/swap-s.out'
 ##
 ##### END_PATHS #####
 
@@ -46,7 +43,7 @@ def clean_files():
     try:
         if os.path.isfile(file_path) or os.path.islink(file_path):
             os.unlink(file_path)
-            os.unlink(./output.txt)
+            os.unlink('./output.txt')
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
     except Exception as e:
@@ -93,12 +90,11 @@ def get_file(serial, compress):
         for file in files:
             print('[',i,'] ', file, sep='')
             i += 1
-        choice = int(input('Which file? [i] '))
+        choice = int(input('Which file?\n [0] '))
         return files[choice]
     else: return -1
 
 def get_content(path):
-    # SUCKS
     root = './temp/'
     for i in range(0, len(path)):
         path[i] = root + path[i]
@@ -110,7 +106,12 @@ def get_content(path):
     # image = print_file(path[1] + IMAGE_SOL)
     image = grep(path[1] + IMAGE_SOL, 'Solaris')
     partition = print_file(path[1] + PARTITION_SOL) 
-    content = fault+temp+firmware+image+partition
+    net = print_file(path[1] + NETWORK_SOL)
+    cpu_util = print_file(path[1] + CPU_ULTILIZATION_SOL)
+    load = grep(path[1] + CPU_LOAD_SOL, 'load average')
+    mem = print_file(path[1] + MEM_SOL)
+    swap = print_file(path[1] + SWAP_SOL)
+    content = fault+temp+firmware+image+partition+net+cpu_util+load+mem+swap
     return content
 
 def grep(path, word):
@@ -159,25 +160,29 @@ def rm_ext(file, compress):
     return file.split('/')[2][:-len(compress)-1]
 
 def run():
-    serial = input('Enter serial numbers [ilom & explorer]: ')
-    serial = serial.split(' ')
-    if len(serial) != 2: return -1
+    # parser = argparse.ArgumentParser(description='Process system log files to a output file.')
+    # parser.add_argument('type', help='Enter the type of log')
+    # args = parser.parse_args()
+    # if args == 'solaris':
+        serial = input('Enter serial numbers [ilom & explorer]: ')
+        serial = serial.split(' ')
+        if len(serial) != 2: return -1
 
-    path = ['','']
-    path[0] = extract_file(serial[0], 'zip')
-    path[1] = extract_file(serial[1], 'tar.gz') ### Quick test 
-    if path == [-1, -1]: return -1
+        path = ['','']
+        path[0] = extract_file(serial[0], 'zip')
+        path[1] = extract_file(serial[1], 'tar.gz') ### Quick test 
+        if path == [-1, -1]: return -1
 
     # if sys.argv[0] == '-z':
     #     extract_file('*', 'tar.gz'
 
-    print('PATH: ', path)
-    if path == -1: 
-        clear_up_force()
-        return -1 
+        print('PATH: ', path)
+        if path == -1: 
+            clear_up_force()
+            return -1 
 
-    content = get_content(path)
-    save_file('output.txt', content)
+        content = get_content(path)
+        save_file('output.txt', content)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
