@@ -1,7 +1,8 @@
 #!/bin/env python
-import os, sys
-import shutil, glob
+import os, sys, subprocess
+import shutil, glob, re
 import json
+import io 
 import zipfile, tarfile
 import argparse
 
@@ -94,50 +95,102 @@ def get_file(serial, compress):
         return files[choice]
     else: return -1
 
-def get_content(path):
-    root = './temp/'
-    for i in range(0, len(path)):
-        path[i] = root + path[i]
+#get a dictionary as input and dump it to a json type file
+def save_json():
+    # content = {
+    #         "fault": 
+    # }
+    # content = {
+    #         "president": {
+    #             "name": "Rek",
+    #             "species": "Betelgeusian",
+    #             }
+    #         }
+    with open('data.json', 'w') as write_file:
+        json.dump(content, write_file, indent=2)
 
-    # path[0] = ILOM | path[1] = EXPLORER
-    fault = print_file(path[0] + FAULT_SOL)
-    temp = grep(path[0] + TEMP_SOL, '_temp')
-    firmware = grep(path[0] + FIRMWARE_SOL, 'Version')
-    # image = print_file(path[1] + IMAGE_SOL)
-    image = grep(path[1] + IMAGE_SOL, 'Solaris')
-    partition = print_file(path[1] + PARTITION_SOL) 
-    net = print_file(path[1] + NETWORK_SOL)
-    cpu_util = print_file(path[1] + CPU_ULTILIZATION_SOL)
-    load = grep(path[1] + CPU_LOAD_SOL, 'load average')
-    mem = print_file(path[1] + MEM_SOL)
-    swap = print_file(path[1] + SWAP_SOL)
-    content = fault+temp+firmware+image+partition+net+cpu_util+load+mem+swap
-    return content
 
-def grep(path, word):
+# def grep(file, key, arg=''):
+#     cmd = ["grep"]
+#     arg = arg.split()
+#     print(arg)
+#     for i in range(len(arg)):
+#         print(arg[i])
+#         cmd.append(arg[i])
+#     cmd.append(key)
+#     cmd.append(file)
+#     print(cmd)
+#
+#     value = subprocess.run(cmd, stdout=subprocess.PIPE, text=True).stdout
+#     return value.lstrip()
+
+# NO MORE SUBPROCESS MORON
+def grep(path, regex, uniq=True):
     result = ''
-    with open(path, 'r') as file:
-        content = file.readlines()
+    flag = re.MULTILINE
+    pattern = re.compile(regex, flag)
+    if uniq:
+        with open(path, 'r') as file:
+            content = file.readlines()
+        for line in range(0, len(content)):
+            if re.search(pattern, content[line]):
+                result += content[line].lstrip()
+                print(line + 1, ': ', content[line], sep='', end='')
+                break
+    else:
+        with open(path, 'r') as file:
+            content = file.readlines()
         count = 0
         for line in range(0, len(content)):
             if count == 2: break
-            if content[line].find(word) != -1:
+            if re.search(pattern, content[line]):
                 count = count + 1 
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
     print()
-    return result + '\n'
-            
-def print_file(path):
+    return result
+
+def get_content(path):
+    root = './temp/'
+    for i in range(0, len(path)):
+        path[i] = root + str(path[i])
+
+    # @@ SUCKS 
+    fault = cat(path[0] + FAULT_SOL)
+    inlet_temp = grep(path[0] + TEMP_SOL, 'inlet_temp')
+    exhaust_temp = grep(path[0] + TEMP_SOL, 'exhaust_temp')
+    firmware = grep(path[0] + FIRMWARE_SOL, 'Version')
+    image = grep(path[1] + IMAGE_SOL, 'Solaris')
+    partition = grep(path[1] + PARTITION_SOL, "\\B\/\\B")
+    net = cat(path[1] + NETWORK_SOL)
+
+    cpu_util = cat(path[1] + CPU_ULTILIZATION_SOL).strip()
+    cpu_util = subprocess.run(["sed","3!d"], input=cpu_util,  stdout=subprocess.PIPE, text=True).stdout
+    cpu_util = subprocess.run(["awk", "{print $20, $21, $22}"], input=cpu_util, stdout=subprocess.PIPE, text=True).stdout
+
+    load = grep(path[1] + CPU_LOAD_SOL, 'load average')
+    load = subprocess.run(["awk" ,"{print $8, $9, $10}"], input=load, stdout=subprocess.PIPE, text=True).stdout
+    load = load.split(',') 
+    load = str(max(load)) + '\n'
+
+    mem = cat(path[1] + MEM_SOL)
+    mem = subprocess.run(["grep", "freelist"], input=mem, stdout=subprocess.PIPE, text=True).stdout
+    mem = subprocess.run(["awk", "{print $5}"], input=mem, stdout=subprocess.PIPE, text=True).stdout
+    swap = cat(path[1] + SWAP_SOL)
+
+    content = fault+inlet_temp+exhaust_temp+firmware+image+partition+net+cpu_util+load+mem+swap
+    return content
+
+def cat(path):
     result = ''
     with open(path, 'r') as file:
+        print(file)
         content = file.readlines()
-        count = 0
         for line in range(0, len(content)):
             result += content[line].lstrip()
             print(line + 1, ': ', content[line], sep='', end='')
     print()
-    return result + '\n'
+    return result
 
 def unzip(file):
     if not zipfile.is_zipfile(file):
@@ -190,6 +243,7 @@ def main():
     if run() == -1: return -1
     clean_up()
 
+    # save_json()
 if __name__ == "__main__":
     main()
 ##### END_MAIN #####
