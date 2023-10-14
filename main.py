@@ -96,55 +96,26 @@ def get_file(serial, compress):
     else: return -1
 
 #get a dictionary as input and dump it to a json type file
-def save_json():
-    # content = {
-    #         "fault": 
-    # }
-    # content = {
-    #         "president": {
-    #             "name": "Rek",
-    #             "species": "Betelgeusian",
-    #             }
-    #         }
-    with open('data.json', 'w') as write_file:
-        json.dump(content, write_file, indent=2)
-
-
-# def grep(file, key, arg=''):
-#     cmd = ["grep"]
-#     arg = arg.split()
-#     print(arg)
-#     for i in range(len(arg)):
-#         print(arg[i])
-#         cmd.append(arg[i])
-#     cmd.append(key)
-#     cmd.append(file)
-#     print(cmd)
-#
-#     value = subprocess.run(cmd, stdout=subprocess.PIPE, text=True).stdout
-#     return value.lstrip()
+def save_json(content):
+    with open('output.json', 'w') as file:
+        json.dump(content, file, indent=2)
 
 # NO MORE SUBPROCESS MORON
 def grep(path, regex, uniq=True):
     result = ''
     flag = re.MULTILINE
     pattern = re.compile(regex, flag)
+    file = cat(path, False)
+    content = file.readlines()
     if uniq:
-        with open(path, 'r') as file:
-            content = file.readlines()
         for line in range(0, len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
-                break
+                break # STOP after find first match
     else:
-        with open(path, 'r') as file:
-            content = file.readlines()
-        count = 0
         for line in range(0, len(content)):
-            if count == 2: break
             if re.search(pattern, content[line]):
-                count = count + 1 
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
     print()
@@ -156,41 +127,89 @@ def get_content(path):
         path[i] = root + str(path[i])
 
     # @@ SUCKS 
-    fault = cat(path[0] + FAULT_SOL)
+    fault = cat(path[0] + FAULT_SOL).strip()
+
     inlet_temp = grep(path[0] + TEMP_SOL, 'inlet_temp')
+    inlet_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=inlet_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
     exhaust_temp = grep(path[0] + TEMP_SOL, 'exhaust_temp')
+    exhaust_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=exhaust_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
+
     firmware = grep(path[0] + FIRMWARE_SOL, 'Version')
+    firmware = subprocess.run(["awk" ,"{print $2, $3}"], input=firmware, stdout=subprocess.PIPE, text=True).stdout.strip()
+
+
     image = grep(path[1] + IMAGE_SOL, 'Solaris')
+    image = subprocess.run(["awk" ,"{print $3}"], input=image, stdout=subprocess.PIPE, text=True).stdout.strip()
+
     partition = grep(path[1] + PARTITION_SOL, "\\B\/\\B")
-    net = cat(path[1] + NETWORK_SOL)
+    partition = subprocess.run(["awk" ,"{print $5}"], input=partition, stdout=subprocess.PIPE, text=True).stdout
+    partition = str(100 - int(partition[:-2])) + '%'
+
+    net_ipmp = grep(path[1] + NETWORK_SOL, 'ipmp')
+    net_aggr = grep(path[1] + NETWORK_SOL, 'aggr')
+    if  not net_ipmp and not net_aggr:
+        net = 'none'
+    elif net_ipmp and not net_aggr:
+        net = 'ipmp'
+    elif net_aggr and not net_ipmp:
+        net = 'aggr'
+    else:
+        net = 'both'
+    net = net
 
     cpu_util = cat(path[1] + CPU_ULTILIZATION_SOL).strip()
     cpu_util = subprocess.run(["sed","3!d"], input=cpu_util,  stdout=subprocess.PIPE, text=True).stdout
-    cpu_util = subprocess.run(["awk", "{print $20, $21, $22}"], input=cpu_util, stdout=subprocess.PIPE, text=True).stdout
+    cpu_util = subprocess.run(["awk", "{print $22}"], input=cpu_util, stdout=subprocess.PIPE, text=True).stdout
+    cpu_util = str(100 - int(cpu_util)) + '%'
 
     load = grep(path[1] + CPU_LOAD_SOL, 'load average')
     load = subprocess.run(["awk" ,"{print $8, $9, $10}"], input=load, stdout=subprocess.PIPE, text=True).stdout
     load = load.split(',') 
-    load = str(max(load)) + '\n'
+    load = str(max(load))
 
-    mem = cat(path[1] + MEM_SOL)
-    mem = subprocess.run(["grep", "freelist"], input=mem, stdout=subprocess.PIPE, text=True).stdout
+    mem = grep(path[1] + MEM_SOL, 'freelist', False)
     mem = subprocess.run(["awk", "{print $5}"], input=mem, stdout=subprocess.PIPE, text=True).stdout
-    swap = cat(path[1] + SWAP_SOL)
+    free_mem = str(100 - int(mem[:-2])) + '%'
 
-    content = fault+inlet_temp+exhaust_temp+firmware+image+partition+net+cpu_util+load+mem+swap
+    swap = cat(path[1] + SWAP_SOL)
+    swap = subprocess.run(["awk", "-F", ' ', "{print $9, $11}"], input=swap, stdout=subprocess.PIPE, text=True).stdout
+    swap = swap.split()
+    swap[0] = int(swap[0][:-2])
+    swap[1] = int(swap[1][:-2])
+    print(swap)
+    free_swap = swap[1] / (swap[0] + swap[1])
+    free_swap = str(int(free_swap * 100)) + '%'
+
+    # content = fault+inlet_temp+exhaust_temp+firmware+image+partition+net+cpu_util+load+free_mem+free_swap
+    content = {
+            'fault': fault,
+            'inlet': inlet_temp,
+            'exhaust': exhaust_temp,
+            'firmware': firmware,
+            'image': image,
+            'partition': partition,
+            'net': net,
+            'cpu_util': cpu_util,
+            'load': load,
+            'free_mem': free_mem,
+            'free_swap': free_swap,
+    }
+    print(content)
     return content
 
-def cat(path):
+def cat(path, stdout=True):
     result = ''
     with open(path, 'r') as file:
-        print(file)
         content = file.readlines()
-        for line in range(0, len(content)):
-            result += content[line].lstrip()
-            print(line + 1, ': ', content[line], sep='', end='')
-    print()
-    return result
+        if stdout:
+            for l in range(0, len(content)):
+                result += content[l].lstrip()
+                print(l + 1, ': ', content[l], sep='', end='')
+            return result
+        else: 
+            for l in range(0, len(content)):
+                result += content[l].lstrip()
+            return io.StringIO(result)
 
 def unzip(file):
     if not zipfile.is_zipfile(file):
@@ -202,8 +221,8 @@ def untar(file):
     if not tarfile.is_tarfile(file):
         return -1
     with tarfile.open(file, 'r:*') as t_object:
-        # t_object.extractall(path='./temp/', numeric_owner=True)
-        t_object.extractall(path='./temp/')
+        t_object.extractall(path='./temp/', numeric_owner=True)
+        # t_object.extractall(path='./temp/')
 
 def save_file(file, content):
     with open(file, 'w') as file:
@@ -213,29 +232,24 @@ def rm_ext(file, compress):
     return file.split('/')[2][:-len(compress)-1]
 
 def run():
-    # parser = argparse.ArgumentParser(description='Process system log files to a output file.')
-    # parser.add_argument('type', help='Enter the type of log')
-    # args = parser.parse_args()
-    # if args == 'solaris':
-        serial = input('Enter serial numbers [ilom & explorer]: ')
-        serial = serial.split(' ')
-        if len(serial) != 2: return -1
+    serial = input('Enter serial numbers [ilom & explorer]: ')
+    serial = serial.split(' ')
+    if len(serial) != 2: return -1
 
-        path = ['','']
-        path[0] = extract_file(serial[0], 'zip')
-        path[1] = extract_file(serial[1], 'tar.gz') ### Quick test 
-        if path == [-1, -1]: return -1
+    path = ['','']
+    path[0] = extract_file(serial[0], 'zip')
+    path[1] = extract_file(serial[1], 'tar.gz') ### Quick test 
+    if path == [-1, -1]: return -1
 
-    # if sys.argv[0] == '-z':
-    #     extract_file('*', 'tar.gz'
 
-        print('PATH: ', path)
-        if path == -1: 
-            clear_up_force()
-            return -1 
+    print('PATH: ', path)
+    if path == -1: 
+        clear_up_force()
+        return -1 
 
-        content = get_content(path)
-        save_file('output.txt', content)
+    content = get_content(path)
+    save_json(content)
+    # save_file('output.txt', content)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
@@ -243,7 +257,6 @@ def main():
     if run() == -1: return -1
     clean_up()
 
-    # save_json()
 if __name__ == "__main__":
     main()
 ##### END_MAIN #####
