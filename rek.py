@@ -149,20 +149,20 @@ def get_content(path):
     # @@ SUCKS 
     fault = cat(path[0] + FAULT_SOL).strip()
 
-    inlet_temp = grep(path[0] + TEMP_SOL, 'inlet_temp')
-    inlet_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=inlet_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
+    inlet_temp = grep(path[0] + TEMP_SOL, 'inlet_temp').strip().split()
+    inlet_temp = ' '.join(inlet_temp[2:5])
 
-    exhaust_temp = grep(path[0] + TEMP_SOL, 'exhaust_temp')
-    exhaust_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=exhaust_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
+    exhaust_temp = grep(path[0] + TEMP_SOL, 'exhaust_temp').strip().split()
+    exhaust_temp = ' '.join(exhaust_temp[2:5])
 
-    firmware = grep(path[0] + FIRMWARE_SOL, 'Version')
-    firmware = subprocess.run(["awk" ,"{print $2, $3}"], input=firmware, stdout=subprocess.PIPE, text=True).stdout.strip()
+    firmware = grep(path[0] + FIRMWARE_SOL, 'Version').strip().split()
+    firmware = ' '.join(firmware[1:])
 
-    image = grep(path[1] + IMAGE_SOL, 'Solaris')
-    image = subprocess.run(["awk" ,"{print $3}"], input=image, stdout=subprocess.PIPE, text=True).stdout.strip()
+    image = grep(path[1] + IMAGE_SOL, 'Solaris').strip().split()
+    image = image[2]
 
-    partition = grep(path[1] + PARTITION_SOL, "\\B\/\\B")
-    partition = subprocess.run(["awk" ,"{print $5}"], input=partition, stdout=subprocess.PIPE, text=True).stdout
+    partition = grep(path[1] + PARTITION_SOL, "\\B\/\\B").strip().split()
+    partition = partition[-2]
     partition = str(100 - int(partition[:-2])) + '%'
 
     net_ipmp = grep(path[1] + NETWORK_SOL, 'ipmp')
@@ -175,31 +175,27 @@ def get_content(path):
         net = 'aggr'
     else:
         net = 'both'
-    # net = net
 
-    cpu_util = cat(path[1] + CPU_ULTILIZATION_SOL).strip()
-    cpu_util = subprocess.run(["sed","3!d"], input=cpu_util,  stdout=subprocess.PIPE, text=True).stdout
-    cpu_util = subprocess.run(["awk", "{print $22}"], input=cpu_util, stdout=subprocess.PIPE, text=True).stdout
+    cpu_util = cat(path[1] + CPU_ULTILIZATION_SOL).strip().split('\n')
+    cpu_util = cpu_util[2]
+    cpu_util = cpu_util.split()[21]
     cpu_util = str(100 - int(cpu_util)) + '%'
 
-    load = grep(path[1] + CPU_LOAD_SOL, 'load average')
-    load = subprocess.run(["awk" ,"{print $8, $9, $10}"], input=load, stdout=subprocess.PIPE, text=True).stdout
-    load = load.split(',') 
+    load = grep(path[1] + CPU_LOAD_SOL, 'load average').strip().split(', ')
+    load = ' '.join(load).split()[-3:]
     load = str(max(load))
 
-    mem = grep(path[1] + MEM_SOL, 'freelist', False)
-    mem = subprocess.run(["awk", "{print $5}"], input=mem, stdout=subprocess.PIPE, text=True).stdout
-    free_mem = str(100 - int(mem[:-2])) + '%'
+    mem = grep(path[1] + MEM_SOL, 'freelist', False).strip().split()
+    mem = mem[-1]
+    free_mem = str(100 - int(mem[:-1])) + '%'
 
-    swap = cat(path[1] + SWAP_SOL)
-    swap = subprocess.run(["awk", "-F", ' ', "{print $9, $11}"], input=swap, stdout=subprocess.PIPE, text=True).stdout
-    swap = swap.split()
+    swap = cat(path[1] + SWAP_SOL).strip().split()
+    swap = [swap[8], swap[10]]
     swap[0] = int(swap[0][:-2])
     swap[1] = int(swap[1][:-2])
     free_swap = swap[1] / (swap[0] + swap[1])
     free_swap = str(int(free_swap * 100)) + '%'
 
-    # content = fault+inlet_temp+exhaust_temp+firmware+image+partition+net+cpu_util+load+free_mem+free_swap
     content = {
             'fault': fault,
             'inlet': inlet_temp,
