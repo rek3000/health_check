@@ -2,6 +2,7 @@ sample/*
 output.txt
 temp/*
 TODO
+output/*
 *.docx
 *.json
 *.png

@@ -1,4 +1,5 @@
 #!/bin/bash
 #
 rm -rf temp/*
-./main.py
+rm -rf output/*
+./rek.py

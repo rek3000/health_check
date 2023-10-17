@@ -11,7 +11,7 @@ import argparse
 FAULT_LINUX='/fma/@usr@local@bin@fmadm_faulty.out'
 TEMP_LINUX='/ilom/@usr@local@bin@collect_properties.out'
 FIRMWARE_LINUX='/ilom/@usr@local@bin@collect_properties.out'
-IMAGE_LINUX='' # Solaris
+IMAGE_LINUX=''
 PARTITION_LINUX='/disks/df-kl.out'
 RAID='' 
 NETWORK='/sysconfig/ifconfig-a.out'
@@ -41,19 +41,19 @@ def clean_files():
     folder = './temp/'
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
-    try:
-        if os.path.isfile(file_path) or os.path.islink(file_path):
-            os.unlink(file_path)
-            os.unlink('./output.txt')
-        elif os.path.isdir(file_path):
-            shutil.rmtree(file_path)
-    except Exception as e:
-        print('Failed to delete %s. Reason: %s' % (file_path, e))
+        print(file_path)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (file_path, e))
 
 def clean_up():
     print('Remove unzip files? (y/n) ', end='')
-    choice = input('')
-    if choice in ['yes', 'y', 'Y', 'yeah', 'YES']:
+    choice = input()
+    if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         clean_files()
 
 def clean_up_force():
@@ -96,9 +96,27 @@ def get_file(serial, compress):
     else: return -1
 
 #get a dictionary as input and dump it to a json type file
-def save_json(content):
-    with open('output.json', 'w') as file:
+def save_json(file, content):
+    if not content:
+        return -1
+    with open(file, 'w') as file:
         json.dump(content, file, indent=2)
+
+def read_json(file):
+    with open(file, 'r+') as f:
+        content = json.load(f)
+    return content
+
+#sucks
+def join_json(output):
+    z = {}
+    with open('./output/data.json', 'a+') as file:
+        for i in output:
+            z[i] = {}
+            path = './output/' + i + '.json'
+            buffer = read_json(path)
+            z[i].update(buffer)
+        json.dump(z, file, indent=4)
 
 # NO MORE SUBPROCESS MORON
 def grep(path, regex, uniq=True):
@@ -123,6 +141,8 @@ def grep(path, regex, uniq=True):
 
 def get_content(path):
     root = './temp/'
+    org_path = path
+    name = path[0].split('_')[0]
     for i in range(0, len(path)):
         path[i] = root + str(path[i])
 
@@ -131,12 +151,12 @@ def get_content(path):
 
     inlet_temp = grep(path[0] + TEMP_SOL, 'inlet_temp')
     inlet_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=inlet_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
+
     exhaust_temp = grep(path[0] + TEMP_SOL, 'exhaust_temp')
     exhaust_temp = subprocess.run(["awk" ,"{print $3, $4, $5}"], input=exhaust_temp, stdout=subprocess.PIPE, text=True).stdout.strip()
 
     firmware = grep(path[0] + FIRMWARE_SOL, 'Version')
     firmware = subprocess.run(["awk" ,"{print $2, $3}"], input=firmware, stdout=subprocess.PIPE, text=True).stdout.strip()
-
 
     image = grep(path[1] + IMAGE_SOL, 'Solaris')
     image = subprocess.run(["awk" ,"{print $3}"], input=image, stdout=subprocess.PIPE, text=True).stdout.strip()
@@ -155,7 +175,7 @@ def get_content(path):
         net = 'aggr'
     else:
         net = 'both'
-    net = net
+    # net = net
 
     cpu_util = cat(path[1] + CPU_ULTILIZATION_SOL).strip()
     cpu_util = subprocess.run(["sed","3!d"], input=cpu_util,  stdout=subprocess.PIPE, text=True).stdout
@@ -176,7 +196,6 @@ def get_content(path):
     swap = swap.split()
     swap[0] = int(swap[0][:-2])
     swap[1] = int(swap[1][:-2])
-    print(swap)
     free_swap = swap[1] / (swap[0] + swap[1])
     free_swap = str(int(free_swap * 100)) + '%'
 
@@ -194,6 +213,7 @@ def get_content(path):
             'free_mem': free_mem,
             'free_swap': free_swap,
     }
+
     print(content)
     return content
 
@@ -222,7 +242,6 @@ def untar(file):
         return -1
     with tarfile.open(file, 'r:*') as t_object:
         t_object.extractall(path='./temp/', numeric_owner=True)
-        # t_object.extractall(path='./temp/')
 
 def save_file(file, content):
     with open(file, 'w') as file:
@@ -232,23 +251,41 @@ def rm_ext(file, compress):
     return file.split('/')[2][:-len(compress)-1]
 
 def run():
-    serial = input('Enter serial numbers [ilom & explorer]: ')
-    serial = serial.split(' ')
-    if len(serial) != 2: return -1
+    # number = int(input('Enter number of servers: '))
+    with open('./input', 'r') as file:
+        number = file.readlines()
+    output = []
+    for i in range(0, len(number)):
+        serial = number[i].strip()
+        print(serial)
+    #     serial = ''
+    #     print('Server [', i, ']', sep='')
+    #     serial = input('Enter serial numbers [ilom & explorer]: ')
+        serial = serial.split(' ')
+        if len(serial) != 2: return -1
 
-    path = ['','']
-    path[0] = extract_file(serial[0], 'zip')
-    path[1] = extract_file(serial[1], 'tar.gz') ### Quick test 
-    if path == [-1, -1]: return -1
+        path = ['','']
+        path[0] = extract_file(serial[0], 'zip')
+        path[1] = extract_file(serial[1], 'tar.gz')
 
+        if path == [-1, -1]: return -1
 
-    print('PATH: ', path)
-    if path == -1: 
-        clear_up_force()
-        return -1 
+        print('PATH: ', path)
 
-    content = get_content(path)
-    save_json(content)
+        data = input('Output file: ').strip()
+        print(data)
+        output += [data]
+
+        data = './output/' + data + '.json'
+        content = get_content(path)
+        save_json(data, content)
+    choice = input('Join all input?[y/n] ')
+    print(output)
+    if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
+        join_json(output)
+
+    # out = read_json(data)
+    # print(json.dumps(out, indent=2))
     # save_file('output.txt', content)
 ##### END_IMPLEMENTATION #####
 
