@@ -50,6 +50,7 @@ def clean_files():
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
+            sys.exit()
 
 def clean_up():
     print('Remove unzip files? (y/n) ', end='')
@@ -67,6 +68,7 @@ def check_valid(path):
 def extract_file(serial, compress):
     compress = compress.lower()
     file = get_file(serial, compress) 
+
     if file == -1: return -1
     print('Extracting: ', file)
     if compress == 'zip':
@@ -79,59 +81,58 @@ def extract_file(serial, compress):
 
 # Find return the file with serial number 
 def get_file(serial, compress):
-    #works for now
     root = './sample/'
     regex = '*[_.]' + serial + '[_.]*.' + compress
 
     files = glob.glob(os.path.join(root, regex))
-    print(files)
     if len(files) == 0:
-        return -1
+        print('No file found matched with the serial list!')
+        sys.exit()
     elif len(files) == 1:
         return files[0]
-    elif len(files) > 1:
-        i = 0
-        for file in files:
-            print('[',i,'] ', file, sep='')
-            i += 1
-        choice = int(input('Which file?\n [0] '))
-        return files[choice]
-    else: return -1
+    else:
+        for i in range(len(files)):
+            print('[', i, '] ', files[i], sep='')
+        c = int(input('Which file?\n [0] '))
+        return files[c]
 
 #get a dictionary as input and dump it to a json type file
 def save_json(file, content):
     if not content:
-        return -1
+        print('No content from input to save!')
+        sys.exit()
+
     try:
         with open(file, 'w') as file:
             json.dump(content, file, indent=2)
-    except:
-        print('Error: Cannot save json file')
-        return -1
+    except OSError as err:
+        print('OS error: ', err)
+        raise RuntimeError('Cannot save JSON') from err
+        sys.exit()
 
 def read_json(file):
     try:
         with open(file, 'r+') as f:
             content = json.load(f)
         return content
-    except:
-        print('Error: Cannot read json file')
-        return -1
+    except OSError as err:
+        print('OS error: ', err)
+        raise RuntimeError('Cannot read JSON') from err
+        sys.exit()
 
-#sucks
 def join_json(output):
     try:
-        z = {}
         with open('./output/data.json', 'a+') as file:
+            z = {}
             for i in output:
                 path = './output/' + i + '.json'
                 buffer = read_json(path)
                 key = list(buffer)[0]
                 z[key] = buffer[key]
             json.dump(z, file, indent=4)
-    except:
-        print('Error: Cannot append to json file')
-        return -1
+    except OSError as err:
+        print('OS error: ', err)
+        sys.exit()
 
 # NO MORE SUBPROCESS MORON
 def grep(path, regex, uniq=True):
@@ -140,20 +141,23 @@ def grep(path, regex, uniq=True):
     pattern = re.compile(regex, flag)
     file = cat(path, False)
     content = file.readlines()
-    print(content)
+
     if uniq:
-        for line in range(0, len(content)):
+        for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
                 break 
     else:
-        for line in range(0, len(content)):
+        for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
-    print(result)
+    # print(result)
+    print()
     return result
+def get_ilom(path):
+    print('filler')
 
 def get_content(path):
     root = './temp/'
@@ -178,7 +182,6 @@ def get_content(path):
     image = image[2]
 
     vol = grep(path[1] + PARTITION_SOL, "\\B\/\\B").strip().split()
-    # print(vol)
     vol = vol[-2]
     vol_avail = str(100 - int(vol[:-1])) + '%'
     raid = grep(path[1] + RAID_SOL, "mirror").strip().split()
