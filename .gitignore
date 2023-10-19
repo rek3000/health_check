@@ -3,6 +3,8 @@ output.txt
 temp/*
 TODO
 output/*
+"__pycache__/"
+"__pycache__/*"
 *.docx
 *.json
 *.png

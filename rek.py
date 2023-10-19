@@ -1,16 +1,16 @@
 #!/bin/env python
 import os, sys, subprocess
 import shutil, glob, re
-import json
 import io 
 import zipfile, tarfile
 import argparse
+import utils
 
 ##### DEFAULT PATHS #####
 ## ORACLE LINUX
-FAULT_LINUX='/fma/@usr@local@bin@fmadm_faulty.out'
-TEMP_LINUX='/ilom/@usr@local@bin@collect_properties.out'
-FIRMWARE_LINUX='/ilom/@usr@local@bin@collect_properties.out'
+# FAULT_LINUX='/fma/@usr@local@bin@fmadm_faulty.out'
+# TEMP_LINUX='/ilom/@usr@local@bin@collect_properties.out'
+# FIRMWARE_LINUX='/ilom/@usr@local@bin@collect_properties.out'
 IMAGE_LINUX=''
 PARTITION_LINUX='/disks/df-kl.out'
 RAID='' 
@@ -32,6 +32,7 @@ RAID_SOL='/disks/zfs/zpool_status_-v.out'
 NETWORK_SOL='/netinfo/ipadm.out'
 CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
 CPU_LOAD_SOL='/sysconfig/prstat-L.out'
+VCPU_SOL='/ldom/ldm_list.out'
 MEM_SOL='/disks/zfs/mdb/mdb-memstat.out'
 SWAP_SOL='/disks/swap-s.out'
 ##
@@ -73,10 +74,10 @@ def extract_file(serial, compress):
     print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
-        return rm_ext(file, compress)
+        return utils.rm_ext(file, compress)
     elif compress == 'tar.gz':
         untar(file)
-        return rm_ext(file, compress)
+        return utils.rm_ext(file, compress)
     else: return -1
 
 # Find return the file with serial number 
@@ -95,44 +96,6 @@ def get_file(serial, compress):
             print('[', i, '] ', files[i], sep='')
         c = int(input('Which file?\n [0] '))
         return files[c]
-
-#get a dictionary as input and dump it to a json type file
-def save_json(file, content):
-    if not content:
-        print('No content from input to save!')
-        return -1
-
-    try:
-        with open(file, 'w') as file:
-            json.dump(content, file, indent=2)
-    except OSError as err:
-        print('OS error: ', err)
-        raise RuntimeError('Cannot save JSON') from err
-        return -1
-
-def read_json(file):
-    try:
-        with open(file, 'r+') as f:
-            content = json.load(f)
-        return content
-    except OSError as err:
-        print('OS error: ', err)
-        raise RuntimeError('Cannot read JSON') from err
-        return -1
-
-def join_json(output):
-    try:
-        with open('./output/data.json', 'a+') as file:
-            z = {}
-            for i in output:
-                path = './output/' + i + '.json'
-                buffer = read_json(path)
-                key = list(buffer)[0]
-                z[key] = buffer[key]
-            json.dump(z, file, indent=4)
-    except OSError as err:
-        print('OS error: ', err)
-        return -1
 
 # NO MORE SUBPROCESS MORON
 def grep(path, regex, uniq=True):
@@ -181,7 +144,7 @@ def get_os(path, type='SOL'):
 
         vol = grep(path + PARTITION_SOL, "\\B\/\\B").strip().split()
         vol = vol[-2]
-        vol_avail = str(100 - int(vol[:-1])) + '%'
+        vol_avail = 100 - int(vol[:-1])
         x['vol_avail'] = vol_avail
 
         raid = grep(path + RAID_SOL, "mirror").strip().split()
@@ -206,17 +169,18 @@ def get_os(path, type='SOL'):
         cpu_util = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
         cpu_util = cpu_util[2]
         cpu_util = cpu_util.split()[21]
-        cpu_util = str(100 - int(cpu_util)) + '%'
+        cpu_util = 100 - int(cpu_util)
         x['cpu_util'] = cpu_util
 
         load = grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
         load = ' '.join(load).split()[-3:]
-        load_avg = str(max(load))
+        vcpu = grep(path + VCPU_SOL, 'primary').strip().split()[4]
+        load_avg = float(max(load)) / float(vcpu)
         x['load_avg'] = load_avg
 
         mem = grep(path + MEM_SOL, 'freelist', False).strip().split()
         mem_free = mem[-1]
-        mem_util = str(100 - int(mem_free[:-1])) + '%'
+        mem_util = 100 - int(mem_free[:-1])
         x['mem_util'] = mem_util
 
         swap = cat(path + SWAP_SOL).strip().split()
@@ -224,7 +188,7 @@ def get_os(path, type='SOL'):
         swap[0] = int(swap[0][:-2])
         swap[1] = int(swap[1][:-2])
         swap_util = swap[0] / (swap[0] + swap[1])
-        swap_util = str(int(swap_util * 100)) + '%'
+        swap_util = int(swap_util * 100)
         x['swap_util'] = swap_util
 
         print(x)
@@ -300,17 +264,6 @@ def untar(file):
         print('Error:' , err)
         return -1
 
-def save_file(file, content):
-    try:
-        with open(file, 'w') as file:
-            file.write(content)
-    except OSError as err:
-        raise RuntimeError('Cannot save file: ') from err
-        return -1
-
-def rm_ext(file, compress):
-    return file.split('/')[2][:-len(compress)-1]
-
 def extract_info():
     try:
         with open('./input', 'r') as file:
@@ -346,7 +299,7 @@ def extract_info():
 
         data = './output/' + data + '.json'
         content = get_content(path)
-        if save_json(data, content) == -1:
+        if utils.save_json(data, content) == -1:
             return -1 
     return output_files
 
@@ -358,7 +311,7 @@ def run():
         return -1
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        join_json(output_files)
+        utils.join_json(output_files)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
