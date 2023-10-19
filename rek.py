@@ -20,6 +20,7 @@ CPU_LOAD_LINUX=''
 MEM_LINUX=''
 SWAP_SOL=''
 EXTRACT_LOCATION='./temp/'
+#HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
 ##
 ## ORACLE SOLARIS
 FAULT_SOL='/fma/@usr@local@bin@fmadm_faulty.out'
@@ -27,7 +28,7 @@ TEMP_SOL='/ilom/@usr@local@bin@collect_properties.out'
 FIRMWARE_SOL='/ilom/@usr@local@bin@collect_properties.out'
 IMAGE_SOL='/etc/release'
 PARTITION_SOL='/disks/df-kl.out'
-RAID='' 
+RAID_SOL='/disks/zfs/zpool_status_-v.out' 
 NETWORK_SOL='/netinfo/ipadm.out'
 CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
 CPU_LOAD_SOL='/sysconfig/prstat-L.out'
@@ -84,7 +85,9 @@ def get_file(serial, compress):
 
     files = glob.glob(os.path.join(root, regex))
     print(files)
-    if len(files) == 1:
+    if len(files) == 0:
+        return -1
+    elif len(files) == 1:
         return files[0]
     elif len(files) > 1:
         i = 0
@@ -99,24 +102,36 @@ def get_file(serial, compress):
 def save_json(file, content):
     if not content:
         return -1
-    with open(file, 'w') as file:
-        json.dump(content, file, indent=2)
+    try:
+        with open(file, 'w') as file:
+            json.dump(content, file, indent=2)
+    except:
+        print('Error: Cannot save json file')
+        return -1
 
 def read_json(file):
-    with open(file, 'r+') as f:
-        content = json.load(f)
-    return content
+    try:
+        with open(file, 'r+') as f:
+            content = json.load(f)
+        return content
+    except:
+        print('Error: Cannot read json file')
+        return -1
 
 #sucks
 def join_json(output):
-    z = {}
-    with open('./output/data.json', 'a+') as file:
-        for i in output:
-            z[i] = {}
-            path = './output/' + i + '.json'
-            buffer = read_json(path)
-            z[i].update(buffer)
-        json.dump(z, file, indent=4)
+    try:
+        z = {}
+        with open('./output/data.json', 'a+') as file:
+            for i in output:
+                path = './output/' + i + '.json'
+                buffer = read_json(path)
+                key = list(buffer)[0]
+                z[key] = buffer[key]
+            json.dump(z, file, indent=4)
+    except:
+        print('Error: Cannot append to json file')
+        return -1
 
 # NO MORE SUBPROCESS MORON
 def grep(path, regex, uniq=True):
@@ -130,7 +145,7 @@ def grep(path, regex, uniq=True):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
-                break # STOP after find first match
+                break 
     else:
         for line in range(0, len(content)):
             if re.search(pattern, content[line]):
@@ -141,8 +156,8 @@ def grep(path, regex, uniq=True):
 
 def get_content(path):
     root = './temp/'
-    org_path = path
-    name = path[0].split('_')[0]
+    org_path = path[0]
+    print(org_path)
     for i in range(0, len(path)):
         path[i] = root + str(path[i])
 
@@ -161,9 +176,14 @@ def get_content(path):
     image = grep(path[1] + IMAGE_SOL, 'Solaris').strip().split()
     image = image[2]
 
-    partition = grep(path[1] + PARTITION_SOL, "\\B\/\\B").strip().split()
-    partition = partition[-2]
-    partition = str(100 - int(partition[:-2])) + '%'
+    vol = grep(path[1] + PARTITION_SOL, "\\B\/\\B").strip().split()
+    vol = vol[-2]
+    vol_avail = str(100 - int(vol[:-1])) + '%'
+    raid = grep(path[1] + RAID_SOL, "mirror").strip().split()
+    if 'ONLINE' in raid:
+        raid_stat = True 
+    else:
+        raid_stat = False
 
     net_ipmp = grep(path[1] + NETWORK_SOL, 'ipmp')
     net_aggr = grep(path[1] + NETWORK_SOL, 'aggr')
@@ -183,74 +203,90 @@ def get_content(path):
 
     load = grep(path[1] + CPU_LOAD_SOL, 'load average').strip().split(', ')
     load = ' '.join(load).split()[-3:]
-    load = str(max(load))
+    load_avg = str(max(load))
 
     mem = grep(path[1] + MEM_SOL, 'freelist', False).strip().split()
-    mem = mem[-1]
-    free_mem = str(100 - int(mem[:-1])) + '%'
+    mem_free = mem[-1]
+    mem_util = str(100 - int(mem_free[:-1])) + '%'
 
     swap = cat(path[1] + SWAP_SOL).strip().split()
     swap = [swap[8], swap[10]]
     swap[0] = int(swap[0][:-2])
     swap[1] = int(swap[1][:-2])
-    free_swap = swap[1] / (swap[0] + swap[1])
-    free_swap = str(int(free_swap * 100)) + '%'
+    swap_util = swap[0] / (swap[0] + swap[1])
+    swap_util = str(int(swap_util * 100)) + '%'
 
-    content = {
+    name = org_path.split('_')[0]
+    content = {}
+    content[name] = {
             'fault': fault,
             'inlet': inlet_temp,
             'exhaust': exhaust_temp,
             'firmware': firmware,
             'image': image,
-            'partition': partition,
+            'vol_avail': vol_avail,
+            'raid_stat': raid_stat,
             'net': net,
             'cpu_util': cpu_util,
-            'load': load,
-            'free_mem': free_mem,
-            'free_swap': free_swap,
+            'load_avg': load_avg,
+            'mem_free': mem_free,
+            'swap_util': swap_util,
     }
-
-    print(content)
     return content
 
 def cat(path, stdout=True):
     result = ''
-    with open(path, 'r') as file:
-        content = file.readlines()
-        if stdout:
-            for l in range(0, len(content)):
-                result += content[l].lstrip()
-                print(l + 1, ': ', content[l], sep='', end='')
+    try:
+        with open(path, 'r') as file:
+            content = file.readlines()
+    except:
+        print('Error: Cannot read file')
+        return -1
+
+    if stdout:
+        for l in range(0, len(content)):
+            result += content[l].lstrip()
+            print(l + 1, ': ', content[l], sep='', end='')
             return result
-        else: 
-            for l in range(0, len(content)):
-                result += content[l].lstrip()
+    else: 
+        for l in range(0, len(content)):
+            result += content[l].lstrip()
             return io.StringIO(result)
 
 def unzip(file):
     if not zipfile.is_zipfile(file):
-            return -1
+        print('Error: Not a zip file')
+        return -1
     with zipfile.ZipFile(file, 'r') as z_object:
         z_object.extractall(path='./temp/')
 
 def untar(file):
     if not tarfile.is_tarfile(file):
+        print('Error: Not a tar file')
         return -1
     with tarfile.open(file, 'r:*') as t_object:
         t_object.extractall(path='./temp/', numeric_owner=True)
 
 def save_file(file, content):
-    with open(file, 'w') as file:
-        file.write(content)
+    try:
+        with open(file, 'w') as file:
+            file.write(content)
+    except:
+        print('Error: Cannot write file')
+        return -1
 
 def rm_ext(file, compress):
     return file.split('/')[2][:-len(compress)-1]
 
-def run():
-    # number = int(input('Enter number of servers: '))
-    with open('./input', 'r') as file:
-        number = file.readlines()
-    output = []
+def extract_info():
+    try:
+        with open('./input', 'r') as file:
+            number = file.readlines()
+    except:
+        print('Serial input file not found')
+        return -1
+
+    output_files = []
     for i in range(0, len(number)):
         serial = number[i].strip()
         print(serial)
@@ -258,7 +294,8 @@ def run():
     #     print('Server [', i, ']', sep='')
     #     serial = input('Enter serial numbers [ilom & explorer]: ')
         serial = serial.split(' ')
-        if len(serial) != 2: return -1
+        if len(serial) != 2: 
+            return -1
 
         path = ['','']
         path[0] = extract_file(serial[0], 'zip')
@@ -269,20 +306,21 @@ def run():
         print('PATH: ', path)
 
         data = input('Output file: ').strip()
-        print(data)
-        output += [data]
+        output_files += [data]
 
         data = './output/' + data + '.json'
         content = get_content(path)
         save_json(data, content)
-    choice = input('Join all input?[y/n] ')
-    print(output)
-    if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        join_json(output)
+    return output_files
 
-    # out = read_json(data)
-    # print(json.dumps(out, indent=2))
-    # save_file('output.txt', content)
+# MAIN 
+def run():
+    output_files = extract_info()
+    if output_files == -1:
+        return -1
+    choice = input('Join all input?[y/n] ')
+    if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
+        join_json(output_files)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
