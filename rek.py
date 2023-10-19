@@ -140,6 +140,7 @@ def grep(path, regex, uniq=True):
     pattern = re.compile(regex, flag)
     file = cat(path, False)
     content = file.readlines()
+    print(content)
     if uniq:
         for line in range(0, len(content)):
             if re.search(pattern, content[line]):
@@ -151,7 +152,7 @@ def grep(path, regex, uniq=True):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
-    print()
+    print(result)
     return result
 
 def get_content(path):
@@ -177,6 +178,7 @@ def get_content(path):
     image = image[2]
 
     vol = grep(path[1] + PARTITION_SOL, "\\B\/\\B").strip().split()
+    # print(vol)
     vol = vol[-2]
     vol_avail = str(100 - int(vol[:-1])) + '%'
     raid = grep(path[1] + RAID_SOL, "mirror").strip().split()
@@ -239,19 +241,19 @@ def cat(path, stdout=True):
     try:
         with open(path, 'r') as file:
             content = file.readlines()
+            if stdout:
+                count = 0
+                for l in content:
+                    result += l.lstrip()
+                    print(++count + 1, ': ', l, sep='', end='')
+                return result
+            else: 
+                for l in content:
+                    result += l.lstrip()
+                return io.StringIO(result)
     except:
         print('Error: Cannot read file')
         return -1
-
-    if stdout:
-        for l in range(0, len(content)):
-            result += content[l].lstrip()
-            print(l + 1, ': ', content[l], sep='', end='')
-            return result
-    else: 
-        for l in range(0, len(content)):
-            result += content[l].lstrip()
-            return io.StringIO(result)
 
 def unzip(file):
     if not zipfile.is_zipfile(file):
@@ -287,7 +289,7 @@ def extract_info():
         return -1
 
     output_files = []
-    for i in range(0, len(number)):
+    for i in range(len(number)):
         serial = number[i].strip()
         print(serial)
     #     serial = ''
