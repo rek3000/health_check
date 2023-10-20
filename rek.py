@@ -157,14 +157,14 @@ def get_os(path, type='SOL'):
         net_ipmp = grep(path + NETWORK_SOL, 'ipmp')
         net_aggr = grep(path + NETWORK_SOL, 'aggr')
         if not net_ipmp and not net_aggr:
-            net = 'none'
+            bonding = 'none'
         elif net_ipmp and not net_aggr:
-            net = 'ipmp'
+            bonding = 'ipmp'
         elif net_aggr and not net_ipmp:
-            net = 'aggr'
+            bonding = 'aggr'
         else:
-            net = 'both'
-        x['net'] = net
+            bonding = 'both'
+        x['bonding'] = bonding
 
         cpu_util = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
         cpu_util = cpu_util[2]
@@ -215,7 +215,7 @@ def get_content(path):
             'image': os['image'],
             'vol_avail': os['vol_avail'],
             'raid_stat': os['raid_stat'],
-            'net': os['net'],
+            'bonding': os['bonding'],
             'cpu_util': os['cpu_util'],
             'load_avg': os['load_avg'],
             'mem_util': os['mem_util'],
