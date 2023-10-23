@@ -1,16 +1,19 @@
 #!/bin/env python
-import os, sys, subprocess
+import os, sys
 import shutil, glob, re
 import io 
 import zipfile, tarfile
+import json
 import argparse
 import rektools
 
 ##### DEFAULT PATHS #####
+## INTERGRATED LIGHT OUT MANAGEMENT
+FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
+TEMP='/ilom/@usr@local@bin@collect_properties.out'
+FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
+##
 ## ORACLE LINUX
-# FAULT_LINUX='/fma/@usr@local@bin@fmadm_faulty.out'
-# TEMP_LINUX='/ilom/@usr@local@bin@collect_properties.out'
-# FIRMWARE_LINUX='/ilom/@usr@local@bin@collect_properties.out'
 IMAGE_LINUX=''
 PARTITION_LINUX='/disks/df-kl.out'
 RAID='' 
@@ -23,9 +26,6 @@ EXTRACT_LOCATION='./temp/'
 #HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
 ##
 ## ORACLE SOLARIS
-FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
-TEMP='/ilom/@usr@local@bin@collect_properties.out'
-FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
 IMAGE_SOL='/etc/release'
 PARTITION_SOL='/disks/df-kl.out'
 RAID_SOL='/disks/zfs/zpool_status_-v.out' 
@@ -69,8 +69,8 @@ def check_valid(path):
 def extract_file(serial, compress):
     compress = compress.lower()
     file = get_file(serial, compress) 
-
     if file == -1: return -1
+
     print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
@@ -98,14 +98,14 @@ def get_file(serial, compress):
         return files[c]
 
 # NO MORE SUBPROCESS MORON
-def grep(path, regex, uniq=True):
+def grep(path, regex, single_line=True):
     result = ''
     flag = re.MULTILINE
     pattern = re.compile(regex, flag)
     file = cat(path, False)
     content = file.readlines()
 
-    if uniq:
+    if single_line:
         for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
@@ -116,12 +116,11 @@ def grep(path, regex, uniq=True):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
                 print(line + 1, ': ', content[line], sep='', end='')
-    # print(result)
     print()
     return result
 
 def get_ilom(path):
-    print('filler')
+    print('##### ILOM #####')
     fault = cat(path + FAULT).strip()
 
     inlet_temp = grep(path + TEMP, 'inlet_temp').strip().split()
@@ -133,6 +132,7 @@ def get_ilom(path):
     firmware = grep(path + FIRMWARE, 'Version').strip().split()
     firmware = ' '.join(firmware[1:])
 
+    print('##### END OF ILOM #####')
     return {'fault': fault, 'inlet': inlet_temp, 'exhaust': exhaust_temp, 'firmware': firmware} 
 
 def get_os(path, os='SOL'):
@@ -197,6 +197,7 @@ def get_os(path, os='SOL'):
         x['swap_util'] = swap_util
 
         print(x)
+        print()
     return x
 
 def get_content(path):
@@ -226,6 +227,9 @@ def get_content(path):
             'mem_util': os_info['mem_util'],
             'swap_util': os_info['swap_util'],
     }
+    print('##### NODE INFORMATION #####')
+    print(json.dumps(content, indent = 2))
+    print('##### END OF NODE INFORMATION #####\n')
     return content
 
 def cat(path, stdout=True):
@@ -254,6 +258,7 @@ def unzip(file):
     try:
         with zipfile.ZipFile(file, 'r') as z_object:
             z_object.extractall(path='./temp/')
+            print('> UNZIP:', file)
     except Exception as err:
         print('Error:' , err)
         return -1
@@ -265,6 +270,7 @@ def untar(file):
     try:
         with tarfile.open(file, 'r:*') as t_object:
             t_object.extractall(path='./temp/', numeric_owner=True)
+            print('> UNTAR:', file)
     except Exception as err:
         print('Error:' , err)
         return -1
@@ -281,17 +287,16 @@ def extract_info():
     for i in range(len(number)):
         serial = number[i].strip()
         print(serial)
-    #     serial = ''
-    #     print('Server [', i, ']', sep='')
-    #     serial = input('Enter serial numbers [ilom & explorer]: ')
         serial = serial.split(' ')
         if len(serial) != 2: 
             print('Error: Not enough serial!')
             return -1
 
         path = ['','']
+        print('##### EXTRACT FILES #####')
         path[0] = extract_file(serial[0], 'zip')
         path[1] = extract_file(serial[1], 'tar.gz')
+        print('##### END EXTRACTION #####\n')
 
         if path == [-1, -1]: 
             print('Error: PATH not exist!')
