@@ -1,0 +1,8 @@
+##[pylyzer] failed /home/rek/Projects/health_check/rektools.py 1697972291 1404
+.json = pyimport "json"
+
+.save_json: (file: PathLike, content: Bool) -> Int
+.read_json: (file: PathLike) -> Obj
+.join_json: (output: Iterable(Str)) -> Never
+.save_file: (file: PathLike, content: Str) -> Never
+.rm_ext: |Type_17 <: Structural({.split = (self: Obj, Type_48) -> Self}), K: Type, Self <: Indexable(K, V), V: Type, Type_48 :> {"/"}, Type_17 <: Structural({.split = (self: Type_17, Type_48) -> Self})|(file: Type_17, ext: Obj) -> V

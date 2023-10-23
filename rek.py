@@ -4,7 +4,7 @@ import shutil, glob, re
 import io 
 import zipfile, tarfile
 import argparse
-import utils
+import rektools
 
 ##### DEFAULT PATHS #####
 ## ORACLE LINUX
@@ -74,10 +74,10 @@ def extract_file(serial, compress):
     print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
-        return utils.rm_ext(file, compress)
+        return rektools.rm_ext(file, compress)
     elif compress == 'tar.gz':
         untar(file)
-        return utils.rm_ext(file, compress)
+        return rektools.rm_ext(file, compress)
     else: return -1
 
 # Find return the file with serial number 
@@ -135,9 +135,9 @@ def get_ilom(path):
 
     return {'fault': fault, 'inlet': inlet_temp, 'exhaust': exhaust_temp, 'firmware': firmware} 
 
-def get_os(path, type='SOL'):
+def get_os(path, os='SOL'):
     x = {}
-    if type == 'SOL':
+    if os == 'SOL':
         image = grep(path + IMAGE_SOL, 'Solaris').strip().split()
         image = image[2]
         x['image'] = image
@@ -172,11 +172,16 @@ def get_os(path, type='SOL'):
         cpu_util = 100 - int(cpu_util)
         x['cpu_util'] = cpu_util
 
+        x['load'] = {}
         load = grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
-        load = ' '.join(load).split()[-3:]
+        load_avg = ' '.join(load).split()[-3:]
+        load_avg = float((max(load_avg)))
         vcpu = grep(path + VCPU_SOL, 'primary').strip().split()[4]
-        load_avg = float(max(load)) / float(vcpu)
-        x['load_avg'] = load_avg
+        load_avg_per = load_avg / float(vcpu)
+        load_avg_per = float(f'{load_avg_per:.3f}')
+        x['load']['load_avg'] = load_avg
+        x['load']['vcpu'] = vcpu
+        x['load']['load_avg_per'] = load_avg_per
 
         mem = grep(path + MEM_SOL, 'freelist', False).strip().split()
         mem_free = mem[-1]
@@ -203,7 +208,7 @@ def get_content(path):
 
     # @@
     ilom = get_ilom(path[0])
-    os = get_os(path[1], 'SOL')
+    os_info = get_os(path[1], 'SOL')
     name = org_path.split('_')[0]
 
     content = {}
@@ -212,14 +217,14 @@ def get_content(path):
             'inlet': ilom['inlet'],
             'exhaust': ilom['exhaust'],
             'firmware': ilom['firmware'],
-            'image': os['image'],
-            'vol_avail': os['vol_avail'],
-            'raid_stat': os['raid_stat'],
-            'bonding': os['bonding'],
-            'cpu_util': os['cpu_util'],
-            'load_avg': os['load_avg'],
-            'mem_util': os['mem_util'],
-            'swap_util': os['swap_util'],
+            'image': os_info['image'],
+            'vol_avail': os_info['vol_avail'],
+            'raid_stat': os_info['raid_stat'],
+            'bonding': os_info['bonding'],
+            'cpu_util': os_info['cpu_util'],
+            'load': os_info['load'],
+            'mem_util': os_info['mem_util'],
+            'swap_util': os_info['swap_util'],
     }
     return content
 
@@ -299,7 +304,7 @@ def extract_info():
 
         data = './output/' + data + '.json'
         content = get_content(path)
-        if utils.save_json(data, content) == -1:
+        if rektools.save_json(data, content) == -1:
             return -1 
     return output_files
 
@@ -311,7 +316,7 @@ def run():
         return -1
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        utils.join_json(output_files)
+        rektools.join_json(output_files)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
@@ -320,6 +325,7 @@ def main():
         clean_up_force()
         return -1
     clean_up()
+    return 0
 
 if __name__ == "__main__":
     main()

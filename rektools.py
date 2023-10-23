@@ -8,8 +8,8 @@ def save_json(file, content):
         return -1
 
     try:
-        with open(file, 'w') as file:
-            json.dump(content, file, indent=2)
+        with open(file, 'w') as f:
+            json.dump(content, f, indent=2)
     except OSError as err:
         print('OS error: ', err)
         raise RuntimeError('Cannot save JSON') from err
@@ -28,13 +28,13 @@ def read_json(file):
 def join_json(output):
     try:
         with open('./output/data.json', 'a+') as file:
-            z = {}
+            x = {}
             for i in output:
                 path = './output/' + i + '.json'
                 buffer = read_json(path)
                 key = list(buffer)[0]
-                z[key] = buffer[key]
-            json.dump(z, file, indent=4)
+                x[key] = buffer[key]
+            json.dump(x, file, indent=4)
     except OSError as err:
         print('OS error: ', err)
         return -1
@@ -43,8 +43,8 @@ def join_json(output):
 
 def save_file(file, content):
     try:
-        with open(file, 'w') as file:
-            file.write(content)
+        with open(file, 'w') as f:
+            f.write(content)
     except OSError as err:
         raise RuntimeError('Cannot save file: ') from err
         return -1
