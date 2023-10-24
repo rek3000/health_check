@@ -15,6 +15,9 @@ import tools
 FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
 TEMP='/ilom/@usr@local@bin@collect_properties.out'
 FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
+# FAULT='@usr@local@bin@fmadm_faulty.out'
+# TEMP='@usr@local@bin@collect_properties.out'
+# FIRMWARE='@usr@local@bin@collect_properties.out'
 ##
 ## ORACLE LINUX
 IMAGE_LINUX=''
@@ -71,7 +74,8 @@ def check_valid(path):
 
 def extract_file(serial, compress):
     compress = compress.lower()
-    file = get_file(serial, root='./sample', compress=compress) 
+    regex = '*[_.]' + serial + '[_.]*.' + compress
+    file = get_file(regex, root='./sample/') 
     if file == -1: return -1
 
     print('Extracting: ', file)
@@ -84,15 +88,11 @@ def extract_file(serial, compress):
     else: return -1
 
 # Find return the file with serial number 
-def get_file(serial, root='', compress=''):
-    # root = './sample/'
-    # regex = '*[_.]' + serial + '[_.]*.' + compress
-    # root += '**/'
-    regex =  root + serial + '.' + compress
-
-    files = glob.glob(regex, recursive=True)
+def get_file(regex, root=''):
+    path = root + regex
+    files = glob.glob(path, recursive=True)
     if len(files) == 0:
-        print('No file found matched with the serial list!')
+        print('No file found matched!')
         return -1
     elif len(files) == 1:
         return files[0]
@@ -102,7 +102,6 @@ def get_file(serial, root='', compress=''):
         c = int(input('Which file?\n [0] '))
         return files[c]
 
-# NO MORE SUBPROCESS MORON
 def grep(path, regex, single_line=True):
     result = ''
     flag = re.MULTILINE
@@ -126,14 +125,21 @@ def grep(path, regex, single_line=True):
 
 def get_ilom(path):
     print('##### ILOM #####')
+    # file = get_file(FAULT, path)
+    # fault = cat(file).strip()
     fault = cat(path + FAULT).strip()
 
+    # file = get_file(TEMP, path)
+    # inlet_temp = grep(file, 'inlet_temp').strip().split()
     inlet_temp = grep(path + TEMP, 'inlet_temp').strip().split()
     inlet_temp = ' '.join(inlet_temp[2:5])
 
+    # exhaust_temp = grep(file, 'exhaust_temp').strip().split()
     exhaust_temp = grep(path + TEMP, 'exhaust_temp').strip().split()
     exhaust_temp = ' '.join(exhaust_temp[2:5])
 
+    # file = get_file(FIRMWARE, path)
+    # firmware = grep(file, 'Version').strip().split()
     firmware = grep(path + FIRMWARE, 'Version').strip().split()
     firmware = ' '.join(firmware[1:])
 
@@ -171,10 +177,10 @@ def get_os(path, os='SOL'):
             bonding = 'both'
         x['bonding'] = bonding
 
-        cpu_util = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
-        cpu_util = cpu_util[2]
-        cpu_util = cpu_util.split()[21]
-        cpu_util = 100 - int(cpu_util)
+        cpu_idle = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
+        cpu_idle = cpu_idle[2]
+        cpu_idle = cpu_idle.split()[21]
+        cpu_util = 100 - int(cpu_idle)
         x['cpu_util'] = cpu_util
 
         x['load'] = {}
@@ -207,15 +213,16 @@ def get_os(path, os='SOL'):
 
 def get_content(path):
     root = './temp/'
-    org_path = path[0]
-    print(org_path)
+    orj_path = path[0]
+    # print(orj_path)
     for i in range(0, len(path)):
+        # path[i] = root + str(path[i]) 
         path[i] = root + str(path[i])
 
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], 'SOL')
-    name = org_path.split('_')[0]
+    name = orj_path.split('_')[0]
 
     content = {}
     content[name] = {
@@ -327,8 +334,9 @@ def run():
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         tools.join_json(output_files)
-    TEST='df-kl'
-    test_file = get_file(TEST, 'DBMC-DR_ILOM_AK00411153_2023-08-25T02-51-54','out')
+    # TEST='**/df-kl.out'
+    # test_file = get_file(TEST, './temp/explorer.86d102c0.DBMC01.market_clearing.com-2023.08.25.03.30/')
+    # cat(test_file)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
