@@ -45,8 +45,7 @@ SWAP_SOL='/disks/swap-s.out'
 ##### END_PATHS #####
 
 ##### IMPLEMETATION #####
-def clean_files():
-    folder = './temp/'
+def clean_files(folder='./temp/'):
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         print(file_path)
@@ -59,15 +58,18 @@ def clean_files():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
             return -1
 
-def clean_up():
+def clean_up(path='./temp/'):
     print('Remove unzip files? (y/n) ', end='')
     choice = input()
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        clean_files()
+        clean_files(path)
+        return
+    return -1 
 
-def clean_up_force():
+def clean_up_force(path='./temp/'):
     print('FORCE CLEAN UP DUE TO ERROR!')
-    clean_files()
+    clean_files(path)
+    return -1
 
 def check_valid(path):
     return os.path.isdir(path)
@@ -276,18 +278,27 @@ def unzip(file):
         return -1
 
 def untar(file):
+    # sucks
     if not tarfile.is_tarfile(file):
         print('Error: Not a tar file')
         return -1
+    print(file)
     try:
-        with tarfile.open(file, 'r:*') as t_object:
-            t_object.extractall(path='./temp/', numeric_owner=True)
-            print('> UNTAR:', file)
+        with tarfile.open(file, 'r') as t_object:
+            try: 
+                t_object.extractall(path='./temp/')
+                print('> UNTAR:', file)
+            except:
+                file = tools.rm_ext(file, 'tar.gz')
+                if clean_up('./temp/' + file) == -1:
+                    return -1
+                t_object.extractall(path='./temp/')
+
     except Exception as err:
-        print('Error:' , err)
+        print(err)
         return -1
 
-def extract_info():
+def compose_info():
     try:
         with open('./input', 'r') as file:
             number = file.readlines()
@@ -327,7 +338,7 @@ def extract_info():
 
 # MAIN 
 def run():
-    output_files = extract_info()
+    output_files = compose_info()
     if output_files == -1:
         print('Error: No files to join!')
         return -1
