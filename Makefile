@@ -1,8 +1,8 @@
 init:
 	pip install -r requirements.txt
 test:
-	./test.sh
+	./tests/test.sh
 run:
-	python rek.py
+	python rek/rek.py
 	cat output/data.json
 .PHONY: init test

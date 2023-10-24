@@ -2,4 +2,4 @@
 #
 rm -rf temp/*
 rm -rf output/*
-./rek.py
+python rek/rek.py

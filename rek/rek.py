@@ -1,11 +1,14 @@
 #!/bin/env python
+# *
+# DOCUMENT FILE FROM LOG FILES GENERATOR
+#
 import os, sys
 import shutil, glob, re
 import io 
 import zipfile, tarfile
 import json
 import argparse
-import rektools
+import tools
 
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
@@ -68,24 +71,26 @@ def check_valid(path):
 
 def extract_file(serial, compress):
     compress = compress.lower()
-    file = get_file(serial, compress) 
+    file = get_file(serial, root='./sample', compress=compress) 
     if file == -1: return -1
 
     print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
-        return rektools.rm_ext(file, compress)
+        return tools.rm_ext(file, compress)
     elif compress == 'tar.gz':
         untar(file)
-        return rektools.rm_ext(file, compress)
+        return tools.rm_ext(file, compress)
     else: return -1
 
 # Find return the file with serial number 
-def get_file(serial, compress):
-    root = './sample/'
-    regex = '*[_.]' + serial + '[_.]*.' + compress
+def get_file(serial, root='', compress=''):
+    # root = './sample/'
+    # regex = '*[_.]' + serial + '[_.]*.' + compress
+    # root += '**/'
+    regex =  root + serial + '.' + compress
 
-    files = glob.glob(os.path.join(root, regex))
+    files = glob.glob(regex, recursive=True)
     if len(files) == 0:
         print('No file found matched with the serial list!')
         return -1
@@ -309,7 +314,7 @@ def extract_info():
 
         data = './output/' + data + '.json'
         content = get_content(path)
-        if rektools.save_json(data, content) == -1:
+        if tools.save_json(data, content) == -1:
             return -1 
     return output_files
 
@@ -321,7 +326,9 @@ def run():
         return -1
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        rektools.join_json(output_files)
+        tools.join_json(output_files)
+    TEST='df-kl'
+    test_file = get_file(TEST, 'DBMC-DR_ILOM_AK00411153_2023-08-25T02-51-54','out')
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
