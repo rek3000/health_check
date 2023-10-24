@@ -99,7 +99,7 @@ def get_file(regex, root=''):
     else:
         for i in range(len(files)):
             print('[', i, '] ', files[i], sep='')
-        c = int(input('Which file?\n [0] '))
+        c = int(input('Which file?\n [0] ') or '0')
         return files[c]
 
 def grep(path, regex, single_line=True):
@@ -334,9 +334,9 @@ def run():
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         tools.join_json(output_files)
-    # TEST='**/df-kl.out'
-    # test_file = get_file(TEST, './temp/explorer.86d102c0.DBMC01.market_clearing.com-2023.08.25.03.30/')
-    # cat(test_file)
+    choice = input('GENERATE DOCUMENT?[y/n] ')
+    if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
+        return 
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
