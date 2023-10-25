@@ -137,14 +137,13 @@ def get_score(asserted):
     return checklist
 
 def drw_table(doc, checklist, row, col, info=False):
-    styles = doc.styles
     if checklist == []:
         return -1
     tab = doc.add_table(row, col)
     tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-    cols = tab.rows[0].cells
-
+    
     # ADD TITLE CELLS AND COLOR THEM 
+    cols = tab.rows[0].cells
     for r in range(len(checklist[0])):
         cell = cols[r]
         cell.text = checklist[0][r]
@@ -165,7 +164,6 @@ def drw_table(doc, checklist, row, col, info=False):
             rows = tab.rows[i]
             cells = rows.cells
             for j in range(0, len(checklist[i])):
-                print( checklist[i][j])
                 if j == (len(checklist[i])-1):
                     cells[j].text = checklist[i][j][0]
                     cells[j].paragraphs[0].style = 'Table Contents'
@@ -193,7 +191,9 @@ def drw_doc(doc):
     data = tools.read_json('./output/data.json')
     print(json.dumps(data, indent=2))
     for node in data:
+        file_dump = {}
         asserted = assert_data(data[node])
+        file_dump[node] = asserted
 
         keys = list(asserted)
         checklist = get_score(asserted)
@@ -210,7 +210,7 @@ def drw_doc(doc):
 
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
         drw_info(doc, checklist)
-
+        tools.save_json( './output/' + node + '_asserted.json' ,file_dump)
     print()
     return doc
 
