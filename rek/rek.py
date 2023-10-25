@@ -1,4 +1,5 @@
 #!/bin/env python
+
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
@@ -307,15 +308,12 @@ def compile():
     for i in range(len(number)):
         serial = number[i].strip()
         print(serial)
-        serial = serial.split(' ')
-        if len(serial) != 1: 
-            print('Error: Only one name each line!')
-            return -1
+        # if len(serial) != 1: 
+        #     print('Error: Only one name each line!')
+        #     return -1
 
         path = ['','']
         print('##### EXTRACT FILES #####')
-        # path[0] = extract_file(serial[0], 'zip')
-        # path[1] = extract_file(serial[1], 'tar.gz')
         path[0] = extract_file(serial, 'zip')
         path[1] = extract_file(serial, 'tar.gz')
         print('##### END EXTRACTION #####\n')
@@ -341,13 +339,14 @@ def run():
     if output_files == -1:
         print('Error: No files to join!')
         return -1
+
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         tools.join_json(output_files)
+
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         rekdoc.run()
-        return 
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
@@ -356,7 +355,7 @@ def main():
         clean_up_force()
         return -1
     clean_up()
-    return 0
+    sys.exit()
 
 if __name__ == "__main__":
     main()

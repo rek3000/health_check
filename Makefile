@@ -7,4 +7,7 @@ gen:
 	cat output/data.json
 doc:
 	python rek/rekdoc.py
+clean:
+	rm -rf temp/*
+	rm -rf output/*
 .PHONY: init test

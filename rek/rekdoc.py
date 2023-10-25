@@ -21,7 +21,6 @@ def assert_data(data):
         if i == 'raid_stat': continue
         if i == 'mem_util': i = 'mem_free'
         asserted[i] = ['','']
-    print(asserted)
     if data['fault'] == 'No faults found':
         asserted['fault'][0] = 5
         asserted['fault'][1] = 'Lỗi: Không\nĐánh giá: ' + ASSERTION[5]
@@ -136,6 +135,7 @@ def get_score(asserted):
     print(checklist)
     return checklist
 
+# #!@#!@#@!
 def drw_table(doc, checklist, row, col, info=False):
     if checklist == []:
         return -1
@@ -184,7 +184,6 @@ def define_doc():
     except Exception as err:
         print('Error:', err)
         sys.exit()
-        
     return doc
 
 def drw_doc(doc):
@@ -211,6 +210,22 @@ def drw_doc(doc):
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
         drw_info(doc, checklist)
         tools.save_json( './output/' + node + '_asserted.json' ,file_dump)
+    # image = [ ['env_back-1.png', 'env_back-2.png'],
+    #           ['env_back-1.png', 'env_back-2.png'] 
+    #          ]
+    # tab = drw_table(doc, image, 2, 2)
+    # for i in range(1, len(image)):
+    #     rows = tab.rows[i]
+    #     cells = rows.cells
+    #     for j in range(0, len(image[i])):
+    #         try:
+    #             cells[j].text = ''
+    #             para = cells[j].paragraphs[0]
+    #             run = para.add_run()
+    #             run.add_picture('./sample/' + image[1][i])
+    #         except:
+    #             break
+
     print()
     return doc
 
