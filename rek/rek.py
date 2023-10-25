@@ -9,15 +9,13 @@ import zipfile, tarfile
 import json
 import argparse
 import tools
+import rekdoc
 
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
 FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
 TEMP='/ilom/@usr@local@bin@collect_properties.out'
 FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
-# FAULT='@usr@local@bin@fmadm_faulty.out'
-# TEMP='@usr@local@bin@collect_properties.out'
-# FIRMWARE='@usr@local@bin@collect_properties.out'
 ##
 ## ORACLE LINUX
 IMAGE_LINUX=''
@@ -76,7 +74,8 @@ def check_valid(path):
 
 def extract_file(serial, compress):
     compress = compress.lower()
-    regex = '*[_.]' + serial + '[_.]*.' + compress
+    # regex = '*[_.]' + serial + '[_.]*.' + compress
+    regex = '*' + serial + '*.' + compress
     file = get_file(regex, root='./sample/') 
     if file == -1: return -1
 
@@ -101,7 +100,15 @@ def get_file(regex, root=''):
     else:
         for i in range(len(files)):
             print('[', i, '] ', files[i], sep='')
-        c = int(input('Which file?\n [0] ') or '0')
+        while True:
+            try:
+                c = int(input('Which file?\n [0] ') or '0')
+            except:
+                continue
+            if c < 0 and c > len(files):
+                continue
+            else: 
+                break
         return files[c]
 
 def grep(path, regex, single_line=True):
@@ -127,21 +134,14 @@ def grep(path, regex, single_line=True):
 
 def get_ilom(path):
     print('##### ILOM #####')
-    # file = get_file(FAULT, path)
-    # fault = cat(file).strip()
     fault = cat(path + FAULT).strip()
 
-    # file = get_file(TEMP, path)
-    # inlet_temp = grep(file, 'inlet_temp').strip().split()
     inlet_temp = grep(path + TEMP, 'inlet_temp').strip().split()
     inlet_temp = ' '.join(inlet_temp[2:5])
 
-    # exhaust_temp = grep(file, 'exhaust_temp').strip().split()
     exhaust_temp = grep(path + TEMP, 'exhaust_temp').strip().split()
     exhaust_temp = ' '.join(exhaust_temp[2:5])
 
-    # file = get_file(FIRMWARE, path)
-    # firmware = grep(file, 'Version').strip().split()
     firmware = grep(path + FIRMWARE, 'Version').strip().split()
     firmware = ' '.join(firmware[1:])
 
@@ -216,9 +216,7 @@ def get_os(path, os='SOL'):
 def get_content(path):
     root = './temp/'
     orj_path = path[0]
-    # print(orj_path)
     for i in range(0, len(path)):
-        # path[i] = root + str(path[i]) 
         path[i] = root + str(path[i])
 
     # @@
@@ -289,16 +287,15 @@ def untar(file):
                 t_object.extractall(path='./temp/')
                 print('> UNTAR:', file)
             except:
-                file = tools.rm_ext(file, 'tar.gz')
-                if clean_up('./temp/' + file) == -1:
+                buffer = tools.rm_ext(file, 'tar.gz')
+                if clean_up('./temp/' + buffer) == -1:
                     return -1
                 t_object.extractall(path='./temp/')
-
     except Exception as err:
         print(err)
         return -1
 
-def compose_info():
+def compile():
     try:
         with open('./input', 'r') as file:
             number = file.readlines()
@@ -311,14 +308,16 @@ def compose_info():
         serial = number[i].strip()
         print(serial)
         serial = serial.split(' ')
-        if len(serial) != 2: 
-            print('Error: Not enough serial!')
+        if len(serial) != 1: 
+            print('Error: Only one name each line!')
             return -1
 
         path = ['','']
         print('##### EXTRACT FILES #####')
-        path[0] = extract_file(serial[0], 'zip')
-        path[1] = extract_file(serial[1], 'tar.gz')
+        # path[0] = extract_file(serial[0], 'zip')
+        # path[1] = extract_file(serial[1], 'tar.gz')
+        path[0] = extract_file(serial, 'zip')
+        path[1] = extract_file(serial, 'tar.gz')
         print('##### END EXTRACTION #####\n')
 
         if path == [-1, -1]: 
@@ -336,9 +335,9 @@ def compose_info():
             return -1 
     return output_files
 
-# MAIN 
+# FLOW OF PROGRAM
 def run():
-    output_files = compose_info()
+    output_files = compile()
     if output_files == -1:
         print('Error: No files to join!')
         return -1
@@ -347,6 +346,7 @@ def run():
         tools.join_json(output_files)
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
+        rekdoc.run()
         return 
 ##### END_IMPLEMENTATION #####
 
