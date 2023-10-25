@@ -148,24 +148,30 @@ def drw_table(doc, checklist, row, col, info=False):
     for r in range(len(checklist[0])):
         cell = cols[r]
         cell.text = checklist[0][r]
+        cell.paragraphs[0].style = 'Table Heading'
         shading_elm = parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), TABLE_RED))
         cell._tc.get_or_add_tcPr().append(shading_elm)
 
     # ADD CONTENT TO TABLE
     if not info:
         for i in range(1, len(checklist)):
-            rows = tab.add_row().cells
+            rows = tab.rows[i]
+            cells = rows.cells
             for j in range(0, len(checklist[i])):
-                rows[j].text = checklist[i][j]
+                cells[j].text = checklist[i][j]
+                cells[j].paragraphs[0].style = 'Table Contents'
     else:
         for i in range(1, len(checklist)):
-            rows = tab.add_row().cells
+            rows = tab.rows[i]
+            cells = rows.cells
             for j in range(0, len(checklist[i])):
                 print( checklist[i][j])
                 if j == (len(checklist[i])-1):
-                    rows[j].text = checklist[i][j][0]
+                    cells[j].text = checklist[i][j][0]
+                    cells[j].paragraphs[0].style = 'Table Contents'
                     continue
-                rows[j].text = str(checklist[i][j])
+                cells[j].text = str(checklist[i][j])
+                cells[j].paragraphs[0].style = 'Table Contents'
     return tab
 
 def drw_info(doc, checklist):
@@ -198,9 +204,9 @@ def drw_doc(doc):
                 ['Hostname', 'Product Name', 'Serial Number', 'IP Address'],
                 [node,'','',''],
                 ]
-        drw_table(doc, overview, 1, 4)
+        drw_table(doc, overview, 2, 4)
         doc.add_paragraph("Đánh giá", style='baocao3')
-        drw_table(doc, checklist, 1, 3, True)
+        drw_table(doc, checklist, 11, 3, True)
 
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
         drw_info(doc, checklist)
