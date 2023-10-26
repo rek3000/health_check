@@ -1,5 +1,6 @@
 #!/bin/env python
 
+
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
@@ -191,7 +192,8 @@ def get_os(path, os='SOL'):
         load_avg = ' '.join(load).split()[-3:]
         load_avg = float((max(load_avg)))
         vcpu = grep(path + VCPU_SOL, 'primary').strip().split()[4]
-        load_avg_per = load_avg / float(vcpu)
+        vcpu = int(vcpu)
+        load_avg_per = load_avg / vcpu
         load_avg_per = float(f'{load_avg_per:.3f}')
         x['load']['load_avg'] = load_avg
         x['load']['vcpu'] = vcpu
@@ -347,10 +349,26 @@ def run():
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         rekdoc.run()
+def argparse_check():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('square', 
+                        help='display a square of a given number',
+                        type=int)
+    parser.add_argument('-v', '--verbosity', help='increase output verbosity',
+                        action='count')
+    args = parser.parse_args()
+    answer = args.square**2
+    if args.verbosity == 2:
+        print(f"the square of {args.square} equals {answer}")
+    elif args.verbosity == 1:
+        print(f"{args.square}^2 == {answer}")
+    else:
+        print(answer)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
 def main():
+    argparse_check()
     if run() == -1: 
         clean_up_force()
         return -1

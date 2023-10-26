@@ -83,7 +83,7 @@ def assert_data(data):
         asserted['load'][0] = 3
     else:
         asserted['load'][0] = 1
-    asserted['load'][1] = 'CPU Load Average: ' + str(data['load']['load_avg']) + '\nNumber of Cores: ' + data['load']['vcpu'] + '\nCPU Load Average per core = CPU Load Average / Number of Cores = ' + str(data['load']['load_avg_per']) 
+    asserted['load'][1] = 'CPU Load Average: ' + str(data['load']['load_avg']) + '\nNumber of Cores: ' + str(data['load']['vcpu']) + '\nCPU Load Average per core = CPU Load Average / Number of Cores = ' + str(data['load']['load_avg_per']) 
     
     mem_free = 100 - data['mem_util'] 
     if mem_free >= 20:
