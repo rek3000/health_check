@@ -298,46 +298,35 @@ def untar(file):
         print(err)
         return -1
 
-def compile():
-    try:
-        with open('./input', 'r') as file:
-            number = file.readlines()
-    except Exception as err:
-        print(err)
-        return -1
-
+def compile(nodes):
+    n = len(nodes)
     output_files = []
-    for i in range(len(number)):
-        serial = number[i].strip()
-        print(serial)
-        # if len(serial) != 1: 
-        #     print('Error: Only one name each line!')
-        #     return -1
-
+    for i in range(n):
         path = ['','']
         print('##### EXTRACT FILES #####')
-        path[0] = extract_file(serial, 'zip')
-        path[1] = extract_file(serial, 'tar.gz')
+        path[0] = extract_file(nodes[i], 'zip')
+        path[1] = extract_file(nodes[i], 'tar.gz')
         print('##### END EXTRACTION #####\n')
 
         if path == [-1, -1]: 
             print('Error: PATH not exist!')
-            return -1
-
+            # return -1
+            nodes.pop()
+            continue
         print('PATH: ', path)
 
-        data = input('Output file: ').strip()
-        output_files += [data]
+        node = nodes[i]
+        output_files += [node]
 
-        data = './output/' + data + '.json'
+        data = './output/' + node + '.json'
         content = get_content(path)
         if tools.save_json(data, content) == -1:
             return -1 
     return output_files
 
 # FLOW OF PROGRAM
-def run():
-    output_files = compile()
+def run(nodes):
+    output_files = compile(nodes)
     if output_files == -1:
         print('Error: No files to join!')
         return -1
@@ -349,27 +338,42 @@ def run():
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         rekdoc.run()
-def argparse_check():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('square', 
-                        help='display a square of a given number',
-                        type=int)
-    parser.add_argument('-v', '--verbosity', help='increase output verbosity',
-                        action='count')
-    args = parser.parse_args()
-    answer = args.square**2
-    if args.verbosity == 2:
-        print(f"the square of {args.square} equals {answer}")
-    elif args.verbosity == 1:
-        print(f"{args.square}^2 == {answer}")
-    else:
-        print(answer)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
 def main():
-    argparse_check()
-    if run() == -1: 
+    parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.')
+    # group_input = parser.add_mutually_exclusive_group()
+    parser.add_argument('-i', help='file with node names',
+                        # nargs='',
+                        metavar='file',
+                        )
+    parser.add_argument('node', help='machine names',
+                             nargs='+', default=''
+                             )
+    parser.add_argument('-o', help='output report file directory',
+                        metavar='doc',
+                        default='./output/',
+                        )
+                       
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", action="store_true")
+    group.add_argument("-q", "--quiet", action="store_true")
+    args = parser.parse_args()
+    print(args.i)
+    nodes_input = []
+    try:
+        with open(args.i, 'r') as f:
+            line = f.readlines()
+            for i in range(len(line)):
+                nodes_input.append(line[i].strip())
+    except Exception as err:
+        print('Invalid or missing input file')
+        return -1
+    nodes = nodes_input + args.node
+    print(nodes)
+
+    if run(nodes) == -1: 
         clean_up_force()
         return -1
     clean_up()
