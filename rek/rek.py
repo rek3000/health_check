@@ -10,37 +10,8 @@ import json, io
 import zipfile, tarfile
 import argparse
 import rekdoc, tools
+from rekvar import *
 
-##### DEFAULT PATHS #####
-## INTERGRATED LIGHT OUT MANAGEMENT
-FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
-TEMP='/ilom/@usr@local@bin@collect_properties.out'
-FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
-##
-## ORACLE LINUX
-IMAGE_LINUX=''
-PARTITION_LINUX='/disks/df-kl.out'
-RAID='' 
-NETWORK='/sysconfig/ifconfig-a.out'
-CPU_ULTILIZATION=''
-CPU_LOAD_LINUX=''
-MEM_LINUX=''
-SWAP_SOL=''
-EXTRACT_LOCATION='./temp/'
-#HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
-##
-## ORACLE SOLARIS
-IMAGE_SOL='/etc/release'
-PARTITION_SOL='/disks/df-kl.out'
-RAID_SOL='/disks/zfs/zpool_status_-v.out' 
-NETWORK_SOL='/netinfo/ipadm.out'
-CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
-CPU_LOAD_SOL='/sysconfig/prstat-L.out'
-VCPU_SOL='/ldom/ldm_list.out'
-MEM_SOL='/disks/zfs/mdb/mdb-memstat.out'
-SWAP_SOL='/disks/swap-s.out'
-##
-##### END_PATHS #####
 
 ##### IMPLEMETATION #####
 def clean_files(folder='./temp/'):
@@ -301,7 +272,7 @@ def untar(file):
 
 def compile(nodes):
     n = len(nodes)
-    output_files = []
+    content_files = []
     for i in range(n):
         path = ['','']
         print('##### EXTRACT FILES #####')
@@ -316,13 +287,14 @@ def compile(nodes):
 
         
         node = path[1].split('.')[2] # get machine name
-        output_files += [node]
+        content_files += [node]
 
-        file_name = './output/' + node
+        file_name = node
         content = get_content(node, path)
-        if tools.save_json(file_name, content) == -1:
+        print(file_name)
+        if tools.save_json('./output/' + file_name, content) == -1:
             return -1 
-    return output_files
+    return content_files 
 
 # FLOW OF PROGRAM
 def run(nodes, output):
@@ -365,7 +337,7 @@ def main():
     group.add_argument("-v", "--verbose", required=False, action="store_true")
     group.add_argument("-q", "--quiet", required=False, action="store_true")
     args = parser.parse_args()
-    
+
     if (not args.node) and (not args.i):
         parser.parse_args(['-h'])
         return 
@@ -381,6 +353,9 @@ def main():
     nodes = nodes_input + args.node
     print(nodes)
 
+    # context = 'Em dado nay co con xem phim not minh\n em daon ay co do an va shopping\n'
+    # file = 'ngot.png'
+    # tools.drw_text_image(context, file)
     if run(nodes, args.o) == -1: 
         clean_up_force()
         return -1

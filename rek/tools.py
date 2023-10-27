@@ -1,4 +1,7 @@
 import json
+from wand.image import Image
+from wand.drawing import Drawing
+from wand.color import Color
 
 ##### JSON #####
 #get a dictionary as input and dump it to a json type file
@@ -52,3 +55,30 @@ def save_file(file, content):
 
 def rm_ext(file, ext):
     return file.split('/')[2][:-len(ext)-1]
+
+##### IMAGEMAGICK #####
+def drw_text_image(text, file):
+    with Image(width=1024, height=600, background=Color('black')) as img:
+        img.format = 'png'
+        x = int((img.width - len(text.split('\n')[0])*20)/3)
+        print(x)
+        y = 12
+        with Drawing() as context:
+            context.font_family = 'monospace'
+            context.font_size = y
+            context.fill_color = Color('white')
+            metrics = context.get_font_metrics(
+                    img,
+                    text,
+                    multiline=True
+                    )
+
+            # context.text(int(img.width // 4), int(img.height // 4), text)
+            a = text.split('\n')[0]
+            print(a)
+            print(len(a))
+            info = context.text(x, y, text)
+            context(img)
+            # print(metrics)
+            img.save(filename='PNG24:' + file)
+##### END OF IMAGEMAGICK #####

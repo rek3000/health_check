@@ -210,10 +210,10 @@ def drw_doc(doc, nodes):
 
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
         drw_info(doc, checklist)
-        asserted_file =  './output/' + node + '_asserted'
+        asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
-        tools.save_json(asserted_file, file_dump)
-    tools.join_json(asserted_list, './output/' + nodes + '_asserted')
+        tools.save_json('./output/' + asserted_file, file_dump)
+    tools.join_json(asserted_list, nodes + '_asserted')
     # image = [ ['env_back-1.png', 'env_back-2.png'],
     #           ['env_back-1.png', 'env_back-2.png'] 
     #          ]
