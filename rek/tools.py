@@ -8,7 +8,7 @@ def save_json(file, content):
         return -1
 
     try:
-        with open(file, 'w') as f:
+        with open(file + '.json', 'w') as f:
             json.dump(content, f, indent=2)
     except OSError as err:
         print('OS error: ', err)
@@ -25,11 +25,12 @@ def read_json(file):
         raise RuntimeError('Cannot read JSON') from err
         return -1
 
-def join_json(output):
+def join_json(content_files, output):
     try:
-        with open('./output/data.json', 'a+') as file:
+        with open(output + '.json', 'a+') as file:
             x = {}
-            for i in output:
+            for i in content_files:
+                print(i)
                 path = './output/' + i + '.json'
                 buffer = read_json(path)
                 key = list(buffer)[0]

@@ -4,14 +4,12 @@
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys
+import os, sys, signal
 import shutil, glob, re
-import io 
+import json, io 
 import zipfile, tarfile
-import json
 import argparse
-import tools
-import rekdoc
+import rekdoc, tools
 
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
@@ -102,15 +100,18 @@ def get_file(regex, root=''):
     else:
         for i in range(len(files)):
             print('[', i, '] ', files[i], sep='')
+        c = ''
         while True:
             try:
                 c = int(input('Which file?\n [0] ') or '0')
-            except:
+                if c < 0 and c > len(files):
+                    continue
+            except KeyboardInterrupt:
+                print()
+                sys.exit()
+            except ValueError:
                 continue
-            if c < 0 and c > len(files):
-                continue
-            else: 
-                break
+            break
         return files[c]
 
 def grep(path, regex, single_line=True):
@@ -216,7 +217,7 @@ def get_os(path, os='SOL'):
         print()
     return x
 
-def get_content(path):
+def get_content(node, path):
     root = './temp/'
     orj_path = path[0]
     for i in range(0, len(path)):
@@ -225,7 +226,7 @@ def get_content(path):
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], 'SOL')
-    name = orj_path.split('_')[0]
+    name = node
 
     content = {}
     content[name] = {
@@ -298,78 +299,89 @@ def untar(file):
         print(err)
         return -1
 
-def compile():
-    try:
-        with open('./input', 'r') as file:
-            number = file.readlines()
-    except Exception as err:
-        print(err)
-        return -1
-
+def compile(nodes):
+    n = len(nodes)
     output_files = []
-    for i in range(len(number)):
-        serial = number[i].strip()
-        print(serial)
-        # if len(serial) != 1: 
-        #     print('Error: Only one name each line!')
-        #     return -1
-
+    for i in range(n):
         path = ['','']
         print('##### EXTRACT FILES #####')
-        path[0] = extract_file(serial, 'zip')
-        path[1] = extract_file(serial, 'tar.gz')
+        path[0] = extract_file(nodes[i], 'zip')
+        path[1] = extract_file(nodes[i], 'tar.gz')
         print('##### END EXTRACTION #####\n')
 
         if path == [-1, -1]: 
-            print('Error: PATH not exist!')
+            print('Error: file not exist!')
             return -1
-
         print('PATH: ', path)
 
-        data = input('Output file: ').strip()
-        output_files += [data]
+        
+        node = path[1].split('.')[2] # get machine name
+        output_files += [node]
 
-        data = './output/' + data + '.json'
-        content = get_content(path)
-        if tools.save_json(data, content) == -1:
+        file_name = './output/' + node
+        content = get_content(node, path)
+        if tools.save_json(file_name, content) == -1:
             return -1 
     return output_files
 
 # FLOW OF PROGRAM
-def run():
-    output_files = compile()
-    if output_files == -1:
+def run(nodes, output):
+    content_files = compile(nodes)
+    if content_files == -1:
         print('Error: No files to join!')
         return -1
 
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        tools.join_json(output_files)
+        tools.join_json(content_files, output)
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        rekdoc.run()
-def argparse_check():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('square', 
-                        help='display a square of a given number',
-                        type=int)
-    parser.add_argument('-v', '--verbosity', help='increase output verbosity',
-                        action='count')
-    args = parser.parse_args()
-    answer = args.square**2
-    if args.verbosity == 2:
-        print(f"the square of {args.square} equals {answer}")
-    elif args.verbosity == 1:
-        print(f"{args.square}^2 == {answer}")
-    else:
-        print(answer)
+        rekdoc.run(output)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
 def main():
-    argparse_check()
-    if run() == -1: 
+    parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
+                                     usage='%(prog)s [options] node [node...]',
+                                     epilog='Created by Rek',
+                                     exit_on_error=False)
+    # group_input = parser.add_mutually_exclusive_group()
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    parser.add_argument('-i', help='file with node names',
+                        # nargs='',
+                        metavar='file'
+                        )
+    parser.add_argument('node', help='machine names',
+                        nargs='*', 
+                        default=None,
+                        )
+    parser.add_argument('-o', help='output file name',
+                        metavar='doc',
+                        default='./output/output',
+                        )
+                       
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", required=False, action="store_true")
+    group.add_argument("-q", "--quiet", required=False, action="store_true")
+    args = parser.parse_args()
+    
+    if (not args.node) and (not args.i):
+        parser.parse_args(['-h'])
+        return 
+    nodes_input = []
+    try:
+        with open(args.i, 'r') as f:
+            line = f.readlines()
+            for i in range(len(line)):
+                nodes_input.append(line[i].strip())
+    except Exception as err:
+        print('Invalid or missing input file')
+
+    nodes = nodes_input + args.node
+    print(nodes)
+
+    if run(nodes, args.o) == -1: 
         clean_up_force()
         return -1
     clean_up()
