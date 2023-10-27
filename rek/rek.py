@@ -318,7 +318,7 @@ def compile(nodes):
         node = path[1].split('.')[2] # get machine name
         output_files += [node]
 
-        file_name = './output/' + node + '.json'
+        file_name = './output/' + node
         content = get_content(node, path)
         if tools.save_json(file_name, content) == -1:
             return -1 
@@ -333,7 +333,7 @@ def run(nodes, output):
 
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        tools.join_json(content_files, './output/' + output)
+        tools.join_json(content_files, output)
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:

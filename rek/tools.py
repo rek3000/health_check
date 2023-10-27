@@ -8,7 +8,7 @@ def save_json(file, content):
         return -1
 
     try:
-        with open(file, 'w') as f:
+        with open(file + '.json', 'w') as f:
             json.dump(content, f, indent=2)
     except OSError as err:
         print('OS error: ', err)

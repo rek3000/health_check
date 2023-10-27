@@ -187,7 +187,7 @@ def define_doc():
     return doc
 
 def drw_doc(doc, nodes):
-    data = tools.read_json('./output/' + nodes + '.json')
+    data = tools.read_json(nodes + '.json')
     print(json.dumps(data, indent=2))
     asserted_list = []
     for node in data:
@@ -213,7 +213,7 @@ def drw_doc(doc, nodes):
         asserted_file =  './output/' + node + '_asserted'
         asserted_list += [asserted_file]
         tools.save_json(asserted_file, file_dump)
-    # tools.join_json(asserted_list, './output/' + nodes + '_asserted')
+    tools.join_json(asserted_list, './output/' + nodes + '_asserted')
     # image = [ ['env_back-1.png', 'env_back-2.png'],
     #           ['env_back-1.png', 'env_back-2.png'] 
     #          ]
