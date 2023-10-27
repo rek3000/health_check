@@ -4,14 +4,12 @@
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys
+import os, sys, signal
 import shutil, glob, re
-import io 
+import json, io 
 import zipfile, tarfile
-import json
 import argparse
-import tools
-import rekdoc
+import rekdoc, tools
 
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
@@ -102,15 +100,18 @@ def get_file(regex, root=''):
     else:
         for i in range(len(files)):
             print('[', i, '] ', files[i], sep='')
+        c = ''
         while True:
             try:
                 c = int(input('Which file?\n [0] ') or '0')
-            except:
+                if c < 0 and c > len(files):
+                    continue
+            except KeyboardInterrupt:
+                print()
+                sys.exit()
+            except ValueError:
                 continue
-            if c < 0 and c > len(files):
-                continue
-            else: 
-                break
+            break
         return files[c]
 
 def grep(path, regex, single_line=True):
@@ -216,7 +217,7 @@ def get_os(path, os='SOL'):
         print()
     return x
 
-def get_content(path):
+def get_content(node, path):
     root = './temp/'
     orj_path = path[0]
     for i in range(0, len(path)):
@@ -225,7 +226,7 @@ def get_content(path):
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], 'SOL')
-    name = orj_path.split('_')[0]
+    name = node
 
     content = {}
     content[name] = {
@@ -309,58 +310,65 @@ def compile(nodes):
         print('##### END EXTRACTION #####\n')
 
         if path == [-1, -1]: 
-            print('Error: PATH not exist!')
-            # return -1
-            nodes.pop()
-            continue
+            print('Error: file not exist!')
+            return -1
         print('PATH: ', path)
 
-        node = nodes[i]
+        
+        node = path[1].split('.')[2] # get machine name
         output_files += [node]
 
-        data = './output/' + node + '.json'
-        content = get_content(path)
-        if tools.save_json(data, content) == -1:
+        file_name = './output/' + node + '.json'
+        content = get_content(node, path)
+        if tools.save_json(file_name, content) == -1:
             return -1 
     return output_files
 
 # FLOW OF PROGRAM
-def run(nodes):
-    output_files = compile(nodes)
-    if output_files == -1:
+def run(nodes, output):
+    content_files = compile(nodes)
+    if content_files == -1:
         print('Error: No files to join!')
         return -1
 
     choice = input('Join all input?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        tools.join_json(output_files)
+        tools.join_json(content_files, './output/' + output)
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        rekdoc.run()
+        rekdoc.run(output)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
 def main():
-    parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.')
+    parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
+                                     usage='%(prog)s [options] node [node...]',
+                                     epilog='Created by Rek',
+                                     exit_on_error=False)
     # group_input = parser.add_mutually_exclusive_group()
+    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
     parser.add_argument('-i', help='file with node names',
                         # nargs='',
-                        metavar='file',
+                        metavar='file'
                         )
     parser.add_argument('node', help='machine names',
-                             nargs='+', default=''
-                             )
-    parser.add_argument('-o', help='output report file directory',
+                        nargs='*', 
+                        default=None,
+                        )
+    parser.add_argument('-o', help='output file name',
                         metavar='doc',
-                        default='./output/',
+                        default='./output/output',
                         )
                        
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", action="store_true")
-    group.add_argument("-q", "--quiet", action="store_true")
+    group.add_argument("-v", "--verbose", required=False, action="store_true")
+    group.add_argument("-q", "--quiet", required=False, action="store_true")
     args = parser.parse_args()
-    print(args.i)
+    
+    if (not args.node) and (not args.i):
+        parser.parse_args(['-h'])
+        return 
     nodes_input = []
     try:
         with open(args.i, 'r') as f:
@@ -369,11 +377,11 @@ def main():
                 nodes_input.append(line[i].strip())
     except Exception as err:
         print('Invalid or missing input file')
-        return -1
+
     nodes = nodes_input + args.node
     print(nodes)
 
-    if run(nodes) == -1: 
+    if run(nodes, args.o) == -1: 
         clean_up_force()
         return -1
     clean_up()

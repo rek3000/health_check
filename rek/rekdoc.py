@@ -186,9 +186,10 @@ def define_doc():
         sys.exit()
     return doc
 
-def drw_doc(doc):
-    data = tools.read_json('./output/data.json')
+def drw_doc(doc, nodes):
+    data = tools.read_json('./output/' + nodes + '.json')
     print(json.dumps(data, indent=2))
+    asserted_list = []
     for node in data:
         file_dump = {}
         asserted = assert_data(data[node])
@@ -209,7 +210,10 @@ def drw_doc(doc):
 
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
         drw_info(doc, checklist)
-        tools.save_json( './output/' + node + '_asserted.json' ,file_dump)
+        asserted_file =  './output/' + node + '_asserted'
+        asserted_list += [asserted_file]
+        tools.save_json(asserted_file, file_dump)
+    # tools.join_json(asserted_list, './output/' + nodes + '_asserted')
     # image = [ ['env_back-1.png', 'env_back-2.png'],
     #           ['env_back-1.png', 'env_back-2.png'] 
     #          ]
@@ -237,12 +241,12 @@ def print_style(doc):
     for style in p_styles:
         print(style.name)
 
-def run():
+def run(output):
     doc = define_doc() 
-    doc = drw_doc(doc)
+    doc = drw_doc(doc, output)
 
     print_style(doc)
-    doc.save("./output/dcx8m2_out.docx")
+    doc.save(output + '.docx')
 
 ##### MAIN #####
 def main():
