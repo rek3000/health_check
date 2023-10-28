@@ -36,7 +36,8 @@ def join_json(content_files, output):
             x = {}
             for i in content_files:
                 print(i)
-                path = './output/' + i + '.json'
+                path = './output/' + i.split('.')[0]
+                path = ''.join(path).split('_')[0]  + '/' + i + '.json'
                 buffer = read_json(path)
                 key = list(buffer)[0]
                 x[key] = buffer[key]
@@ -118,7 +119,7 @@ def cursed_grep(path, regex, number=0):
             result.write(lines[i])
     return result
 
-def grep(path, regex, single_line=True, line=False):
+def grep(path, regex, single_line=True, print_line=False):
     result = ''
     flag = re.MULTILINE
     pattern = re.compile(regex, flag)
@@ -129,18 +130,20 @@ def grep(path, regex, single_line=True, line=False):
         for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-                if line:
+                # print(line + 1, ': ', content[line], sep='', end='')
+                if print_line:
                     result = str(line + 1) + ': ' + result
-
+                print(result)
                 break 
     else:
         for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-                if line:
+                # print(line + 1, ': ', content[line], sep='', end='')
+                if print_line:
                     result = str(line + 1) + ': ' + result
+                print(result)
+                break
     print()
     return result
 ##### END BASE #####

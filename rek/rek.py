@@ -151,6 +151,7 @@ def get_os(path, os='SOL'):
         load_avg = ' '.join(load).split()[-3:]
         load_avg = float((max(load_avg)))
         vcpu = tools.grep(path + VCPU_SOL, 'primary').strip().split()[4]
+        print(vcpu)
         vcpu = int(vcpu)
         load_avg_per = load_avg / vcpu
         load_avg_per = float(f'{load_avg_per:.3f}')
@@ -255,14 +256,18 @@ def compile(nodes):
             return -1
         print('PATH: ', path)
 
-        
         node = path[1].split('.')[2] # get machine name
         content_files += [node]
+        try: 
+            os.mkdir('./output/' + node)
+            print('Folder created: ' + node)
+        except FileExsistsError as err:
+            print()
 
         file_name = node
         content = get_content(node, path)
         print(file_name)
-        if tools.save_json('./output/' + file_name, content) == -1:
+        if tools.save_json('./output/' + node + '/' + file_name, content) == -1:
             return -1 
     return content_files 
 
@@ -279,6 +284,7 @@ def run(nodes, output):
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
+        print('OUTPUT FOR REKDOC: ' + output)
         rekdoc.run(output)
 ##### END_IMPLEMENTATION #####
 

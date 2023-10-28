@@ -212,24 +212,8 @@ def drw_doc(doc, nodes):
         drw_info(doc, checklist)
         asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
-        tools.save_json('./output/' + asserted_file, file_dump)
+        tools.save_json('./output/' + node + '/' + asserted_file, file_dump)
     tools.join_json(asserted_list, nodes + '_asserted')
-    # image = [ ['env_back-1.png', 'env_back-2.png'],
-    #           ['env_back-1.png', 'env_back-2.png'] 
-    #          ]
-    # tab = drw_table(doc, image, 2, 2)
-    # for i in range(1, len(image)):
-    #     rows = tab.rows[i]
-    #     cells = rows.cells
-    #     for j in range(0, len(image[i])):
-    #         try:
-    #             cells[j].text = ''
-    #             para = cells[j].paragraphs[0]
-    #             run = para.add_run()
-    #             run.add_picture('./sample/' + image[1][i])
-    #         except:
-    #             break
-
     print()
     return doc
 
