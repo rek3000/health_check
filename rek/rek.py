@@ -1,17 +1,25 @@
 #!/bin/env python
-
-
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
 import os, sys, signal
-import shutil, glob, re
-import json, io 
+import shutil, glob 
+import json
 import zipfile, tarfile
 import argparse
 import rekdoc, tools
 from rekvar import *
 
+##### DECORATORS #####
+def debug(func):
+    def _debug(*args, **kwargs):
+        result = func(*args, **kwargs)
+        print(
+            f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}"
+        )
+        return result
+    return _debug
+##### END OF DECORATORS #####
 
 ##### IMPLEMETATION #####
 def clean_files(folder='./temp/'):
@@ -85,38 +93,17 @@ def get_file(regex, root=''):
             break
         return files[c]
 
-def grep(path, regex, single_line=True):
-    result = ''
-    flag = re.MULTILINE
-    pattern = re.compile(regex, flag)
-    file = cat(path, False)
-    content = file.readlines()
-
-    if single_line:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-                break 
-    else:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-    print()
-    return result
-
 def get_ilom(path):
     print('##### ILOM #####')
-    fault = cat(path + FAULT).strip()
+    fault = tools.cat(path + FAULT).strip()
 
-    inlet_temp = grep(path + TEMP, 'inlet_temp').strip().split()
+    inlet_temp = tools.grep(path + TEMP, 'inlet_temp').strip().split()
     inlet_temp = ' '.join(inlet_temp[2:5])
 
-    exhaust_temp = grep(path + TEMP, 'exhaust_temp').strip().split()
+    exhaust_temp = tools.grep(path + TEMP, 'exhaust_temp').strip().split()
     exhaust_temp = ' '.join(exhaust_temp[2:5])
 
-    firmware = grep(path + FIRMWARE, 'Version').strip().split()
+    firmware = tools.grep(path + FIRMWARE, 'Version').strip().split()
     firmware = ' '.join(firmware[1:])
 
     print('##### END OF ILOM #####')
@@ -125,24 +112,24 @@ def get_ilom(path):
 def get_os(path, os='SOL'):
     x = {}
     if os == 'SOL':
-        image = grep(path + IMAGE_SOL, 'Solaris').strip().split()
+        image = tools.grep(path + IMAGE_SOL, 'Solaris').strip().split()
         image = image[2]
         x['image'] = image
 
-        vol = grep(path + PARTITION_SOL, "\\B\/\\B").strip().split()
+        vol = tools.grep(path + PARTITION_SOL, "\\B\/\\B").strip().split()
         vol = vol[-2]
         vol_avail = 100 - int(vol[:-1])
         x['vol_avail'] = vol_avail
 
-        raid = grep(path + RAID_SOL, "mirror").strip().split()
+        raid = tools.grep(path + RAID_SOL, "mirror").strip().split()
         if 'ONLINE' in raid:
             raid_stat = True 
         else:
             raid_stat = False
         x['raid_stat'] = raid_stat
 
-        net_ipmp = grep(path + NETWORK_SOL, 'ipmp')
-        net_aggr = grep(path + NETWORK_SOL, 'aggr')
+        net_ipmp = tools.grep(path + NETWORK_SOL, 'ipmp')
+        net_aggr = tools.grep(path + NETWORK_SOL, 'aggr')
         if not net_ipmp and not net_aggr:
             bonding = 'none'
         elif net_ipmp and not net_aggr:
@@ -153,17 +140,17 @@ def get_os(path, os='SOL'):
             bonding = 'both'
         x['bonding'] = bonding
 
-        cpu_idle = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
+        cpu_idle = tools.cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
         cpu_idle = cpu_idle[2]
         cpu_idle = cpu_idle.split()[21]
         cpu_util = 100 - int(cpu_idle)
         x['cpu_util'] = cpu_util
 
         x['load'] = {}
-        load = grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
+        load = tools.grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
         load_avg = ' '.join(load).split()[-3:]
         load_avg = float((max(load_avg)))
-        vcpu = grep(path + VCPU_SOL, 'primary').strip().split()[4]
+        vcpu = tools.grep(path + VCPU_SOL, 'primary').strip().split()[4]
         vcpu = int(vcpu)
         load_avg_per = load_avg / vcpu
         load_avg_per = float(f'{load_avg_per:.3f}')
@@ -171,12 +158,12 @@ def get_os(path, os='SOL'):
         x['load']['vcpu'] = vcpu
         x['load']['load_avg_per'] = load_avg_per
 
-        mem = grep(path + MEM_SOL, 'freelist', False).strip().split()
+        mem = tools.grep(path + MEM_SOL, 'freelist', False).strip().split()
         mem_free = mem[-1]
         mem_util = 100 - int(mem_free[:-1])
         x['mem_util'] = mem_util
 
-        swap = cat(path + SWAP_SOL).strip().split()
+        swap = tools.cat(path + SWAP_SOL).strip().split()
         swap = [swap[8], swap[10]]
         swap[0] = int(swap[0][:-2])
         swap[1] = int(swap[1][:-2])
@@ -219,25 +206,7 @@ def get_content(node, path):
     print('##### END OF NODE INFORMATION #####\n')
     return content
 
-def cat(path, stdout=True):
-    result = ''
-    try:
-        with open(path, 'r') as file:
-            content = file.readlines()
-            if stdout:
-                count = 0
-                for l in content:
-                    result += l.lstrip()
-                    print(++count + 1, ': ', l, sep='', end='')
-                return result
-            else: 
-                for l in content:
-                    result += l.lstrip()
-                return io.StringIO(result)
-    except Exception as err:
-        raise RuntimeError('Cannot open file to read') from err
-        return -1
-
+@debug
 def unzip(file):
     if not zipfile.is_zipfile(file):
         print('Error: Not a zip file')
@@ -250,6 +219,7 @@ def unzip(file):
         print('Error:' , err)
         return -1
 
+@debug
 def untar(file):
     # sucks
     if not tarfile.is_tarfile(file):
@@ -353,9 +323,6 @@ def main():
     nodes = nodes_input + args.node
     print(nodes)
 
-    # context = 'Em dado nay co con xem phim not minh\n em daon ay co do an va shopping\n'
-    # file = 'ngot.png'
-    # tools.drw_text_image(context, file)
     if run(nodes, args.o) == -1: 
         clean_up_force()
         return -1
