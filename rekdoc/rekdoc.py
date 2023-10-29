@@ -7,8 +7,8 @@ import shutil, glob
 import json
 import zipfile, tarfile
 import argparse
-import rekdoc, tools
-from rekvar import *
+import doc, tools
+from const import *
 
 ##### DECORATORS #####
 def debug(func):
