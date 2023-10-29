@@ -120,12 +120,10 @@ def drw_content(path, output):
 
 def extract_file(serial, compress):
     compress = compress.lower()
-    # regex = '*[_.]' + serial + '[_.]*.' + compress
     regex = '*' + serial + '*.' + compress
     file = get_file(regex, root='./sample/') 
     if file == -1: return -1
 
-    print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
         return tools.rm_ext(file, compress)
@@ -218,7 +216,6 @@ def get_os(path, os='SOL'):
         load_avg = ' '.join(load).split()[-3:]
         load_avg = float((max(load_avg)))
         vcpu = tools.grep(path + VCPU_SOL, 'primary').strip().split()[4]
-        print(vcpu)
         vcpu = int(vcpu)
         load_avg_per = load_avg / vcpu
         load_avg_per = float(f'{load_avg_per:.3f}')
@@ -239,7 +236,7 @@ def get_os(path, os='SOL'):
         swap_util = int(swap_util * 100)
         x['swap_util'] = swap_util
 
-        print(x)
+        # print(x)
         print()
     return x
 
@@ -277,7 +274,7 @@ def unzip(file):
     try:
         with zipfile.ZipFile(file, 'r') as z_object:
             z_object.extractall(path='./temp/')
-            print('> UNZIP:', file)
+            # print('> UNZIP:', file)
     except Exception as err:
         print('Error:' , err)
         return -1
@@ -293,7 +290,7 @@ def untar(file):
         with tarfile.open(file, 'r') as t_object:
             try: 
                 t_object.extractall(path='./temp/')
-                print('> UNTAR:', file)
+                # print('> UNTAR:', file)
             except:
                 buffer = tools.rm_ext(file, 'tar.gz')
                 if clean_up('./temp/' + buffer) == -1:
@@ -335,7 +332,6 @@ def compile(nodes):
         print(path)
         content = get_content(node, path)
         # DRAW IMAGES FOR CONTENT
-        print(path)
         images = drw_content(path, './output/' + node + '/')
         # END DRAWING
         if tools.save_json('./output/' + node + '/' + node, content) == -1:
@@ -357,7 +353,6 @@ def run(nodes, output):
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        print('OUTPUT FOR REKDOC: ' + output)
         rekdoc.run(output)
 ##### END_IMPLEMENTATION #####
 

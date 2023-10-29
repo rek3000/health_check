@@ -199,9 +199,6 @@ def drw_doc(doc, nodes):
     data = tools.read_json(nodes + '.json')
     asserted_list = []
     for node in data:
-        # print('TYPE OF NOTE IN DATA ', end='')
-        # print(type(node))
-        # print(json.dumps(node, indent=2))
         images = tools.read_json('./output/' + node + '/images.json')
         print(json.dumps(images, indent=2))
         file_dump = {}
