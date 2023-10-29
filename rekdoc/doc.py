@@ -9,7 +9,7 @@ from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
-from rekdoc.tools import tools
+from rekdoc import tools
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: 'Kém', 3: 'Cần lưu ý', 5: 'Tốt'}
@@ -180,10 +180,10 @@ def drw_info(doc, node, checklist, images=[]):
         doc.add_paragraph(checklist[i][1], style='baocao4')
         if isinstance(images[i-1], list):
             for image in images[i-1]:
-                path = './output/' + node + '/' + image
+                path = 'output/' + node + '/' + image
                 doc.add_picture(path, width=Inches(6.73))
         else:
-            doc.add_picture('./output/' + node + '/' + images[i-1], width=Inches(6.73))
+            doc.add_picture('output/' + node + '/' + images[i-1], width=Inches(6.73))
         doc.add_paragraph(checklist[i][2][1])
     doc.add_page_break()
 
@@ -199,7 +199,7 @@ def drw_doc(doc, nodes):
     data = tools.read_json(nodes + '.json')
     asserted_list = []
     for node in data:
-        images = tools.read_json('./output/' + node + '/images.json')
+        images = tools.read_json('output/' + node + '/images.json')
         print(json.dumps(images, indent=2))
         file_dump = {}
         asserted = assert_data(data[node])
@@ -223,7 +223,7 @@ def drw_doc(doc, nodes):
         asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
         
-        tools.save_json('./output/' + node + '/' + asserted_file, file_dump)
+        tools.save_json('output/' + node + '/' + asserted_file, file_dump)
     tools.join_json(asserted_list, nodes + '_asserted')
     print()
     return doc

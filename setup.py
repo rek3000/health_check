@@ -11,6 +11,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 setup(
     name="rekdoc",  
     # packages=find_packages(where="."), 
+    include_package_data=True,
     packages=find_packages(), 
     version="1.0.0",  
     description="A document generation program",  

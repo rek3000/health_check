@@ -320,7 +320,7 @@ def compile(nodes):
         node = nodes[i]
         content_files += [node]
         try: 
-            os.mkdir('./output/' + node)
+            os.mkdir('output/' + node)
             print('Folder created: ' + node)
         except FileExsistsError as err:
             print()
@@ -333,11 +333,11 @@ def compile(nodes):
         print(path)
         content = get_content(node, path)
         # DRAW IMAGES FOR CONTENT
-        images = drw_content(path, './output/' + node + '/')
+        images = drw_content(path, 'output/' + node + '/')
         # END DRAWING
-        if tools.save_json('./output/' + node + '/' + node, content) == -1:
+        if tools.save_json('output/' + node + '/' + node, content) == -1:
             return -1 
-        if tools.save_json('./output/' + node + '/images', images) == -1:
+        if tools.save_json('output/' + node + '/images', images) == -1:
             return -1 
     return content_files 
 
@@ -374,7 +374,7 @@ def main():
                         )
     parser.add_argument('-o', help='output file name',
                         metavar='doc',
-                        default='./output/output',
+                        default='output/output',
                         )
                        
     group = parser.add_mutually_exclusive_group()
