@@ -1,13 +1,12 @@
 init:
-	pip install -r requirements.txt
-test:
-	./tests/test.sh
-gen:
-	python rek/rek.py
-	cat output/data.json
-doc:
-	python rek/rekdoc.py
+	python -m venv venv
+	source venv/bin/activate; pip install pex
+build:
+	source venv/bin/activate; python setup.py bdist_pex
+
+test: 
+	./dist/rekdoc-1.0.0.pex -i input -o test
 clean:
 	rm -rf temp/*
 	rm -rf output/*
-.PHONY: init test
+.PHONY:  

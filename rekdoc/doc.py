@@ -6,9 +6,10 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.style import WD_STYLE
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.shared import RGBColor
+from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
-import tools
+from rekdoc import tools
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: 'Kém', 3: 'Cần lưu ý', 5: 'Tốt'}
@@ -102,7 +103,7 @@ def assert_data(data):
         asserted['swap_util'][0] = 1
     asserted['swap_util'][1] = 'SWAP Ultilization: ' + str(data['swap_util']) + '%'
     
-    print(json.dumps(asserted, indent=2))
+    # print(json.dumps(asserted, indent=2))
     return asserted
 
 def get_score(asserted):
@@ -132,7 +133,7 @@ def get_score(asserted):
         checklist[i][2][0] = score 
         checklist[i][2][1] = comment
 
-    print(checklist)
+    # print(checklist)
     return checklist
 
 # #!@#!@#@!
@@ -172,9 +173,17 @@ def drw_table(doc, checklist, row, col, info=False):
                 cells[j].paragraphs[0].style = 'Table Contents'
     return tab
 
-def drw_info(doc, checklist):
+
+def drw_info(doc, node, checklist, images=[]):
+    print(node)
     for i in range(1, len(checklist)):
         doc.add_paragraph(checklist[i][1], style='baocao4')
+        if isinstance(images[i-1], list):
+            for image in images[i-1]:
+                path = 'output/' + node + '/' + image
+                doc.add_picture(path, width=Inches(6.73))
+        else:
+            doc.add_picture('output/' + node + '/' + images[i-1], width=Inches(6.73))
         doc.add_paragraph(checklist[i][2][1])
     doc.add_page_break()
 
@@ -188,17 +197,18 @@ def define_doc():
 
 def drw_doc(doc, nodes):
     data = tools.read_json(nodes + '.json')
-    print(json.dumps(data, indent=2))
     asserted_list = []
     for node in data:
+        images = tools.read_json('output/' + node + '/images.json')
+        print(json.dumps(images, indent=2))
         file_dump = {}
         asserted = assert_data(data[node])
+        
         file_dump[node] = asserted
 
         keys = list(asserted)
         checklist = get_score(asserted)
         doc.add_paragraph("Máy chủ " + node, style='baocao2')
-
         doc.add_paragraph("Thông tin tổng quát", style='baocao3')
         overview = [
                 ['Hostname', 'Product Name', 'Serial Number', 'IP Address'],
@@ -209,27 +219,12 @@ def drw_doc(doc, nodes):
         drw_table(doc, checklist, 11, 3, True)
 
         doc.add_paragraph("Thông tin chi tiết", style='baocao3')
-        drw_info(doc, checklist)
-        asserted_file =  './output/' + node + '_asserted'
+        drw_info(doc, node, checklist, images)
+        asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
-        tools.save_json(asserted_file, file_dump)
-    tools.join_json(asserted_list, './output/' + nodes + '_asserted')
-    # image = [ ['env_back-1.png', 'env_back-2.png'],
-    #           ['env_back-1.png', 'env_back-2.png'] 
-    #          ]
-    # tab = drw_table(doc, image, 2, 2)
-    # for i in range(1, len(image)):
-    #     rows = tab.rows[i]
-    #     cells = rows.cells
-    #     for j in range(0, len(image[i])):
-    #         try:
-    #             cells[j].text = ''
-    #             para = cells[j].paragraphs[0]
-    #             run = para.add_run()
-    #             run.add_picture('./sample/' + image[1][i])
-    #         except:
-    #             break
-
+        
+        tools.save_json('output/' + node + '/' + asserted_file, file_dump)
+    tools.join_json(asserted_list, nodes + '_asserted')
     print()
     return doc
 

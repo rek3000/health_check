@@ -1,46 +1,26 @@
-#!/bin/env python
-
-
-# *
+##!/bin/env python
+# 
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys, signal
-import shutil, glob, re
-import json, io 
+import os, sys, signal, io
+import shutil, glob
+import json
 import zipfile, tarfile
 import argparse
-import rekdoc, tools
+from rekdoc import doc
+from rekdoc import tools
+from rekdoc.const import *
 
-##### DEFAULT PATHS #####
-## INTERGRATED LIGHT OUT MANAGEMENT
-FAULT='/fma/@usr@local@bin@fmadm_faulty.out'
-TEMP='/ilom/@usr@local@bin@collect_properties.out'
-FIRMWARE='/ilom/@usr@local@bin@collect_properties.out'
-##
-## ORACLE LINUX
-IMAGE_LINUX=''
-PARTITION_LINUX='/disks/df-kl.out'
-RAID='' 
-NETWORK='/sysconfig/ifconfig-a.out'
-CPU_ULTILIZATION=''
-CPU_LOAD_LINUX=''
-MEM_LINUX=''
-SWAP_SOL=''
-EXTRACT_LOCATION='./temp/'
-#HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
-##
-## ORACLE SOLARIS
-IMAGE_SOL='/etc/release'
-PARTITION_SOL='/disks/df-kl.out'
-RAID_SOL='/disks/zfs/zpool_status_-v.out' 
-NETWORK_SOL='/netinfo/ipadm.out'
-CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
-CPU_LOAD_SOL='/sysconfig/prstat-L.out'
-VCPU_SOL='/ldom/ldm_list.out'
-MEM_SOL='/disks/zfs/mdb/mdb-memstat.out'
-SWAP_SOL='/disks/swap-s.out'
-##
-##### END_PATHS #####
+##### DECORATORS #####
+def debug(func):
+    def _debug(*args, **kwargs):
+        result = func(*args, **kwargs)
+        print(
+            f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}"
+        )
+        return result
+    return _debug
+##### END OF DECORATORS #####
 
 ##### IMPLEMETATION #####
 def clean_files(folder='./temp/'):
@@ -72,14 +52,79 @@ def clean_up_force(path='./temp/'):
 def check_valid(path):
     return os.path.isdir(path)
 
+def drw_ilom(path, out_dir):
+    fault = io.StringIO()
+    fault.write(path + FAULT + '\n')
+    fault.write(tools.cat(path + FAULT))
+    tools.drw_text_image(fault, out_dir + 'fault.png')
+
+    temp = io.StringIO()
+    temp.write(path + TEMP + '\n')
+    reg = '^ /System/Cooling$'
+    temp.write(tools.cursed_grep(path + TEMP, reg, 8).getvalue())
+    tools.drw_text_image(temp, out_dir + 'temp.png')
+
+    firmware = io.StringIO()
+    firmware.write(path + FIRMWARE + '\n')
+    reg = '^Oracle'
+    firmware.write(tools.cursed_grep(path + FIRMWARE, reg, 5).getvalue())
+    tools.drw_text_image(firmware, out_dir + 'firmware.png')
+    return ['fault.png', 'temp.png', 'firmware.png']
+
+def drw_os(path, out_dir):
+    image = io.StringIO()
+    image.write(path + IMAGE_SOL + '\n')
+    image.write(tools.cat(path + IMAGE_SOL))
+    tools.drw_text_image(image, out_dir + 'image.png')
+
+    vol = io.StringIO()
+    vol.write(path + PARTITION_SOL + '\n')
+    vol.write(tools.cat(path + PARTITION_SOL))
+    tools.drw_text_image(vol, out_dir + 'vol.png')
+
+    raid = io.StringIO()
+    raid.write(path + RAID_SOL + '\n')
+    raid.write(tools.cat(path + RAID_SOL))
+    tools.drw_text_image(raid, out_dir + 'raid.png')
+
+    net = io.StringIO()
+    net.write(path + NETWORK_SOL + '\n')
+    net.write(tools.cat(path + NETWORK_SOL))
+    tools.drw_text_image(net, out_dir + 'net.png')
+
+    cpu_idle = io.StringIO()
+    cpu_idle.write(path + CPU_ULTILIZATION_SOL + '\n')
+    cpu_idle.write(tools.cat(path + CPU_ULTILIZATION_SOL))
+    tools.drw_text_image(cpu_idle, out_dir + 'cpu_idle.png')
+
+    load = io.StringIO()
+    load.write(path + CPU_LOAD_SOL + '\n')
+    load.write(tools.cat(path + CPU_LOAD_SOL))
+    tools.drw_text_image(load, out_dir + 'load.png')
+
+    mem = io.StringIO()
+    mem.write(path + MEM_SOL + '\n')
+    mem.write(tools.cat(path + MEM_SOL))
+    tools.drw_text_image(mem, out_dir + 'mem.png')
+
+    swap = io.StringIO()
+    swap.write(path + SWAP_SOL + '\n')
+    swap.write(tools.cat(path + SWAP_SOL))
+    tools.drw_text_image(swap, out_dir + 'swap.png')
+    return ['image.png', ['vol.png', 'raid.png'], 'net.png', 'cpu_idle.png', 'load.png', 'mem.png', 'swap.png']
+
+def drw_content(path, output):
+    ilom = drw_ilom(path[0], output)
+    os_info = drw_os(path[1], output)
+    images = ilom + os_info
+    return images
+
 def extract_file(serial, compress):
     compress = compress.lower()
-    # regex = '*[_.]' + serial + '[_.]*.' + compress
     regex = '*' + serial + '*.' + compress
     file = get_file(regex, root='./sample/') 
     if file == -1: return -1
 
-    print('Extracting: ', file)
     if compress == 'zip':
         unzip(file)
         return tools.rm_ext(file, compress)
@@ -114,38 +159,17 @@ def get_file(regex, root=''):
             break
         return files[c]
 
-def grep(path, regex, single_line=True):
-    result = ''
-    flag = re.MULTILINE
-    pattern = re.compile(regex, flag)
-    file = cat(path, False)
-    content = file.readlines()
-
-    if single_line:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-                break 
-    else:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                print(line + 1, ': ', content[line], sep='', end='')
-    print()
-    return result
-
 def get_ilom(path):
     print('##### ILOM #####')
-    fault = cat(path + FAULT).strip()
+    fault = tools.cat(path + FAULT).strip()
 
-    inlet_temp = grep(path + TEMP, 'inlet_temp').strip().split()
+    inlet_temp = tools.grep(path + TEMP, 'inlet_temp').strip().split()
     inlet_temp = ' '.join(inlet_temp[2:5])
 
-    exhaust_temp = grep(path + TEMP, 'exhaust_temp').strip().split()
+    exhaust_temp = tools.grep(path + TEMP, 'exhaust_temp').strip().split()
     exhaust_temp = ' '.join(exhaust_temp[2:5])
 
-    firmware = grep(path + FIRMWARE, 'Version').strip().split()
+    firmware = tools.grep(path + FIRMWARE, 'Version').strip().split()
     firmware = ' '.join(firmware[1:])
 
     print('##### END OF ILOM #####')
@@ -154,24 +178,24 @@ def get_ilom(path):
 def get_os(path, os='SOL'):
     x = {}
     if os == 'SOL':
-        image = grep(path + IMAGE_SOL, 'Solaris').strip().split()
+        image = tools.grep(path + IMAGE_SOL, 'Solaris').strip().split()
         image = image[2]
         x['image'] = image
 
-        vol = grep(path + PARTITION_SOL, "\\B\/\\B").strip().split()
+        vol = tools.grep(path + PARTITION_SOL, "\\B\/\\B").strip().split()
         vol = vol[-2]
         vol_avail = 100 - int(vol[:-1])
         x['vol_avail'] = vol_avail
 
-        raid = grep(path + RAID_SOL, "mirror").strip().split()
+        raid = tools.grep(path + RAID_SOL, "mirror").strip().split()
         if 'ONLINE' in raid:
             raid_stat = True 
         else:
             raid_stat = False
         x['raid_stat'] = raid_stat
 
-        net_ipmp = grep(path + NETWORK_SOL, 'ipmp')
-        net_aggr = grep(path + NETWORK_SOL, 'aggr')
+        net_ipmp = tools.grep(path + NETWORK_SOL, 'ipmp')
+        net_aggr = tools.grep(path + NETWORK_SOL, 'aggr')
         if not net_ipmp and not net_aggr:
             bonding = 'none'
         elif net_ipmp and not net_aggr:
@@ -182,17 +206,17 @@ def get_os(path, os='SOL'):
             bonding = 'both'
         x['bonding'] = bonding
 
-        cpu_idle = cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
+        cpu_idle = tools.cat(path + CPU_ULTILIZATION_SOL).strip().split('\n')
         cpu_idle = cpu_idle[2]
         cpu_idle = cpu_idle.split()[21]
         cpu_util = 100 - int(cpu_idle)
         x['cpu_util'] = cpu_util
 
         x['load'] = {}
-        load = grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
+        load = tools.grep(path + CPU_LOAD_SOL, 'load average').strip().split(', ')
         load_avg = ' '.join(load).split()[-3:]
         load_avg = float((max(load_avg)))
-        vcpu = grep(path + VCPU_SOL, 'primary').strip().split()[4]
+        vcpu = tools.grep(path + VCPU_SOL, 'primary').strip().split()[4]
         vcpu = int(vcpu)
         load_avg_per = load_avg / vcpu
         load_avg_per = float(f'{load_avg_per:.3f}')
@@ -200,12 +224,12 @@ def get_os(path, os='SOL'):
         x['load']['vcpu'] = vcpu
         x['load']['load_avg_per'] = load_avg_per
 
-        mem = grep(path + MEM_SOL, 'freelist', False).strip().split()
+        mem = tools.grep(path + MEM_SOL, 'freelist', False).strip().split()
         mem_free = mem[-1]
         mem_util = 100 - int(mem_free[:-1])
         x['mem_util'] = mem_util
 
-        swap = cat(path + SWAP_SOL).strip().split()
+        swap = tools.cat(path + SWAP_SOL).strip().split()
         swap = [swap[8], swap[10]]
         swap[0] = int(swap[0][:-2])
         swap[1] = int(swap[1][:-2])
@@ -213,16 +237,11 @@ def get_os(path, os='SOL'):
         swap_util = int(swap_util * 100)
         x['swap_util'] = swap_util
 
-        print(x)
+        # print(x)
         print()
     return x
 
 def get_content(node, path):
-    root = './temp/'
-    orj_path = path[0]
-    for i in range(0, len(path)):
-        path[i] = root + str(path[i])
-
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], 'SOL')
@@ -248,25 +267,7 @@ def get_content(node, path):
     print('##### END OF NODE INFORMATION #####\n')
     return content
 
-def cat(path, stdout=True):
-    result = ''
-    try:
-        with open(path, 'r') as file:
-            content = file.readlines()
-            if stdout:
-                count = 0
-                for l in content:
-                    result += l.lstrip()
-                    print(++count + 1, ': ', l, sep='', end='')
-                return result
-            else: 
-                for l in content:
-                    result += l.lstrip()
-                return io.StringIO(result)
-    except Exception as err:
-        raise RuntimeError('Cannot open file to read') from err
-        return -1
-
+@debug
 def unzip(file):
     if not zipfile.is_zipfile(file):
         print('Error: Not a zip file')
@@ -274,11 +275,12 @@ def unzip(file):
     try:
         with zipfile.ZipFile(file, 'r') as z_object:
             z_object.extractall(path='./temp/')
-            print('> UNZIP:', file)
+            # print('> UNZIP:', file)
     except Exception as err:
         print('Error:' , err)
         return -1
 
+@debug
 def untar(file):
     # sucks
     if not tarfile.is_tarfile(file):
@@ -289,7 +291,7 @@ def untar(file):
         with tarfile.open(file, 'r') as t_object:
             try: 
                 t_object.extractall(path='./temp/')
-                print('> UNTAR:', file)
+                # print('> UNTAR:', file)
             except:
                 buffer = tools.rm_ext(file, 'tar.gz')
                 if clean_up('./temp/' + buffer) == -1:
@@ -301,7 +303,7 @@ def untar(file):
 
 def compile(nodes):
     n = len(nodes)
-    output_files = []
+    content_files = []
     for i in range(n):
         path = ['','']
         print('##### EXTRACT FILES #####')
@@ -314,15 +316,30 @@ def compile(nodes):
             return -1
         print('PATH: ', path)
 
-        
-        node = path[1].split('.')[2] # get machine name
-        output_files += [node]
+        # node = path[1].split('.')[2] # get machine name
+        node = nodes[i]
+        content_files += [node]
+        try: 
+            os.mkdir('output/' + node)
+            print('Folder created: ' + node)
+        except FileExsistsError as err:
+            print()
 
-        file_name = './output/' + node
+        file_name = node
+        print(path)
+        root = './temp/'
+        for i in range(0, len(path)):
+            path[i] = root + str(path[i])
+        print(path)
         content = get_content(node, path)
-        if tools.save_json(file_name, content) == -1:
+        # DRAW IMAGES FOR CONTENT
+        images = drw_content(path, 'output/' + node + '/')
+        # END DRAWING
+        if tools.save_json('output/' + node + '/' + node, content) == -1:
             return -1 
-    return output_files
+        if tools.save_json('output/' + node + '/images', images) == -1:
+            return -1 
+    return content_files 
 
 # FLOW OF PROGRAM
 def run(nodes, output):
@@ -337,16 +354,15 @@ def run(nodes, output):
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        rekdoc.run(output)
+        doc.run(output)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
 def main():
     parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
-                                     usage='%(prog)s [options] node [node...]',
+                                     usage='%(prog)s [options] node [node...] [-o] file',
                                      epilog='Created by Rek',
                                      exit_on_error=False)
-    # group_input = parser.add_mutually_exclusive_group()
     parser.add_argument('--version', action='version', version='%(prog)s 0.1')
     parser.add_argument('-i', help='file with node names',
                         # nargs='',
@@ -358,14 +374,14 @@ def main():
                         )
     parser.add_argument('-o', help='output file name',
                         metavar='doc',
-                        default='./output/output',
+                        default='output/example',
                         )
                        
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", required=False, action="store_true")
     group.add_argument("-q", "--quiet", required=False, action="store_true")
     args = parser.parse_args()
-    
+
     if (not args.node) and (not args.i):
         parser.parse_args(['-h'])
         return 
