@@ -8,7 +8,7 @@ def run():
     cooling = io.StringIO()
     cooling.write(path + '\n')
     reg = '^ /System/Cooling$'
-    cooling. write(tools.cursed_grep(path, reg, 8).getvalue())
+    cooling.write(tools.cursed_grep(path, reg, 8).getvalue())
     print(cooling.getvalue())
     tools.drw_text_image(cooling, 'df.png')
 

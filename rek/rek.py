@@ -2,8 +2,8 @@
 # *
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys, signal
-import shutil, glob 
+import os, sys, signal, io
+import shutil, glob
 import json
 import zipfile, tarfile
 import argparse
@@ -50,6 +50,69 @@ def clean_up_force(path='./temp/'):
 
 def check_valid(path):
     return os.path.isdir(path)
+
+def drw_ilom(path, out_dir):
+    fault = io.StringIO()
+    fault.write(path + FAULT + '\n')
+    fault.write(tools.cat(path + FAULT))
+    tools.drw_text_image(fault, out_dir + 'fault.png')
+
+    temp = io.StringIO()
+    temp.write(path + TEMP + '\n')
+    reg = '^ /System/Cooling$'
+    temp.write(tools.cursed_grep(path + TEMP, reg, 8).getvalue())
+    tools.drw_text_image(temp, out_dir + 'temp.png')
+
+    firmware = io.StringIO()
+    firmware.write(path + FIRMWARE + '\n')
+    reg = '^Oracle'
+    firmware.write(tools.cursed_grep(path + FIRMWARE, reg, 5).getvalue())
+    tools.drw_text_image(firmware, out_dir + 'firmware.png')
+
+def drw_os(path, out_dir):
+    image = io.StringIO()
+    image.write(path + IMAGE_SOL + '\n')
+    image.write(tools.cat(path + IMAGE_SOL))
+    tools.drw_text_image(image, out_dir + 'image.png')
+
+    vol = io.StringIO()
+    vol.write(path + PARTITION_SOL + '\n')
+    vol.write(tools.cat(path + PARTITION_SOL))
+    tools.drw_text_image(vol, out_dir + 'vol.png')
+
+    raid = io.StringIO()
+    raid.write(path + RAID_SOL + '\n')
+    raid.write(tools.cat(path + RAID_SOL))
+    tools.drw_text_image(raid, out_dir + 'raid.png')
+
+    net = io.StringIO()
+    net.write(path + NETWORK_SOL + '\n')
+    net.write(tools.cat(path + NETWORK_SOL))
+    tools.drw_text_image(net, out_dir + 'net.png')
+
+    cpu_idle = io.StringIO()
+    cpu_idle.write(path + CPU_ULTILIZATION_SOL + '\n')
+    cpu_idle.write(tools.cat(path + CPU_ULTILIZATION_SOL))
+    tools.drw_text_image(cpu_idle, out_dir + 'cpu_idle.png')
+
+    load = io.StringIO()
+    load.write(path + CPU_LOAD_SOL + '\n')
+    load.write(tools.cat(path + CPU_LOAD_SOL))
+    tools.drw_text_image(load, out_dir + 'load.png')
+
+    mem = io.StringIO()
+    mem.write(path + MEM_SOL + '\n')
+    mem.write(tools.cat(path + MEM_SOL))
+    tools.drw_text_image(mem, out_dir + 'mem.png')
+
+    swap = io.StringIO()
+    swap.write(path + SWAP_SOL + '\n')
+    swap.write(tools.cat(path + SWAP_SOL))
+    tools.drw_text_image(swap, out_dir + 'swap.png')
+
+def drw_content(path, output):
+    drw_ilom(path[0], output)
+    drw_os(path[1], output)
 
 def extract_file(serial, compress):
     compress = compress.lower()
@@ -177,11 +240,6 @@ def get_os(path, os='SOL'):
     return x
 
 def get_content(node, path):
-    root = './temp/'
-    orj_path = path[0]
-    for i in range(0, len(path)):
-        path[i] = root + str(path[i])
-
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], 'SOL')
@@ -256,7 +314,8 @@ def compile(nodes):
             return -1
         print('PATH: ', path)
 
-        node = path[1].split('.')[2] # get machine name
+        # node = path[1].split('.')[2] # get machine name
+        node = nodes[i]
         content_files += [node]
         try: 
             os.mkdir('./output/' + node)
@@ -265,8 +324,16 @@ def compile(nodes):
             print()
 
         file_name = node
+        print(path)
+        root = './temp/'
+        for i in range(0, len(path)):
+            path[i] = root + str(path[i])
+        print(path)
         content = get_content(node, path)
-        print(file_name)
+        # DRAW IMAGES FOR CONTENT
+        print(path)
+        drw_content(path, './output/' + node + '/')
+        # END DRAWING
         if tools.save_json('./output/' + node + '/' + file_name, content) == -1:
             return -1 
     return content_files 

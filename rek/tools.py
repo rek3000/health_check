@@ -84,16 +84,15 @@ def drw_text_image(text, file):
         img.save(filename='PNG24:' + file)
 ##### END OF IMAGEMAGICK #####
 
-
 ##### BASE ######
 # TODO: REWRITE IN STRINGIO
 def cat(path, stdout=True):
-    result = ''
     try:
         with open(path, 'r') as file:
             content = file.readlines()
             if stdout:
                 count = 0
+                result = ''
                 for l in content:
                     result += l.lstrip()
                     count += 1
@@ -112,13 +111,15 @@ def cat(path, stdout=True):
 # not so optimized but usable
 def cursed_grep(path, regex, number=0):
     result = io.StringIO()
+    # call grep() then get line number returned
     line_number = int(grep(path, regex, True, True).split()[0][:-1])
     with open(path, 'r') as f:
-        lines = f.readlines()[line_number:]
+        lines = f.readlines()[line_number-1:]
         for i in range(number):
             result.write(lines[i])
     return result
 
+# TODO: remake using StringIO
 def grep(path, regex, single_line=True, print_line=False):
     result = ''
     flag = re.MULTILINE
