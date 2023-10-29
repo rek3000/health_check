@@ -66,13 +66,13 @@ def drw_text_image(text, file):
         with Drawing() as context:
             tmp = text.getvalue()
             metrics = context.get_font_metrics(img, tmp, True)
-            print(metrics)
+            # print(metrics)
             x = 10
             y = 14
             w = int(metrics.text_width*1.2)
-            h = int(metrics.text_height*1.5)
+            h = int(metrics.text_height*1.3)
             img.resize(w, h)
-            print(img.size)
+            # print(img.size)
             context.font_family = 'monospace'
             context.font_size = y
             context.fill_color = Color('white')
@@ -96,7 +96,7 @@ def cat(path, stdout=True):
                 for l in content:
                     result += l.lstrip()
                     count += 1
-                    print(count + 1, ': ', l, sep='', end='')
+                    # print(count + 1, ': ', l, sep='', end='')
                 return result
             else: 
                 result = io.StringIO()
@@ -131,19 +131,17 @@ def grep(path, regex, single_line=True, print_line=False):
         for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
-                # print(line + 1, ': ', content[line], sep='', end='')
                 if print_line:
                     result = str(line + 1) + ': ' + result
-                print(result)
+                # print(result)
                 break 
     else:
         for line in range(len(content)):
             if re.search(pattern, content[line]):
                 result += content[line].lstrip()
-                # print(line + 1, ': ', content[line], sep='', end='')
                 if print_line:
                     result = str(line + 1) + ': ' + result
-                print(result)
+                # print(result)
                 break
     print()
     return result

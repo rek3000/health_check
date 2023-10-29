@@ -68,6 +68,7 @@ def drw_ilom(path, out_dir):
     reg = '^Oracle'
     firmware.write(tools.cursed_grep(path + FIRMWARE, reg, 5).getvalue())
     tools.drw_text_image(firmware, out_dir + 'firmware.png')
+    return ['fault.png', 'temp.png', 'firmware.png']
 
 def drw_os(path, out_dir):
     image = io.StringIO()
@@ -109,10 +110,13 @@ def drw_os(path, out_dir):
     swap.write(path + SWAP_SOL + '\n')
     swap.write(tools.cat(path + SWAP_SOL))
     tools.drw_text_image(swap, out_dir + 'swap.png')
+    return ['image.png', ['vol.png', 'raid.png'], 'net.png', 'cpu_idle.png', 'load.png', 'mem.png', 'swap.png']
 
 def drw_content(path, output):
-    drw_ilom(path[0], output)
-    drw_os(path[1], output)
+    ilom = drw_ilom(path[0], output)
+    os_info = drw_os(path[1], output)
+    images = ilom + os_info
+    return images
 
 def extract_file(serial, compress):
     compress = compress.lower()
@@ -332,9 +336,11 @@ def compile(nodes):
         content = get_content(node, path)
         # DRAW IMAGES FOR CONTENT
         print(path)
-        drw_content(path, './output/' + node + '/')
+        images = drw_content(path, './output/' + node + '/')
         # END DRAWING
-        if tools.save_json('./output/' + node + '/' + file_name, content) == -1:
+        if tools.save_json('./output/' + node + '/' + node, content) == -1:
+            return -1 
+        if tools.save_json('./output/' + node + '/images', images) == -1:
             return -1 
     return content_files 
 
