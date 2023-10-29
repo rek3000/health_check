@@ -1,5 +1,5 @@
-#!/bin/env python
-# *
+##!/bin/env python
+# 
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
 import os, sys, signal, io
@@ -7,7 +7,8 @@ import shutil, glob
 import json
 import zipfile, tarfile
 import argparse
-import doc, tools
+import doc
+import tools
 from const import *
 
 ##### DECORATORS #####
@@ -353,7 +354,7 @@ def run(nodes, output):
 
     choice = input('GENERATE DOCUMENT?[y/n] ')
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
-        rekdoc.run(output)
+        doc.run(output)
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
@@ -405,4 +406,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+else:
 ##### END_MAIN #####
