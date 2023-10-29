@@ -7,9 +7,9 @@ import shutil, glob
 import json
 import zipfile, tarfile
 import argparse
-import doc
-import tools
-from const import *
+from rekdoc import doc
+from rekdoc import tools
+from rekdoc.const import *
 
 ##### DECORATORS #####
 def debug(func):
@@ -363,7 +363,6 @@ def main():
                                      usage='%(prog)s [options] node [node...]',
                                      epilog='Created by Rek',
                                      exit_on_error=False)
-    # group_input = parser.add_mutually_exclusive_group()
     parser.add_argument('--version', action='version', version='%(prog)s 0.1')
     parser.add_argument('-i', help='file with node names',
                         # nargs='',
@@ -406,5 +405,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-else:
 ##### END_MAIN #####

@@ -1,12 +1,12 @@
 init:
-	pip install -r requirements.txt
+	python setup.py bdist_pex
 test:
-	./tests/test.sh
-gen:
-	python rek/rek.py
-	cat output/data.json
-doc:
-	python rek/rekdoc.py
+	./test.py -i input -o test
+# gen:
+	# python rek/rek.py
+	# cat output/data.json
+# doc:
+# 	python rek/rekdoc.py
 clean:
 	rm -rf temp/*
 	rm -rf output/*

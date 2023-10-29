@@ -9,7 +9,7 @@ from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
-import tools
+from rekdoc.tools import tools
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: 'Kém', 3: 'Cần lưu ý', 5: 'Tốt'}
