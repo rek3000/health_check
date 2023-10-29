@@ -360,7 +360,7 @@ def run(nodes, output):
 ##### MAIN #####
 def main():
     parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
-                                     usage='%(prog)s [options] node [node...]',
+                                     usage='%(prog)s [options] node [node...] [-o] file',
                                      epilog='Created by Rek',
                                      exit_on_error=False)
     parser.add_argument('--version', action='version', version='%(prog)s 0.1')
@@ -374,7 +374,7 @@ def main():
                         )
     parser.add_argument('-o', help='output file name',
                         metavar='doc',
-                        default='output/output',
+                        default='output/example',
                         )
                        
     group = parser.add_mutually_exclusive_group()
