@@ -26,7 +26,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'rekdoc = rekdoc.rekdoc:main',
+            'rekdoc = rekdoc.core:cli',
             ],
         }
 )

@@ -24,7 +24,7 @@ RAID_SOL='/disks/zfs/zpool_status_-v.out'
 NETWORK_SOL='/netinfo/ipadm.out'
 CPU_ULTILIZATION_SOL='/sysconfig/vmstat_3_3.out'
 CPU_LOAD_SOL='/sysconfig/prstat-L.out'
-VCPU_SOL='/ldom/ldm_list.out'
+VCPU_SOL='/sysconfig/ldm_list_-l.out'
 MEM_SOL='/disks/zfs/mdb/mdb-memstat.out'
 SWAP_SOL='/disks/swap-s.out'
 ##
