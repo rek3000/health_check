@@ -195,10 +195,12 @@ def define_doc():
         sys.exit()
     return doc
 
-def drw_doc(doc, nodes):
-    data = tools.read_json(nodes + '.json')
+def drw_doc(doc, input, force):
+    # data = tools.read_json(input + '.json')
+    data = tools.read_json(input)
     asserted_list = []
     for node in data:
+        print(node)
         images = tools.read_json('output/' + node + '/images.json')
         print(json.dumps(images, indent=2))
         file_dump = {}
@@ -223,8 +225,11 @@ def drw_doc(doc, nodes):
         asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
         
-        tools.save_json('output/' + node + '/' + asserted_file, file_dump)
-    tools.join_json(asserted_list, nodes + '_asserted')
+        tools.save_json('output/' + node + '/' + asserted_file + '.json', file_dump)
+    file_name = tools.rm_ext(input, 'json')  + '_asserted.json'
+    # print('FILE NAME: ' + file_name)
+    # return -1
+    tools.join_json(asserted_list, file_name)
     print()
     return doc
 
@@ -236,12 +241,15 @@ def print_style(doc):
     for style in p_styles:
         print(style.name)
 
-def run(output):
+def run(input, output, force):
     doc = define_doc() 
-    doc = drw_doc(doc, output)
+    doc = drw_doc(doc, input, force)
 
     print_style(doc)
-    doc.save(output + '.docx')
+    # file_name = output.split('.')[0]
+    file_name = tools.rm_ext(output, 'json') + '.docx'
+    print('Saved document file: ' + file_name)
+    doc.save(file_name)
 
 ##### MAIN #####
 def main():

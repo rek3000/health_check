@@ -12,7 +12,7 @@ def save_json(file, content):
         print('No content from input to save!')
         return -1
     try:
-        with open(file + '.json', 'w') as f:
+        with open(file, 'w') as f:
             json.dump(content, f, indent=2)
     except OSError as err:
         print('OS error: ', err)
@@ -31,7 +31,7 @@ def read_json(file):
 
 def join_json(content_files, output):
     try:
-        with open(output + '.json', 'w+') as file:
+        with open(output, 'w+') as file:
             x = {}
             for i in content_files:
                 print(i)
@@ -56,7 +56,8 @@ def save_file(file, content):
         return -1
 
 def rm_ext(file, ext):
-    return file.split('/')[2][:-len(ext)-1]
+    # return file.split('/')[2][:-len(ext)-1]
+    return file[:-len(ext)-1]
 
 ##### IMAGEMAGICK #####
 # transform text to a png image file 
