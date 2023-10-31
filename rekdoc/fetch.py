@@ -280,7 +280,7 @@ def unzip(file, force):
             try:
                 zip.extractall(path='./temp/')
             except IOError as err:
-                clean_files('./temp/' + tools.rm_ext(file, 'zip'))
+                clean_up('./temp/' + tools.rm_ext(file, 'zip'), force=force)
                 zip.extractall(path='./temp/')
     except IOError as err:
         print(err)
@@ -296,7 +296,7 @@ def untar(file, force):
             try:
                 tar.extractall(path='./temp/', numeric_owner=True)
             except IOError as err:
-                clean_files('./temp/' + tools.rm_ext(file, 'tar.gz'), force=force)
+                clean_up('./temp/' + tools.rm_ext(file, 'zip'), force=force)
                 tar.extractall(path='./temp/', numeric_owner=True)
     except IOError as err:
         print(err)
