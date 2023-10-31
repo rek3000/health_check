@@ -280,7 +280,7 @@ def unzip(file, force):
             try:
                 zip.extractall(path='./temp/')
             except IOError as err:
-                clean_files('./temp/' + tools.rm_ext(file, 'zip'), force=force)
+                clean_files('./temp/' + tools.rm_ext(file, 'zip'))
                 zip.extractall(path='./temp/')
     except IOError as err:
         print(err)
