@@ -321,11 +321,11 @@ def compile(nodes, force):
             print('Folder created: ' + node)
         except FileExistsError as err:
             print('Output folder exist!')
-            clean_up(path=os.path.normpath('output' + node), prompt='Do you want to replace it? [y/n] ', force=force)
+            clean_up(path=os.path.normpath('output/' + node), prompt='Do you want to replace it? [y/n] ', force=force)
 
         file_name = node
         print(path)
-        root = 'temp'
+        root = 'temp/'
         for i in range(0, len(path)):
             path[i] = os.path.normpath(root + str(path[i]))
         print(path)
