@@ -6,7 +6,6 @@ import os, sys, signal, io
 import shutil, glob
 import json
 import zipfile, tarfile
-# import argparse
 import click
 from rekdoc import doc
 from rekdoc import tools
