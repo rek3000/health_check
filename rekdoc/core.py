@@ -24,14 +24,13 @@ def fetch(input, output, node, verbose, force):
     except:
         print()
 
-    if rekfetch.run(nodes, output, force) == -1:
+    if rekfetch.run(nodes, output, verbose, force) == -1:
         rekfetch.clean_up_force()
         return -1
     click.echo('Summary file created after fetch: ' + output)
     rekfetch.clean_up()
 
 @click.command()
-@click.option('-v', '--verbose', default=False, is_flag=True)
 @click.option('-i', '--input', help='summary file.')
 @click.option('-o', '--output', help='output file name.', type=click.STRING)
 @click.option('-v', '--verbose', default=False, is_flag=True)
