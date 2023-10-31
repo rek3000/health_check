@@ -103,7 +103,6 @@ def assert_data(data):
         asserted['swap_util'][0] = 1
     asserted['swap_util'][1] = 'SWAP Ultilization: ' + str(data['swap_util']) + '%'
     
-    # print(json.dumps(asserted, indent=2))
     return asserted
 
 def get_score(asserted):
@@ -196,7 +195,6 @@ def define_doc():
     return doc
 
 def drw_doc(doc, input, force):
-    # data = tools.read_json(input + '.json')
     data = tools.read_json(input)
     asserted_list = []
     for node in data:
@@ -227,8 +225,6 @@ def drw_doc(doc, input, force):
         
         tools.save_json('output/' + node + '/' + asserted_file + '.json', file_dump)
     file_name = tools.rm_ext(input, 'json')  + '_asserted.json'
-    # print('FILE NAME: ' + file_name)
-    # return -1
     tools.join_json(asserted_list, file_name)
     print()
     return doc
