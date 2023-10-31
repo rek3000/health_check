@@ -25,7 +25,7 @@ def fetch(input, output, node, verbose, force):
         print()
 
     if rekfetch.run(nodes, output, force) == -1:
-        clean_up_force()
+        rekfetch.clean_up_force()
         return -1
     click.echo('Summary file created after fetch: ' + output)
     rekfetch.clean_up()

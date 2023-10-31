@@ -58,61 +58,61 @@ def drw_ilom(path, out_dir):
     fault = io.StringIO()
     fault.write(path + FAULT + '\n')
     fault.write(tools.cat(os.path.normpath(path + FAULT)))
-    tools.drw_text_image(fault, out_dir + 'fault.png')
+    tools.drw_text_image(fault, os.path.normpath(out_dir + '/fault.png'))
 
     temp = io.StringIO()
     temp.write(path + TEMP + '\n')
     reg = '^ /System/Cooling$'
     temp.write(tools.cursed_grep(os.path.normpath(path + TEMP), reg, 8).getvalue())
-    tools.drw_text_image(temp, out_dir + 'temp.png')
+    tools.drw_text_image(temp, os.path.normpath(out_dir + '/temp.png'))
 
     firmware = io.StringIO()
     firmware.write(path + FIRMWARE + '\n')
     reg = '^Oracle'
     firmware.write(tools.cursed_grep(os.path.normpath(path + FIRMWARE), reg, 5).getvalue())
-    tools.drw_text_image(firmware, out_dir + 'firmware.png')
+    tools.drw_text_image(firmware, os.path.normpath(out_dir + '/firmware.png'))
     return ['fault.png', 'temp.png', 'firmware.png']
 
 def drw_os(path, out_dir):
     image = io.StringIO()
     image.write(path + IMAGE_SOL + '\n')
     image.write(tools.cat(os.path.normpath(path + IMAGE_SOL)))
-    tools.drw_text_image(image, out_dir + 'image.png')
+    tools.drw_text_image(image, os.path.normpath(out_dir + '/image.png'))
 
     vol = io.StringIO()
     vol.write(path + PARTITION_SOL + '\n')
     vol.write(tools.cat(os.path.normpath(path + PARTITION_SOL)))
-    tools.drw_text_image(vol, out_dir + 'vol.png')
+    tools.drw_text_image(vol, os.path.normpath(out_dir + '/vol.png'))
 
     raid = io.StringIO()
     raid.write(path + RAID_SOL + '\n')
     raid.write(tools.cat(os.path.normpath(path + RAID_SOL)))
-    tools.drw_text_image(raid, out_dir + 'raid.png')
+    tools.drw_text_image(raid, os.path.normpath(out_dir + '/raid.png'))
 
     net = io.StringIO()
     net.write(path + NETWORK_SOL + '\n')
     net.write(tools.cat(os.path.normpath(path + NETWORK_SOL)))
-    tools.drw_text_image(net, out_dir + 'net.png')
+    tools.drw_text_image(net, os.path.normpath(out_dir + '/net.png'))
 
     cpu_idle = io.StringIO()
     cpu_idle.write(path + CPU_ULTILIZATION_SOL + '\n')
     cpu_idle.write(tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)))
-    tools.drw_text_image(cpu_idle, out_dir + 'cpu_idle.png')
+    tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + '/cpu_idle.png'))
 
     load = io.StringIO()
     load.write(path + CPU_LOAD_SOL + '\n')
     load.write(tools.cat(os.path.normpath(path + CPU_LOAD_SOL)))
-    tools.drw_text_image(load, out_dir + 'load.png')
+    tools.drw_text_image(load, os.path.normpath(out_dir + '/load.png'))
 
     mem = io.StringIO()
     mem.write(path + MEM_SOL + '\n')
     mem.write(tools.cat(os.path.normpath(path + MEM_SOL)))
-    tools.drw_text_image(mem, out_dir + 'mem.png')
+    tools.drw_text_image(mem, os.path.normpath(out_dir + '/mem.png'))
 
     swap = io.StringIO()
     swap.write(path + SWAP_SOL + '\n')
     swap.write(tools.cat(os.path.normpath(path + SWAP_SOL)))
-    tools.drw_text_image(swap, out_dir + 'swap.png')
+    tools.drw_text_image(swap, os.path.normpath(out_dir + '/swap.png'))
     return ['image.png', ['vol.png', 'raid.png'], 'net.png', 'cpu_idle.png', 'load.png', 'mem.png', 'swap.png']
 
 def drw_content(path, output):
@@ -179,9 +179,9 @@ def get_ilom(path):
 
     return {'fault': fault, 'inlet': inlet_temp, 'exhaust': exhaust_temp, 'firmware': firmware} 
 
-def get_os(path, os='SOL'):
+def get_os(path, os_name='SOL'):
     x = {}
-    if os == 'SOL':
+    if os_name == 'SOL':
         image = tools.grep(os.path.normpath(path + IMAGE_SOL), 'Solaris').strip().split()
         image = image[2]
         x['image'] = image
@@ -278,7 +278,7 @@ def unzip(file, force):
             try:
                 zip.extractall(path='temp/')
             except IOError as err:
-                clean_up(os.path.normpath('temp/' + tools.rm_ext(file, 'zip')), force=force)
+                clean_up(os.path.normpath('temp/' + os.path.split(tools.rm_ext(file, 'zip'))[1]), force=force)
                 zip.extractall(path='temp/')
     except IOError as err:
         print(err)
@@ -294,7 +294,7 @@ def untar(file, force):
             try:
                 tar.extractall(path='temp/', numeric_owner=True)
             except IOError as err:
-                clean_up(os.path.normpath('temp/' + tools.rm_ext(file, 'tar.gz')), force=force)
+                clean_up(os.path.normpath('temp/' + os.path.split(tools.rm_ext(file, 'tar.gz'))[1]), force=force)
                 tar.extractall(path='temp/', numeric_owner=True)
     except IOError as err:
         print(err)
@@ -331,7 +331,7 @@ def compile(nodes, force):
         print(path)
         content = get_content(node, path)
         # DRAW IMAGES FOR CONTENT
-        images = drw_content(path, os.path.normpath('output/' + node))
+        images = drw_content(path, os.path.normpath('output/' + node + '/'))
         # END DRAWING
         if tools.save_json(os.path.normpath('output/' + node + '/' + node + '.json'), content) == -1:
             return -1 

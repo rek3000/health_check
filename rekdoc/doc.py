@@ -179,7 +179,7 @@ def drw_info(doc, node, checklist, images=[]):
         doc.add_paragraph(checklist[i][1], style='baocao4')
         if isinstance(images[i-1], list):
             for image in images[i-1]:
-                path = os.path.normpth('output/' + node + '/' + image)
+                path = os.path.normpath('output/' + node + '/' + image)
                 doc.add_picture(path, width=Inches(6.73))
         else:
             doc.add_picture(os.path.normpath('output/' + node + '/' + images[i-1]), width=Inches(6.73))
