@@ -36,9 +36,8 @@ def clean_files(folder='./temp/'):
             print('Failed to delete %s. Reason: %s' % (file_path, e))
             return -1
 
-def clean_up(path='./temp/'):
-    print('Remove unzip files? (y/n) ', end='')
-    choice = input()
+def clean_up(path='./temp/', prompt='Remove files? (y/n) '):
+    choice = input(prompt)
     if choice in ['', 'yes', 'y', 'Y', 'yeah', 'YES']:
         clean_files(path)
         return
@@ -267,20 +266,17 @@ def get_content(node, path):
     print('##### END OF NODE INFORMATION #####\n')
     return content
 
-@debug
 def unzip(file):
     if not zipfile.is_zipfile(file):
         print('Error: Not a zip file')
         return -1
     try:
-        with zipfile.ZipFile(file, 'r') as z_object:
-            z_object.extractall(path='./temp/')
-            # print('> UNZIP:', file)
+        with zipfile.ZipFile(file, 'r') as zip:
+            zip.extractall(path='./temp/')
     except Exception as err:
         print('Error:' , err)
         return -1
 
-@debug
 def untar(file):
     # sucks
     if not tarfile.is_tarfile(file):
@@ -288,16 +284,13 @@ def untar(file):
         return -1
     print(file)
     try:
-        with tarfile.open(file, 'r') as t_object:
-            try: 
-                t_object.extractall(path='./temp/')
-                # print('> UNTAR:', file)
-            except:
-                buffer = tools.rm_ext(file, 'tar.gz')
-                if clean_up('./temp/' + buffer) == -1:
-                    return -1
-                t_object.extractall(path='./temp/')
-    except Exception as err:
+        with tarfile.open(file, 'r:gz') as tar:
+            try:
+                tar.extractall(path='./temp/', numeric_owner=True)
+            except IOError as err:
+                clean_files('./temp/' + tools.rm_ext(file, 'tar.gz'))
+                tar.extractall(path='./temp/', numeric_owner=True)
+    except IOError as err:
         print(err)
         return -1
 
@@ -322,8 +315,10 @@ def compile(nodes):
         try: 
             os.mkdir('output/' + node)
             print('Folder created: ' + node)
-        except FileExsistsError as err:
-            print()
+        except FileExistsError as err:
+            print('Output folder exist!')
+            clean_up(path='./output/' + node, prompt='Do you want to replace it? [y/n] ')
+            # os.mkdir('output/' + node)
 
         file_name = node
         print(path)
