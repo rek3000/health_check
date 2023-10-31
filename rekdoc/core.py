@@ -16,10 +16,13 @@ def cli():
 @click.argument('node', required=False, nargs=-1)
 def fetch(input, output, node, verbose, force):
     nodes = []
-    for line in input:
-        nodes.append(line.strip())
-    if node:
-        nodes.append(node)
+    try:
+        for line in input:
+            nodes.append(line.strip())
+        if node:
+            nodes.append(node)
+    except:
+        print()
 
     if rekfetch.run(nodes, output, force) == -1:
         clean_up_force()
