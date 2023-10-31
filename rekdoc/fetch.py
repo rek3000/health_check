@@ -24,7 +24,7 @@ def debug(func):
 ##### END OF DECORATORS #####
 
 ##### IMPLEMETATION #####
-def clean_files(folder='temp'):
+def clean_files(folder='temp/'):
     for filename in os.listdir(folder):
         file_path = os.path.join(folder, filename)
         print(file_path)
@@ -37,7 +37,7 @@ def clean_files(folder='temp'):
             print('Failed to delete %s. Reason: %s' % (file_path, e))
             return -1
 
-def clean_up(path='temp', prompt='Remove files? (y/n) ', force=False):
+def clean_up(path='temp/', prompt='Remove files? (y/n) ', force=False):
     if force:
         clean_files(path)
     else:
@@ -46,7 +46,7 @@ def clean_up(path='temp', prompt='Remove files? (y/n) ', force=False):
             clean_files(path)
         return
 
-def clean_up_force(path='temp'):
+def clean_up_force(path='temp/'):
     print('FORCE CLEAN UP DUE TO ERROR!')
     clean_files(path)
     return -1
@@ -124,7 +124,7 @@ def drw_content(path, output):
 def extract_file(serial, compress, force):
     compress = compress.lower()
     regex = '*' + serial + '*.' + compress
-    file = get_file(regex, root='sample') 
+    file = get_file(regex, root='sample/') 
     if file == -1: return -1
 
     if compress == 'zip':
@@ -276,10 +276,10 @@ def unzip(file, force):
     try:
         with zipfile.ZipFile(file, 'r') as zip:
             try:
-                zip.extractall(path='temp')
+                zip.extractall(path='temp/')
             except IOError as err:
-                clean_up(os.path.normpath('temp' + tools.rm_ext(file, 'zip')), force=force)
-                zip.extractall(path='temp')
+                clean_up(os.path.normpath('temp/' + tools.rm_ext(file, 'zip')), force=force)
+                zip.extractall(path='temp/')
     except IOError as err:
         print(err)
         return -1
@@ -292,10 +292,10 @@ def untar(file, force):
     try:
         with tarfile.open(file, 'r:gz') as tar:
             try:
-                tar.extractall(path='temp', numeric_owner=True)
+                tar.extractall(path='temp/', numeric_owner=True)
             except IOError as err:
-                clean_up(os.path.normpath('temp' + tools.rm_ext(file, 'tar.gz')), force=force)
-                tar.extractall(path='temp', numeric_owner=True)
+                clean_up(os.path.normpath('temp/' + tools.rm_ext(file, 'tar.gz')), force=force)
+                tar.extractall(path='temp/', numeric_owner=True)
     except IOError as err:
         print(err)
         return -1
@@ -317,7 +317,7 @@ def compile(nodes, force):
         node = nodes[i]
         content_files += [node]
         try: 
-            os.mkdir(os.path.normpath('output' + node))
+            os.mkdir(os.path.normpath('output/' + node))
             print('Folder created: ' + node)
         except FileExistsError as err:
             print('Output folder exist!')
