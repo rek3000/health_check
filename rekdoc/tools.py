@@ -1,5 +1,5 @@
 import json
-import re, io, os
+import sys, re, io, os
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
@@ -24,8 +24,10 @@ def read_json(file):
         with open(file, 'r+') as f:
             content = json.load(f)
         return content
+    except FileNotFoundError as err:
+        raise RuntimeError('Input file not found!') from err
+        return -1
     except OSError as err:
-        print('OS error: ', err)
         raise RuntimeError('Cannot read JSON') from err
         return -1
 
@@ -34,7 +36,6 @@ def join_json(content_files, output):
         with open(output, 'w+') as file:
             x = {}
             for i in content_files:
-                print(i)
                 path = './output/' + i.split('.')[0]
                 path = os.path.normpath(''.join(path).split('_')[0]  + '/' + i + '.json')
                 buffer = read_json(path)

@@ -1,10 +1,11 @@
-import  click
+import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
 from rekdoc import tools 
 from rekdoc.const import *
 
 ##### CORE #####
+# @click.version_option(version='1.0.0', prog_name='rekdoc', message='created by Rek.')
 @click.group()
 def cli():
     pass
@@ -27,7 +28,7 @@ def fetch(input, output, node, verbose, force):
     if rekfetch.run(nodes, output, verbose, force) == -1:
         rekfetch.clean_up_force()
         return -1
-    click.echo('Summary file created after fetch: ' + output)
+    click.secho('Summary file created after fetch: ' + output, fg='cyan')
     rekfetch.clean_up()
 
 @click.command()
@@ -38,11 +39,7 @@ def fetch(input, output, node, verbose, force):
 def doc(input, output, verbose, force):
     if output == None:
         output = input
-    # if verbose:
-    #     click.echo('Generated Document')
-    # else:
-    #      click.echo('Done.')
-    rekdoc.run(input, output, force)
+    rekdoc.run(input, output, verbose, force)
 
 cli.add_command(fetch)
 cli.add_command(doc)

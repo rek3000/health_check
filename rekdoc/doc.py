@@ -195,12 +195,14 @@ def define_doc():
     return doc
 
 def drw_doc(doc, input, force):
-    data = tools.read_json(input)
+    try:
+        data = tools.read_json(input)
+    except Exception as err:
+        print(err)
+        return -1
     asserted_list = []
     for node in data:
-        # print(node)
         images = tools.read_json(os.path.normpath('output/' + node + '/images.json'))
-        # print(json.dumps(images, indent=2))
         file_dump = {}
         asserted = assert_data(data[node])
         
@@ -237,11 +239,17 @@ def print_style(doc):
     for style in p_styles:
         print(style.name)
 
-def run(input, output, force):
+def run(input, output, verbose=False, force=False):
     doc = define_doc() 
-    doc = drw_doc(doc, input, force)
+    try:
+        doc = drw_doc(doc, input, force)
+        if doc == -1:
+            return -1
+    except:
+        return -1
 
-    print_style(doc)
+    if verbose:
+        print_style(doc)
     # file_name = output.split('.')[0]
     file_name = os.path.normpath(tools.rm_ext(output, 'json') + '.docx')
     print('Saved document file: ' + file_name)
