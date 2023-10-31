@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import docx
-import sys
+import sys, os
 import json
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.style import WD_STYLE
@@ -179,16 +179,16 @@ def drw_info(doc, node, checklist, images=[]):
         doc.add_paragraph(checklist[i][1], style='baocao4')
         if isinstance(images[i-1], list):
             for image in images[i-1]:
-                path = 'output/' + node + '/' + image
+                path = os.path.normpth('output/' + node + '/' + image)
                 doc.add_picture(path, width=Inches(6.73))
         else:
-            doc.add_picture('output/' + node + '/' + images[i-1], width=Inches(6.73))
+            doc.add_picture(os.path.normpath('output/' + node + '/' + images[i-1]), width=Inches(6.73))
         doc.add_paragraph(checklist[i][2][1])
     doc.add_page_break()
 
 def define_doc():
     try:
-        doc = docx.Document("./sample/dcx8m2.docx")
+        doc = docx.Document(os.path.normpath("sample/dcx8m2.docx"))
     except Exception as err:
         print('Error:', err)
         sys.exit()
@@ -198,9 +198,9 @@ def drw_doc(doc, input, force):
     data = tools.read_json(input)
     asserted_list = []
     for node in data:
-        print(node)
-        images = tools.read_json('output/' + node + '/images.json')
-        print(json.dumps(images, indent=2))
+        # print(node)
+        images = tools.read_json(os.path.normpath('output/' + node + '/images.json'))
+        # print(json.dumps(images, indent=2))
         file_dump = {}
         asserted = assert_data(data[node])
         
@@ -223,8 +223,8 @@ def drw_doc(doc, input, force):
         asserted_file = node + '_asserted'
         asserted_list += [asserted_file]
         
-        tools.save_json('output/' + node + '/' + asserted_file + '.json', file_dump)
-    file_name = tools.rm_ext(input, 'json')  + '_asserted.json'
+        tools.save_json(os.path.normpath('output/' + node + '/' + asserted_file + '.json'), file_dump)
+    file_name = os.path.normpath(tools.rm_ext(input, 'json')  + '_asserted.json')
     tools.join_json(asserted_list, file_name)
     print()
     return doc
@@ -243,7 +243,7 @@ def run(input, output, force):
 
     print_style(doc)
     # file_name = output.split('.')[0]
-    file_name = tools.rm_ext(output, 'json') + '.docx'
+    file_name = os.path.normpath(tools.rm_ext(output, 'json') + '.docx')
     print('Saved document file: ' + file_name)
     doc.save(file_name)
 

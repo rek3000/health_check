@@ -12,3 +12,5 @@ __pycache__/*
 testbox
 venv
 dist
+build
+rekdoc.egg-info

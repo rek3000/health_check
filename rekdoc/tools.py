@@ -1,5 +1,5 @@
 import json
-import re, io
+import re, io, os
 from wand.image import Image
 from wand.drawing import Drawing
 from wand.color import Color
@@ -36,7 +36,7 @@ def join_json(content_files, output):
             for i in content_files:
                 print(i)
                 path = './output/' + i.split('.')[0]
-                path = ''.join(path).split('_')[0]  + '/' + i + '.json'
+                path = os.path.normpath(''.join(path).split('_')[0]  + '/' + i + '.json')
                 buffer = read_json(path)
                 key = list(buffer)[0]
                 x[key] = buffer[key]
@@ -56,7 +56,6 @@ def save_file(file, content):
         return -1
 
 def rm_ext(file, ext):
-    # return file.split('/')[2][:-len(ext)-1]
     return file[:-len(ext)-1]
 
 ##### IMAGEMAGICK #####
