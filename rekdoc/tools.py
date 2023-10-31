@@ -121,7 +121,7 @@ def grep(path, regex, single_line=True, print_line=False, verbose=True):
     result = ''
     flag = re.MULTILINE
     pattern = re.compile(regex, flag)
-    file = cat(path, False)
+    file = cat(os.path.normpath(path), False)
     content = file.getvalue().split('\n')
 
     if single_line:
