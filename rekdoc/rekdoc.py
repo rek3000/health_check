@@ -6,7 +6,8 @@ import os, sys, signal, io
 import shutil, glob
 import json
 import zipfile, tarfile
-import argparse
+# import argparse
+import click
 from rekdoc import doc
 from rekdoc import tools
 from rekdoc.const import *
@@ -353,50 +354,79 @@ def run(nodes, output):
 ##### END_IMPLEMENTATION #####
 
 ##### MAIN #####
+# @click.command()
+@click.group()
 def main():
-    parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
-                                     usage='%(prog)s [options] node [node...] [-o] file',
-                                     epilog='Created by Rek',
-                                     exit_on_error=False)
-    parser.add_argument('--version', action='version', version='%(prog)s 0.1')
-    parser.add_argument('-i', help='file with node names',
-                        # nargs='',
-                        metavar='file'
-                        )
-    parser.add_argument('node', help='machine names',
-                        nargs='*', 
-                        default=None,
-                        )
-    parser.add_argument('-o', help='output file name',
-                        metavar='doc',
-                        default='output/example',
-                        )
-                       
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", required=False, action="store_true")
-    group.add_argument("-q", "--quiet", required=False, action="store_true")
-    args = parser.parse_args()
+    # click.echo('Fetch, process data from ILOM and Explorer log files then write them to a report file.')
+    pass
+# def main():
+    # parser = argparse.ArgumentParser(prog='rek', description='Fetch, process data from ILOM and Explorer log files then write them to a report file.',
+    #                                  usage='%(prog)s [options] node [node...] [-o] file',
+    #                                  epilog='Created by Rek',
+    #                                  exit_on_error=False)
+    # parser.add_argument('--version', action='version', version='%(prog)s 0.1')
+    # parser.add_argument('-i', help='file with node names',
+    #                     # nargs='',
+    #                     metavar='file'
+    #                     )
+    # parser.add_argument('node', help='machine names',
+    #                     nargs='*', 
+    #                     default=None,
+    #                     )
+    # parser.add_argument('-o', help='output file name',
+    #                     metavar='doc',
+    #                     default='output/example',
+    #                     )
+    #                    
+    # group = parser.add_mutually_exclusive_group()
+    # group.add_argument("-v", "--verbose", required=False, action="store_true")
+    # group.add_argument("-q", "--quiet", required=False, action="store_true")
+    # args = parser.parse_args()
+    #
+    # if (not args.node) and (not args.i):
+    #     parser.parse_args(['-h'])
+    #     return 
+    # try:
+    #     with open(args.i, 'r') as f:
+    #         line = f.readlines()
+    #         for i in range(len(line)):
+    #             nodes_input.append(line[i].strip())
+    # except Exception as err:
+    #     print('Invalid or missing input file')
+    #
+    # nodes = nodes_input + args.node
+    # print(nodes)
+    #
+    # if run(nodes, args.o) == -1: 
+    #     clean_up_force()
+    #     return -1
+    # clean_up()
 
-    if (not args.node) and (not args.i):
-        parser.parse_args(['-h'])
-        return 
-    nodes_input = []
-    try:
-        with open(args.i, 'r') as f:
-            line = f.readlines()
-            for i in range(len(line)):
-                nodes_input.append(line[i].strip())
-    except Exception as err:
-        print('Invalid or missing input file')
+@click.command()
+@click.option('-i', '--input', help='node names file', type=click.File('r'))
+@click.option('-v', '--verbose', default=False, is_flag=True)
+@click.argument('node', required=False, nargs=-1)
+def fetch(input, node, verbose):
+    nodes = []
+    for line in input:
+        nodes.append(line.strip())
+    if node:
+        nodes.append(node)
+    if verbose:
+        click.echo(nodes)
+    else:
+        click.echo('Done.')
 
-    nodes = nodes_input + args.node
-    print(nodes)
+@click.command()
+@click.option('-v', '--verbose', default=False, is_flag=True)
+def doc(verbose):
+    if verbose:
+        click.echo('Generated Document')
+    else:
+        click.echo('Done.')
 
-    if run(nodes, args.o) == -1: 
-        clean_up_force()
-        return -1
-    clean_up()
-    sys.exit()
+main.add_command(fetch)
+main.add_command(doc)
 
 if __name__ == "__main__":
     main()
