@@ -249,7 +249,6 @@ def run(input, output, force):
 
 ##### MAIN #####
 def main():
-    rc = 1
     run()
 
 if __name__ == "__main__":
