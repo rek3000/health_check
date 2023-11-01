@@ -195,11 +195,7 @@ def define_doc():
     return doc
 
 def drw_doc(doc, input, force):
-    try:
-        data = tools.read_json(input)
-    except Exception as err:
-        print(err)
-        return -1
+    data = tools.read_json(input)
     asserted_list = []
     for node in data:
         images = tools.read_json(os.path.normpath('output/' + node + '/images.json'))

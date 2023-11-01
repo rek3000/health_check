@@ -21,7 +21,7 @@ def save_json(file, content):
 
 def read_json(file):
     try:
-        with open(file, 'r+') as f:
+        with open(file, 'r') as f:
             content = json.load(f)
         return content
     except FileNotFoundError as err:
@@ -84,7 +84,7 @@ def drw_text_image(text, file):
 
 ##### BASE ######
 # TODO: REWRITE IN STRINGIO
-def cat(path, stdout=True, verbose=True):
+def cat(path, stdout=True, debug=False):
     try:
         with open(path, 'r') as file:
             content = file.readlines()
@@ -94,8 +94,8 @@ def cat(path, stdout=True, verbose=True):
                 for l in content:
                     result += l.lstrip()
                     count += 1
-                    # if verbose:
-                    #     print(count + 1, ': ', l, sep='', end='')
+                    if debug:
+                        print(count + 1, ': ', l, sep='', end='')
                 return result
             else: 
                 result = io.StringIO()
@@ -103,8 +103,8 @@ def cat(path, stdout=True, verbose=True):
                 for l in content:
                     result.write(l)
                     count += 1
-                    # if verbose:
-                    #     print(count + 1, ': ', l, sep='', end='')
+                    if debug:
+                        print(count + 1, ': ', l, sep='', end='')
                 return result
     except Exception as err:
         raise RuntimeError('Cannot open file to read') from err
@@ -112,10 +112,10 @@ def cat(path, stdout=True, verbose=True):
 
 # return the matched line along with next `n` lines
 # not so optimized but usable
-def cursed_grep(path, regex, number=0, verbose=False):
+def cursed_grep(path, regex, number=0, debug=False):
     result = io.StringIO()
     # call grep() then get line number returned
-    line_number = int(grep(path, regex, True, True, verbose=verbose).split()[0][:-1])
+    line_number = int(grep(path, regex, True, True, debug=debug).split()[0][:-1])
     with open(path, 'r') as f:
         lines = f.readlines()[line_number-1:]
         for i in range(number):
@@ -123,7 +123,7 @@ def cursed_grep(path, regex, number=0, verbose=False):
     return result
 
 # TODO: remake using StringIO
-def grep(path, regex, single_line=True, print_line=False, verbose=True):
+def grep(path, regex, single_line=True, print_line=False, debug=False):
     result = ''
     flag = re.MULTILINE
     pattern = re.compile(regex, flag)
@@ -143,7 +143,7 @@ def grep(path, regex, single_line=True, print_line=False, verbose=True):
                 result += content[line].lstrip()
                 if print_line:
                     result = str(line + 1) + ': ' + result
-    if verbose:
+    if debug:
         print(result)
         print()
     return result
