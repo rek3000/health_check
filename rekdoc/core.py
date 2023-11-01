@@ -76,6 +76,7 @@ def doc(input, output, verbose, force):
         output = input
     file_name = rekdoc.run(input, output, verbose, force)
     click.secho("Created document file: " + click.style(file_name, fg='cyan'))
+    click.secho("Finish!", bg="green", fg="black")
 
 
 cli.add_command(fetch)

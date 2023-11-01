@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import docx
+import click
 import sys, os
 import json
 from docx.enum.style import WD_STYLE_TYPE
@@ -228,7 +229,6 @@ def drw_table(doc, checklist, row, col, info=False):
 
 
 def drw_info(doc, node, checklist, images=[]):
-    print(node)
     for i in range(1, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
         if isinstance(images[i - 1], list):
@@ -257,26 +257,41 @@ def drw_doc(doc, input, force):
     data = tools.read_json(input)
     asserted_list = []
     for node in data:
+        progress_bar = click.progressbar(
+                range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
+                )
         images = tools.read_json(os.path.normpath("output/" + node + "/images.json"))
+        progress_bar.update(10)
+
         file_dump = {}
         asserted = assert_data(data[node])
+        progress_bar.update(10)
 
         file_dump[node] = asserted
 
         keys = list(asserted)
         checklist = get_score(asserted)
+        progress_bar.update(10)
         doc.add_paragraph("Máy chủ " + node, style="baocao2")
         doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        progress_bar.update(10)
         overview = [
             ["Hostname", "Product Name", "Serial Number", "IP Address"],
             [node, "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
+        progress_bar.update(10)
         doc.add_paragraph("Đánh giá", style="baocao3")
+        progress_bar.update(10)
         drw_table(doc, checklist, 11, 3, True)
+        progress_bar.update(10)
 
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+        progress_bar.update(10)
+
         drw_info(doc, node, checklist, images)
+        progress_bar.update(10)
+
         asserted_file = node + "_asserted"
         asserted_list += [asserted_file]
 
@@ -284,9 +299,12 @@ def drw_doc(doc, input, force):
             os.path.normpath("output/" + node + "/" + asserted_file + ".json"),
             file_dump,
         )
+        progress_bar.update(10)
+        click.secho(" ", nl=False)
+        click.secho("DONE", bg="green", fg="black")
+        progress_bar.finish()
     file_name = os.path.normpath(tools.rm_ext(input, "json") + "_asserted.json")
     tools.join_json(asserted_list, file_name)
-    print()
     return doc
 
 
@@ -307,8 +325,10 @@ def run(input, output, verbose=False, force=False):
         return -1
 
     if verbose:
+        click.echo()
+        click.secho('List of all styles', bg='cyan', fg='black')
         print_style(doc)
-    # file_name = output.split('.')[0]
+        click.echo()
     file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
     doc.save(file_name)
     return file_name

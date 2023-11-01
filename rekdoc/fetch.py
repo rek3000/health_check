@@ -461,6 +461,9 @@ def compile(nodes, root, verbose, force):
         progress_bar.update(20)
         click.secho(" ", nl=False)
         click.secho("DONE", bg="green", fg="black")
+        progress_bar.finish()
+        if verbose:
+            click.echo()
     return content_files
 
 
@@ -483,7 +486,6 @@ def create_dir(path, verbose=False, force=False):
                 prompt="Do you want to replace it?",
                 force=force,
             )
-            # click.secho()
 
 
 # FLOW OF PROGRAM
