@@ -5,12 +5,12 @@ from rekdoc import doc as rekdoc
 from rekdoc import tools
 from rekdoc.const import *
 
-
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 ##### CORE #####
 @click.version_option(
     version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
 )
-@click.group()
+@click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
     pass
 
