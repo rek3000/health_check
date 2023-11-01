@@ -2,21 +2,34 @@ import os
 import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
-from rekdoc import tools 
+from rekdoc import tools
 from rekdoc.const import *
 
+
 ##### CORE #####
-@click.version_option(version='1.0.0', prog_name='rekdoc', message='Version %(version)s \nCrafted by Rek.')
+@click.version_option(
+    version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
+)
 @click.group()
 def cli():
     pass
 
-@click.command(no_args_is_help=True, help='Fetch information to json and convert them to png images')
-@click.option('-i', '--input', help='node names file.', type=click.File('r'))
-@click.option('-o', '--output', required=True, help='output file name.')
-@click.option('-v', '--verbose', default=False, is_flag=True)
-@click.option('-f', '--force', default=False, help='Force replace if exist output file.', is_flag=True)
-@click.argument('node', required=False, nargs=-1)
+
+@click.command(
+    no_args_is_help=True,
+    help="Fetch information to json and convert them to png images",
+)
+@click.option("-i", "--input", help="node names file.", type=click.File("r"))
+@click.option("-o", "--output", required=True, help="output file name.")
+@click.option("-v", "--verbose", default=False, is_flag=True)
+@click.option(
+    "-f",
+    "--force",
+    default=False,
+    help="Force replace if exist output file.",
+    is_flag=True,
+)
+@click.argument("node", required=False, nargs=-1)
 def fetch(input, output, node, verbose, force):
     nodes = []
     try:
@@ -29,24 +42,45 @@ def fetch(input, output, node, verbose, force):
 
     root = os.path.split(output)[0]
     if rekfetch.run(nodes, output, verbose, force) == -1:
-        rekfetch.clean_up_force('./temp/')
+        rekfetch.clean_up_force("./temp/")
         return -1
-    click.secho('Summary file created after fetch: ' + output, fg='cyan')
-    rekfetch.clean_up('./temp/', prompt='Remove temp/ directory items?', verbose=verbose)
+    click.secho("Summary file created after fetch: " + output, fg="cyan")
+    rekfetch.clean_up(
+        "./temp/",
+        prompt="Remove "
+        + click.style("temp/", fg="cyan")
+        + click.style(" directory items?", fg="red"),
+        verbose=verbose,
+    )
+    click.secho("Finish!", bg="green", fg="black")
 
-@click.command(no_args_is_help=True, help='Generate word document')
-@click.option('-i', '--input', help='summary file.', type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True))
-@click.option('-o', '--output', help='output file name.', type=click.STRING)
-@click.option('-v', '--verbose', default=False, is_flag=True)
-@click.option('-f', '--force', default=False, help='Force replace if exist output file.', is_flag=True)
+
+@click.command(no_args_is_help=True, help="Generate word document")
+@click.option(
+    "-i",
+    "--input",
+    help="summary file.",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+)
+@click.option("-o", "--output", help="output file name.", type=click.STRING)
+@click.option("-v", "--verbose", default=False, is_flag=True)
+@click.option(
+    "-f",
+    "--force",
+    default=False,
+    help="Force replace if exist output file.",
+    is_flag=True,
+)
 def doc(input, output, verbose, force):
     if output == None:
         output = input
-    rekdoc.run(input, output, verbose, force)
+    file_name = rekdoc.run(input, output, verbose, force)
+    click.secho("Created document file: " + click.style(file_name, fg='cyan'))
+
 
 cli.add_command(fetch)
 cli.add_command(doc)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
 ##### END CORE #####
