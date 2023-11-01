@@ -17,7 +17,7 @@ def cli():
 
 @click.command(
     no_args_is_help=True,
-    help="Fetch information to json and convert them to png images",
+    short_help="fetch info to img",
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
 @click.option("-o", "--output", required=True, help="output file name.")
@@ -31,6 +31,7 @@ def cli():
 )
 @click.argument("node", required=False, nargs=-1)
 def fetch(input, output, node, verbose, force):
+    """Fetch information to json and convert to images"""
     nodes = []
     try:
         for line in input:
@@ -55,7 +56,7 @@ def fetch(input, output, node, verbose, force):
     click.secho("Finish!", bg="green", fg="black")
 
 
-@click.command(no_args_is_help=True, help="Generate word document")
+@click.command(no_args_is_help=True, short_help='create report')
 @click.option(
     "-i",
     "--input",
@@ -72,6 +73,7 @@ def fetch(input, output, node, verbose, force):
     is_flag=True,
 )
 def doc(input, output, verbose, force):
+    """Generate report from JSON file"""
     if output == None:
         output = input
     file_name = rekdoc.run(input, output, verbose, force)
