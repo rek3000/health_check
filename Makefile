@@ -1,5 +1,5 @@
 build:
-	pyinstaller --hidden-import wand --hidden-import click -F rekdoc/* -n rekdoc
+	pyinstaller --hidden-import wand --hidden-import click -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
 	# source venv/bin/activate; python setup.py bdist_pex
 	
 init:
@@ -14,4 +14,4 @@ clean:
 	rm -f *.spec
 tree:
 	tree -I venv -I build -I dist -I __pycache__
-.PHONY: 
+.PHONY:  clean build

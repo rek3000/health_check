@@ -6,8 +6,8 @@ from rekdoc import tools
 from rekdoc.const import *
 
 ##### CORE #####
-@click.version_option(prog_name='rekdoc', message='Version 1.0.0')
-@click.group( epilog='')
+@click.version_option(version='1.0.0', prog_name='rekdoc', message='Version %(version)s \nCrafted by Rek.')
+@click.group()
 def cli():
     pass
 

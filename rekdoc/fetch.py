@@ -361,17 +361,22 @@ def create_dir(path, verbose=False, force=False):
             click.secho(path + ' folder exist!')
             clean_up(path=os.path.normpath(path), prompt='Do you want to replace it?', force=force)
             click.secho()
+
 # FLOW OF PROGRAM
 def run(nodes, output, verbose, force):
-    root = os.path.split(output)[0]
-    create_dir(os.path.normpath(root), verbose=verbose, force=force)
-    create_dir(os.path.normpath('temp'), verbose=verbose, force=force)
+    out_dir = os.path.split(output)[0]
+    # create output and temp directory
+    create_dir(os.path.normpath(out_dir), verbose, force)
+    create_dir(os.path.normpath('temp'), verbose, force)
 
-    content_files = compile(nodes, root, verbose, force)
+    # fetch and cook to images from logs
+    content_files = compile(nodes, out_dir, verbose, force)
     if content_files == -1:
         click.secho('Error: ', fg='red', nl=False)
         click.echo('No files to join!')
         return -1
+
+    # union all jsons to one file
     tools.join_json(content_files, output)
 ##### END_IMPLEMENTATION #####
 
