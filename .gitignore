@@ -13,5 +13,5 @@ testbox
 venv
 dist
 build
-rekdoc.egg-info
+*.egg-info
 *.spec

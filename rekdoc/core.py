@@ -33,7 +33,11 @@ def cli():
 )
 @click.argument("node", required=False, nargs=-1)
 def fetch(input, output, node, verbose, force):
-    """Fetch information to json and convert to images"""
+    """
+    \b 
+    Fetch information to json and convert to images
+    This command examine the 'sample/' folder for logs
+    """
     nodes = []
     try:
         for line in input:
@@ -81,7 +85,12 @@ def fetch(input, output, node, verbose, force):
     is_flag=True,
 )
 def doc(input, output, verbose, force):
-    """Generate report from JSON file"""
+    """
+    \b 
+    Generate report from JSON file
+    Require to have a sample docx file with defined styling rules to generate the document
+    """
+
     if output == None:
         output = input
         output = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
@@ -95,9 +104,38 @@ def doc(input, output, verbose, force):
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
+# @click.command(no_args_is_help=True, short_help="show rules")
+@click.command(short_help="show rules")
+def rule():
+    click.echo("""
+    DOCUMENT SAMPLE RULES (These must be defined on 'docx' office software):
+        1. Header
+            /   TYPE    |  NAME   \\
+            |a. Header 1: 'baocao1'|
+            |b. Header 2: 'baocao2'|
+            |c. Header 3: 'baocao3'|
+            \d. Header 4: 'baocao4'/
+        2. List
+            Bullet-list('-' symbol): 'Dash List'
+        Note: Failing to define styles with this specific name leads to 
+              docx file generated having no style at all!
+
+    MANDATORY DIRECTORY:
+        'sample/'
+
+    CODING CONVENTION:
+        1. Naming style: 
+            /   type         |    rule           \\
+            |constant        : must be UPPPERCASE|
+            |normal variable : snake_case        |
+            |function name   : snake_case        |
+            \comment         : use '#'           /
+    """)
+
 
 cli.add_command(fetch)
 cli.add_command(doc)
+cli.add_command(rule)
 
 if __name__ == "__main__":
     cli()

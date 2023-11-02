@@ -1,1 +1,7 @@
-This is a project
+# A FETCHING INFORMATION TOOL
+
+REQUIRE: `sample/` folder with logs
+
+## NAMING CONVENTION
+SNAKE_CASE
+

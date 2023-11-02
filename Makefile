@@ -13,5 +13,5 @@ clean:
 	rm -rf output/*
 	rm -f *.spec
 tree:
-	tree -I venv -I build -I dist -I __pycache__
+	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info
 .PHONY:  clean build
