@@ -38,6 +38,8 @@ def clean_files(dir, verbose):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
+        except IOError:
+            continue
         except Exception as e:
             click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg="red")
             return -1
@@ -493,6 +495,7 @@ def create_dir(path, verbose=False, force=False):
 # FLOW OF PROGRAM
 def run(nodes, output, verbose, force):
     out_dir = os.path.split(output)[0]
+
     # create output and temp directory
     create_dir(os.path.normpath(out_dir), verbose, force)
     create_dir(os.path.normpath("temp"), verbose, force=True)
