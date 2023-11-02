@@ -295,6 +295,7 @@ def run(input, output, verbose=False, force=False):
         if doc == -1:
             return -1
     except Exception as err:
+        print()
         print(err)
         return -1
 
