@@ -5,7 +5,9 @@ from rekdoc import doc as rekdoc
 from rekdoc import tools
 from rekdoc.const import *
 
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
 ##### CORE #####
 @click.version_option(
     version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
@@ -54,11 +56,11 @@ def fetch(input, output, node, verbose, force):
         verbose=verbose,
     )
     click.secho("Finish!", bg="green", fg="black")
-    click.echo('')
-    sys.stdout.write('\033[?25h')
+    click.echo("")
+    sys.stdout.write("\033[?25h")
 
 
-@click.command(no_args_is_help=True, short_help='create report')
+@click.command(no_args_is_help=True, short_help="create report")
 @click.option(
     "-i",
     "--input",
@@ -78,10 +80,12 @@ def doc(input, output, verbose, force):
     """Generate report from JSON file"""
     if output == None:
         output = input
+        output = os.path.normpath(tools.rm_ext(output, "json") + '.docx')
+
     file_name = rekdoc.run(input, output, verbose, force)
-    click.secho("Created document file: " + click.style(file_name, fg='cyan'))
+    click.secho("Created document file: " + click.style(file_name, fg="cyan"))
     click.secho("Finish!", bg="green", fg="black")
-    sys.stdout.write('\033[?25h')
+    sys.stdout.write("\033[?25h")
 
 
 cli.add_command(fetch)

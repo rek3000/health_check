@@ -194,6 +194,7 @@ def drw_table(doc, checklist, row, col, info=False):
         return -1
     tab = doc.add_table(row, col)
     tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tab.style = "Table Grid"
 
     # ADD TITLE CELLS AND COLOR THEM
     cols = tab.rows[0].cells
@@ -258,8 +259,8 @@ def drw_doc(doc, input, force):
     asserted_list = []
     for node in data:
         progress_bar = click.progressbar(
-                range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
-                )
+            range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
+        )
         images = tools.read_json(os.path.normpath("output/" + node + "/images.json"))
         progress_bar.update(10)
 
@@ -310,8 +311,9 @@ def drw_doc(doc, input, force):
 
 def print_style(doc):
     styles = doc.styles
-    p_styles = [s for s in styles if s.type == WD_STYLE_TYPE.PARAGRAPH]
-    for style in p_styles:
+    # p_styles = [s for s in styles if s.type == WD_STYLE_TYPE.PARAGRAPH]
+    # for style in p_styles:
+    for style in styles:
         print(style.name)
 
 
@@ -326,10 +328,10 @@ def run(input, output, verbose=False, force=False):
 
     if verbose:
         click.echo()
-        click.secho('List of all styles', bg='cyan', fg='black')
+        click.secho("List of all styles", bg="cyan", fg="black")
         print_style(doc)
         click.echo()
-    file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
+    file_name = os.path.normpath(output)
     doc.save(file_name)
     return file_name
 
