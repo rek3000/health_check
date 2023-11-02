@@ -38,9 +38,7 @@ def clean_files(dir, verbose):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
-        except IOError:
-            continue
-        except Exception as e:
+        except* Exception as e:
             click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg="red")
             return -1
 
@@ -383,16 +381,24 @@ def untar(file, verbose, force):
         print("Extracting: " + file)
     try:
         with tarfile.open(file, "r:gz") as tar:
-            try:
-                tar.extractall(path="temp/", numeric_owner=True)
-            except IOError as err:
-                clean_up(
-                    os.path.normpath(
-                        "temp/" + os.path.split(tools.rm_ext(file, "tar.gz"))[1]
-                    ),
-                    force=force,
-                )
-                tar.extractall(path="temp/", numeric_owner=True)
+            for f in tar.getmembers;
+                try:
+                    f.extract(file, path='temp/')
+                except IOError:
+                    continue
+                except Exception as err:
+                    click.echo(err)
+                    return -1
+            # try:
+            #     tar.extractall(path="temp/")
+            # except IOError as err:
+            #     clean_up(
+            #         os.path.normpath(
+            #             "temp/" + os.path.split(tools.rm_ext(file, "tar.gz"))[1]
+            #         ),
+            #         force=force,
+            #     )
+            #     tar.extractall(path="temp/")
     except IOError as err:
         print(err)
         return -1
