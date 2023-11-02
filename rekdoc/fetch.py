@@ -381,7 +381,7 @@ def untar(file, verbose, force):
         print("Extracting: " + file)
     try:
         with tarfile.open(file, "r:gz") as tar:
-            for f in tar.getmembers;
+            for f in tar.getmembers();
                 try:
                     f.extract(file, path='temp/')
                 except IOError:
