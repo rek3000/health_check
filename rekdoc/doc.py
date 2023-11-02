@@ -3,9 +3,9 @@ import docx
 import click
 import sys, os
 import json
-from docx.enum.style import WD_STYLE_TYPE
-from docx.enum.style import WD_STYLE
+from docx.enum.style import WD_STYLE_TYPE, WD_STYLE
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
@@ -213,11 +213,21 @@ def define_doc():
         sys.exit()
     return doc
 
+def drw_menu(doc, nodes):
+    doc.add_paragraph('ORACLE EXADATA X8M-2', style="baocao1")
+    doc.add_paragraph('Kiểm tra nhiệt độ môi trường', style="baocao2")
+    doc.add_paragraph('Mục lục', style='Heading')
+    for node in nodes:
+        doc.add_paragraph('Kiểm tra nhiệt độ môi trường', style="baocao2")
+        doc.add_paragraph('').paragraph_format.tab_stops.add_tab_stop(Inches(1.5), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS)
+    doc.add_page_break()
 
 def drw_doc(doc, input, force):
-    data = tools.read_json(input)
+    nodes = tools.read_json(input)
     asserted_list = []
-    for node in data:
+    doc.add_page_break()
+    # drw_menu(doc, nodes)
+    for node in nodes:
         progress_bar = click.progressbar(
             range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
         )
@@ -225,7 +235,7 @@ def drw_doc(doc, input, force):
         progress_bar.update(10)
 
         file_dump = {}
-        asserted = assert_data(data[node])
+        asserted = assert_data(nodes[node])
         progress_bar.update(10)
 
         file_dump[node] = asserted
