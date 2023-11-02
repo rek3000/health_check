@@ -26,6 +26,7 @@ def debug(func):
 
 
 ##### IMPLEMETATION #####
+# TODO: REWRITE for Windows compatibility
 def clean_files(dir, verbose):
     for filename in os.listdir(dir):
         file_path = os.path.join(dir, filename)
@@ -33,7 +34,8 @@ def clean_files(dir, verbose):
             click.secho("Deleted: " + file_path)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
+                # os.unlink(file_path)
+                os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
@@ -399,7 +401,7 @@ def compile(nodes, root, verbose, force):
     content_files = []
     for node in nodes:
         progress_bar = click.progressbar(
-            range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
+            range(100), label=node, fill_char="*", empty_char=" ", show_eta=False,
         )
         path = ["", ""]
         path[0] = extract_file(node, "zip", verbose, force)

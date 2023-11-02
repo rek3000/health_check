@@ -1,4 +1,4 @@
-import os
+import os, sys
 import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
@@ -54,6 +54,8 @@ def fetch(input, output, node, verbose, force):
         verbose=verbose,
     )
     click.secho("Finish!", bg="green", fg="black")
+    click.echo('')
+    sys.stdout.write('\033[?25h')
 
 
 @click.command(no_args_is_help=True, short_help='create report')
@@ -79,6 +81,7 @@ def doc(input, output, verbose, force):
     file_name = rekdoc.run(input, output, verbose, force)
     click.secho("Created document file: " + click.style(file_name, fg='cyan'))
     click.secho("Finish!", bg="green", fg="black")
+    sys.stdout.write('\033[?25h')
 
 
 cli.add_command(fetch)
