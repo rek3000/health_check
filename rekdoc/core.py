@@ -46,7 +46,10 @@ def fetch(input, output, node, verbose, force):
     root = os.path.split(output)[0]
     if rekfetch.run(nodes, output, verbose, force) == -1:
         rekfetch.clean_up_force("./temp/")
+        click.secho("Error found!", bg="red", fg="black")
+        sys.stdout.write("\033[?25h")
         return -1
+
     click.secho("Summary file created after fetch: " + output, fg="cyan")
     rekfetch.clean_up(
         "./temp/",
@@ -55,6 +58,7 @@ def fetch(input, output, node, verbose, force):
         + click.style(" directory items?", fg="red"),
         verbose=verbose,
     )
+
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")
     sys.stdout.write("\033[?25h")
@@ -80,9 +84,13 @@ def doc(input, output, verbose, force):
     """Generate report from JSON file"""
     if output == None:
         output = input
-        output = os.path.normpath(tools.rm_ext(output, "json") + '.docx')
+        output = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
 
     file_name = rekdoc.run(input, output, verbose, force)
+    if file_name == -1:
+        click.secho("Error found!", bg="red", fg="black")
+        return -1
+
     click.secho("Created document file: " + click.style(file_name, fg="cyan"))
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
