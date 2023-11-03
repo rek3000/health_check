@@ -95,9 +95,9 @@ def drw_text_image(text, file):
 ##### BASE ######
 def run(command, tokenize):
     process = subprocess.Popen(
-            command,
-            stdout = subprocess.PIPE,
-            stderr = subprocess.PIPE,
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     # stderr_stream = process.stderr.read()
     # stdout_stream = process.stdout.read()
@@ -105,9 +105,9 @@ def run(command, tokenize):
     returncode = process.wait()
 
     if not isinstance(stdout_stream, str):
-        stdout_stream = stdout_stream.decode('utf-8')
+        stdout_stream = stdout_stream.decode("utf-8")
     if not isinstance(stderr_stream, str):
-        stderr_stream = stderr_stream.decode('utf-8')
+        stderr_stream = stderr_stream.decode("utf-8")
 
     if tokenize:
         stdout = stdout_stream.splitlines()
@@ -120,31 +120,27 @@ def run(command, tokenize):
 
 
 def cat(file, stdout=False, debug=False):
-    command = ['cat', 
-               file
-               ]
+    command = ["cat", file]
     stdout, stderr, code = run(command, False)
     return stdout
 
+
 def grep(path, regex, single_match, next=0, debug=False):
-    command = [
-        'grep',
-        '-e',
-        regex
-        ]
+    command = ["grep", "-e", regex]
 
     if single_match:
-        command.extend(['-m1'])
-        command.extend(['-A', str(next)])
-    else: 
-        command.extend(['-A', str(next)])
+        command.extend(["-m1"])
+        command.extend(["-A", str(next)])
+    else:
+        command.extend(["-A", str(next)])
     command.extend([path])
 
     # print('Command: ' + ' '.join(command))
     stdout, stderr, code = run(command, False)
 
     return stdout
-    
+
+
 # TODO: REWRITE IN STRINGIO
 # def cat(path, stdout=True, debug=False):
 #     try:
