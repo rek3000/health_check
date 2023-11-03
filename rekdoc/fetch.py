@@ -72,7 +72,8 @@ def drw_ilom(path, out_dir, verbose=False, debug=False):
     temp.write(path + TEMP + "\n")
     reg = "^ /System/Cooling$"
     temp.write(
-        tools.cursed_grep(os.path.normpath(path + TEMP), reg, 8, debug=debug).getvalue()
+        # tools.cursed_grep(os.path.normpath(path + TEMP), reg, 8, debug=debug).getvalue()
+        tools.grep(os.path.normpath(path + TEMP), reg, False, 8, debug=debug)
     )
     tools.drw_text_image(temp, os.path.normpath(out_dir + "/temp.png"))
 
@@ -80,7 +81,8 @@ def drw_ilom(path, out_dir, verbose=False, debug=False):
     firmware.write(path + FIRMWARE + "\n")
     reg = "^Oracle"
     firmware.write(
-        tools.cursed_grep(os.path.normpath(path + FIRMWARE), reg, 5, debug).getvalue()
+        tools.grep(os.path.normpath(path + FIRMWARE), reg, False, 5, debug)
+        # tools.cursed_grep(os.path.normpath(path + FIRMWARE), reg, 5, debug).getvalue()
     )
     tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
     return ["fault.png", "temp.png", "firmware.png"]
@@ -200,21 +202,21 @@ def get_ilom(path, verbose, debug=False):
     fault = tools.cat(os.path.normpath(path + FAULT), debug=debug).strip()
 
     inlet_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "inlet_temp", debug=debug)
+        tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True, debug=debug)
         .strip()
         .split()
     )
     inlet_temp = " ".join(inlet_temp[2:5])
 
     exhaust_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", debug=debug)
+        tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True, debug=debug)
         .strip()
         .split()
     )
     exhaust_temp = " ".join(exhaust_temp[2:5])
 
     firmware = (
-        tools.grep(os.path.normpath(path + FIRMWARE), "Version", debug=debug)
+        tools.grep(os.path.normpath(path + FIRMWARE), "Version", True, debug=debug)
         .strip()
         .split()
     )
@@ -232,7 +234,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
     x = {}
     if os_name == "SOL":
         image = (
-            tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", debug=debug)
+            tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True, debug=debug)
             .strip()
             .split()
         )
@@ -240,7 +242,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
         x["image"] = image
 
         vol = (
-            tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/\\B", debug=debug)
+            tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/\\B", True, debug=debug)
             .strip()
             .split()
         )
@@ -249,7 +251,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
         x["vol_avail"] = vol_avail
 
         raid = (
-            tools.grep(os.path.normpath(path + RAID_SOL), "mirror", debug=debug)
+            tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True, debug=debug)
             .strip()
             .split()
         )
@@ -259,8 +261,8 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
             raid_stat = False
         x["raid_stat"] = raid_stat
 
-        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", debug)
-        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", debug=debug)
+        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True, debug)
+        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True, debug=debug)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -284,7 +286,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
         x["load"] = {}
         load = (
             tools.grep(
-                os.path.normpath(path + CPU_LOAD_SOL), "load average", debug=debug
+                os.path.normpath(path + CPU_LOAD_SOL), "load average", True, debug=debug
             )
             .strip()
             .split(", ")
@@ -292,7 +294,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
         load_avg = " ".join(load).split()[-3:]
         load_avg = float((max(load_avg)))
         vcpu = (
-            tools.grep(os.path.normpath(path + VCPU_SOL), "primary", debug=debug)
+            tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True, debug=debug)
             .strip()
             .split()[4]
         )
@@ -304,7 +306,7 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
         x["load"]["load_avg_per"] = load_avg_per
 
         mem = (
-            tools.grep(os.path.normpath(path + MEM_SOL), "freelist", False, debug=debug)
+            tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True, debug=debug)
             .strip()
             .split()
         )
@@ -326,7 +328,9 @@ def get_os(path, os_name="SOL", verbose=False, debug=False):
 def get_content(node, path, verbose):
     # @@
     ilom = get_ilom(path[0], verbose)
+    print(json.dumps(ilom, indent=2))
     os_info = get_os(path[1], "SOL", verbose)
+    print(json.dumps(os_info, indent=2))
     name = node
 
     content = {}

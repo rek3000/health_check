@@ -99,8 +99,9 @@ def run(command, tokenize):
             stdout = subprocess.PIPE,
             stderr = subprocess.PIPE,
     )
-    stdout_stream = process.stdout.read()
-    stderr_stream = process.stderr.read()
+    # stderr_stream = process.stderr.read()
+    # stdout_stream = process.stdout.read()
+    stdout_stream, stderr_stream = process.communicate()
     returncode = process.wait()
 
     if not isinstance(stdout_stream, str):
@@ -117,72 +118,99 @@ def run(command, tokenize):
 
     return stdout, stderr, returncode
 
+
+def cat(file, stdout=False, debug=False):
+    command = ['cat', 
+               file
+               ]
+    stdout, stderr, code = run(command, False)
+    return stdout
+
+def grep(path, regex, single_match, next=0, debug=False):
+    command = [
+        'grep',
+        '-e',
+        regex
+        ]
+
+    if single_match:
+        command.extend(['-m1'])
+        command.extend(['-A', str(next)])
+    else: 
+        command.extend(['-A', str(next)])
+    command.extend([path])
+
+    # print('Command: ' + ' '.join(command))
+    stdout, stderr, code = run(command, False)
+
+    return stdout
+    
 # TODO: REWRITE IN STRINGIO
-def cat(path, stdout=True, debug=False):
-    try:
-        with open(path, "r") as file:
-            content = file.readlines()
-            if stdout:
-                count = 0
-                result = ""
-                for l in content:
-                    result += l.lstrip()
-                    count += 1
-                    if debug:
-                        print(count + 1, ": ", l, sep="", end="")
-                return result
-            else:
-                result = io.StringIO()
-                count = 0
-                for l in content:
-                    result.write(l)
-                    count += 1
-                    if debug:
-                        print(count + 1, ": ", l, sep="", end="")
-                return result
-    except Exception as err:
-        raise RuntimeError("Cannot open file to read") from err
-        return -1
+# def cat(path, stdout=True, debug=False):
+#     try:
+#         with open(path, "r") as file:
+#             content = file.readlines()
+#             if stdout:
+#                 count = 0
+#                 result = ""
+#                 for l in content:
+#                     result += l.lstrip()
+#                     count += 1
+#                     if debug:
+#                         print(count + 1, ": ", l, sep="", end="")
+#                 return result
+#             else:
+#                 result = io.StringIO()
+#                 count = 0
+#                 for l in content:
+#                     result.write(l)
+#                     count += 1
+#                     if debug:
+#                         print(count + 1, ": ", l, sep="", end="")
+#                 return result
+#     except Exception as err:
+#         raise RuntimeError("Cannot open file to read") from err
+#         return -1
 
 
 # return the matched line along with next `n` lines
 # not so optimized but usable
-def cursed_grep(path, regex, number=0, debug=False):
-    result = io.StringIO()
-    # call grep() then get line number returned
-    line_number = int(grep(path, regex, True, True, debug=debug).split()[0][:-1])
-    with open(path, "r") as f:
-        lines = f.readlines()[line_number - 1 :]
-        for i in range(number):
-            result.write(lines[i])
-    return result
-
-
-# TODO: remake using StringIO
-def grep(path, regex, single_line=True, print_line=False, debug=False):
-    result = ""
-    flag = re.MULTILINE
-    pattern = re.compile(regex, flag)
-    file = cat(os.path.normpath(path), False)
-    content = file.getvalue().split("\n")
-
-    if single_line:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                if print_line:
-                    result = str(line + 1) + ": " + result
-                break
-    else:
-        for line in range(len(content)):
-            if re.search(pattern, content[line]):
-                result += content[line].lstrip()
-                if print_line:
-                    result = str(line + 1) + ": " + result
-    if debug:
-        print(result)
-        print()
-    return result
+# def cursed_grep(path, regex, number=0, debug=False):
+#     result = io.StringIO()
+#     # call grep() then get line number returned
+#     line_number = int(grep(path, regex, True, True, debug=debug).split()[0][:-1])
+#     with open(path, "r") as f:
+#         lines = f.readlines()[line_number - 1 :]
+#         for i in range(number):
+#             result.write(lines[i])
+#     return result
+#
+#
+# # TODO: remake using StringIO
+# def grep(path, regex, single_line=True, print_line=False, debug=False):
+#     result = ""
+#     flag = re.MULTILINE
+#     pattern = re.compile(regex, flag)
+#     file = cat(os.path.normpath(path), False)
+#     content = file.getvalue().split("\n")
+#
+#     if single_line:
+#         for line in range(len(content)):
+#             if re.search(pattern, content[line]):
+#                 result += content[line].lstrip()
+#                 if print_line:
+#                     result = str(line + 1) + ": " + result
+#                 break
+#     else:
+#         for line in range(len(content)):
+#             if re.search(pattern, content[line]):
+#                 result += content[line].lstrip()
+#                 if print_line:
+#                     result = str(line + 1) + ": " + result
+#     if debug:
+#         print(result)
+#         print()
+#     return result
 
 
 ##### END BASE #####
