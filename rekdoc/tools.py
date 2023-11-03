@@ -93,7 +93,7 @@ def drw_text_image(text, file):
 
 
 ##### BASE ######
-def run(command):
+def run(command, tokenize):
     process = subprocess.Popen(
             command,
             stdout = subprocess.PIPE,
@@ -107,8 +107,13 @@ def run(command):
         stdout_stream = stdout_stream.decode('utf-8')
     if not isinstance(stderr_stream, str):
         stderr_stream = stderr_stream.decode('utf-8')
-    stdout = stdout_stream.splitlines()
-    stderr = stderr_stream.splitlines()
+
+    if tokenize:
+        stdout = stdout_stream.splitlines()
+        stderr = stderr_stream.splitlines()
+    else:
+        stdout = stdout_stream
+        stderr = stderr_stream
 
     return stdout, stderr, returncode
 
