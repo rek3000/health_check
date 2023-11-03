@@ -1,12 +1,17 @@
+build:
+	pyinstaller --hidden-import wand --hidden-import click -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
+	# source venv/bin/activate; python setup.py bdist_pex
+	
 init:
 	python -m venv venv
 	source venv/bin/activate; pip install pex
-build:
-	source venv/bin/activate; python setup.py bdist_pex
 
 test: 
 	./dist/rekdoc-1.0.0.pex -i input -o test
 clean:
 	rm -rf temp/*
 	rm -rf output/*
-.PHONY:  
+	rm -f *.spec
+tree:
+	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info
+.PHONY:  clean build
