@@ -61,69 +61,107 @@ def clean_up_force(path):
 def check_valid(path):
     return os.path.isdir(path)
 
-
-def drw_ilom(path, out_dir, verbose=False, debug=False):
+##### IMAGE PROCESSING #####
+## DRAW ILOM ##
+def drw_fault(path, out_dir, debug):
     fault = io.StringIO()
     fault.write(path + FAULT + "\n")
     fault.write(tools.cat(os.path.normpath(path + FAULT), debug=debug))
     tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
 
+def drw_temp(path, out_dir, debug):
     temp = io.StringIO()
     temp.write(path + TEMP + "\n")
     reg = "^ /System/Cooling$"
     temp.write(tools.grep(os.path.normpath(path + TEMP), reg, False, 8, debug=debug))
     tools.drw_text_image(temp, os.path.normpath(out_dir + "/temp.png"))
 
+
+def drw_firmware(path, out_dir, debug):
     firmware = io.StringIO()
     firmware.write(path + FIRMWARE + "\n")
     reg = "^Oracle"
     firmware.write(tools.grep(os.path.normpath(path + FIRMWARE), reg, True, 5, debug))
     tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
+
+def drw_ilom(path, out_dir, verbose=False, debug=False):
+    drw_fault(path, out_dir, debug)
+    drw_temp(path, out_dir, debug)
+    drw_firmware(path, out_dir, debug)
+
     return ["fault.png", "temp.png", "firmware.png"]
+## END DRAW ILOM ##
 
 
-def drw_os(path, out_dir, verbose=False, debug=False):
+## DRAW OF ##
+def drw_image(path, out_dir, debug):
     image = io.StringIO()
     image.write(path + IMAGE_SOL + "\n")
     image.write(tools.cat(os.path.normpath(path + IMAGE_SOL), debug=debug))
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
+    return image
 
+def drw_vol(path, out_dir, debug):
     vol = io.StringIO()
     vol.write(path + PARTITION_SOL + "\n")
     vol.write(tools.cat(os.path.normpath(path + PARTITION_SOL), debug=debug))
     tools.drw_text_image(vol, os.path.normpath(out_dir + "/vol.png"))
+    return vol
 
+def drw_raid(path, out_dir, debug):
     raid = io.StringIO()
     raid.write(path + RAID_SOL + "\n")
     raid.write(tools.cat(os.path.normpath(path + RAID_SOL), debug=debug))
     tools.drw_text_image(raid, os.path.normpath(out_dir + "/raid.png"))
+    return raid
 
+def drw_net(path, out_dir, debug):
     net = io.StringIO()
     net.write(path + NETWORK_SOL + "\n")
     net.write(tools.cat(os.path.normpath(path + NETWORK_SOL), debug=debug))
     tools.drw_text_image(net, os.path.normpath(out_dir + "/net.png"))
+    return net
 
+def drw_cpu(path, out_dir, debug):
     cpu_idle = io.StringIO()
     cpu_idle.write(path + CPU_ULTILIZATION_SOL + "\n")
     cpu_idle.write(
-        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL), debug=debug)
-    )
+            tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL), debug=debug)
+            )
     tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + "/cpu_idle.png"))
+    return cpu_idle
 
+def drw_load(path, out_dir, debug):
     load = io.StringIO()
     load.write(path + CPU_LOAD_SOL + "\n")
     load.write(tools.cat(os.path.normpath(path + CPU_LOAD_SOL), debug=debug))
     tools.drw_text_image(load, os.path.normpath(out_dir + "/load.png"))
+    return load
 
+def drw_mem(path, out_dir, debug):
     mem = io.StringIO()
     mem.write(path + MEM_SOL + "\n")
     mem.write(tools.cat(os.path.normpath(path + MEM_SOL), debug=debug))
     tools.drw_text_image(mem, os.path.normpath(out_dir + "/mem.png"))
+    return mem
 
+def drw_swap(path, out_dir, debug):
     swap = io.StringIO()
     swap.write(path + SWAP_SOL + "\n")
     swap.write(tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug))
     tools.drw_text_image(swap, os.path.normpath(out_dir + "/swap.png"))
+    return swap
+
+# SUCKS, rewrite later
+def drw_os(path, out_dir, verbose=False, debug=False):
+    drw_image(path, out_dir, debug)
+    drw_vol(path, out_dir, debug)
+    drw_raid(path, out_dir, debug)
+    drw_net(path, out_dir, debug)
+    drw_cpu(path, out_dir, debug)
+    drw_load(path, out_dir, debug)
+    drw_mem(path, out_dir, debug)
+    drw_swap(path, out_dir, debug)
     return [
         "image.png",
         ["vol.png", "raid.png"],
@@ -349,7 +387,9 @@ def get_mem_util(path, debug):
 
 
 def get_swap_util(path, debug):
-    swap_free = tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug).strip().split()
+    swap_free = (
+        tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug).strip().split()
+    )
     swap_free = [swap_free[8], swap_free[10]]
     swap_free[0] = int(swap_free[0][:-2])
     swap_free[1] = int(swap_free[1][:-2])
