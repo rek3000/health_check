@@ -2,11 +2,24 @@
 #
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys, signal, io
-import shutil, glob
+
+__version__ = '1.0'
+__author__ = 'Rek'
+
+# Standard Library
+import os
+import io
+import sys
+import shutil
+import glob
 import json
-import zipfile, tarfile
+import zipfile
+import tarfile
+
+# Third party library
 import click
+
+# Local library
 from rekdoc import doc
 from rekdoc import tools
 from rekdoc.const import *
@@ -38,7 +51,7 @@ def clean_files(dir, verbose):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg="red")
+            click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg=ERROR)
             return -1
 
 
@@ -46,14 +59,14 @@ def clean_up(path, prompt="Remove files?", verbose=False, force=False):
     if force:
         clean_files(path, verbose)
     else:
-        choice = click.confirm(click.style(prompt, fg="red"), default="y")
+        choice = click.confirm(click.style(prompt, fg=ERROR), default="y")
         if choice:
             clean_files(path, verbose)
         return
 
 
 def clean_up_force(path):
-    click.secho("FORCE CLEAN UP DUE TO ERROR!", fg="red")
+    click.secho("FORCE CLEAN UP DUE TO ERROR!", fg=ERROR)
     clean_files(path)
     return -1
 
@@ -530,7 +543,7 @@ def compile(nodes, root, verbose, force):
     for node in nodes:
         progress_bar = click.progressbar(
             range(100),
-            label=node,
+            label=click.style(node, fg=SECTION),
             fill_char="*",
             empty_char=" ",
             show_eta=False,
@@ -578,7 +591,7 @@ def compile(nodes, root, verbose, force):
 
         progress_bar.update(20)
         click.secho(" ", nl=False)
-        click.secho("DONE", bg="green", fg="black")
+        click.secho("DONE", bg=SUCCESS, fg="black")
         progress_bar.finish()
         if verbose:
             click.echo()
@@ -600,7 +613,7 @@ def create_dir(path, verbose=False, force=False):
                 force=force,
             )
         else:
-            click.secho(click.style(path, fg="cyan") + " folder exist!")
+            click.secho(click.style(path, fg=SECTION) + " folder exist!")
             clean_up(
                 path=os.path.normpath(path),
                 prompt="Do you want to replace it?",
@@ -619,7 +632,7 @@ def run(nodes, output, verbose, force):
     # fetch and cook to images from logs
     content_files = compile(nodes, out_dir, verbose, force)
     if content_files == -1:
-        click.secho("Error: ", fg="red", nl=False)
+        click.secho("Error: ", fg=ERROR, nl=False)
         click.echo("No files to join!")
         return -1
 
