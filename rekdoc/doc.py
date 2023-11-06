@@ -180,7 +180,6 @@ def assert_data(data):
     asserted["fault"][0] = fault[0]
     asserted["fault"][1].extend(fault[1])
 
-        ####
     temp = assert_temp(data)
     asserted["temp"][0] = temp[0]
     asserted["temp"][1].extend(temp[1])
@@ -239,8 +238,8 @@ def get_score(asserted):
     keys = list(asserted)
 
     for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i - 1]][0]
-        comment = asserted[keys[i - 1]][1]
+        asserted_score = asserted[keys[i-1]][0]
+        comment = asserted[keys[i-1]][1]
         try:
             score = ASSERTION[asserted_score]
         except:
@@ -258,7 +257,6 @@ def drw_table(doc, checklist, row, col, info=False):
         return -1
     tab = doc.add_table(row, col)
     tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-    # tab.style = WD_STYLE.TABLE_LIGHT_GRID
     tab.style = "Table Grid"
 
     # ADD TITLE CELLS AND COLOR THEM
@@ -332,16 +330,18 @@ def drw_menu(doc, nodes):
     doc.add_page_break()
 
 
-def drw_doc(doc, input, force):
+def drw_doc(doc, input, out_dir, force):
     nodes = tools.read_json(input)
     asserted_list = []
     doc.add_page_break()
     # drw_menu(doc, nodes)
+    input_dir = os.path.split(input)[0]
     for node in nodes:
         progress_bar = click.progressbar(
             range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
         )
-        images = tools.read_json(os.path.normpath("output/" + node + "/images.json"))
+        image_json = os.path.normpath(input_dir + '/' + node + "/images.json")
+        images = tools.read_json(image_json)
         progress_bar.update(10)
 
         file_dump = {}
@@ -377,7 +377,7 @@ def drw_doc(doc, input, force):
         asserted_list += [asserted_file]
 
         tools.save_json(
-            os.path.normpath("output/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(input_dir + "/" + node + "/" + asserted_file + ".json"),
             file_dump,
         )
         progress_bar.update(10)
@@ -400,8 +400,9 @@ def print_style(doc):
 
 def run(input, output, verbose=False, force=False):
     doc = define_doc()
+    out_dir = os.path.split(output)[0]
     try:
-        doc = drw_doc(doc, input, force)
+        doc = drw_doc(doc, input, out_dir, force)
         if doc == -1:
             return -1
     except Exception as err:
@@ -414,7 +415,8 @@ def run(input, output, verbose=False, force=False):
         click.secho("List of all styles", bg="cyan", fg="black")
         print_style(doc)
         click.echo()
-    file_name = os.path.normpath(output)
+    file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
+    # file_name = os.path.normpath(output)
     doc.save(file_name)
     return file_name
 
