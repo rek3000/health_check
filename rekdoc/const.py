@@ -28,3 +28,9 @@ MEM_SOL = "/disks/zfs/mdb/mdb-memstat.out"
 SWAP_SOL = "/disks/swap-s.out"
 ##
 ##### END_PATHS #####
+
+##### COLOR #####
+SUCCESS='green'
+ERROR='red'
+SECTION='cyan'
+##### COLOR #####

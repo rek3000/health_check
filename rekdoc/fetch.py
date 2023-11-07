@@ -2,11 +2,24 @@
 #
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
-import os, sys, signal, io
-import shutil, glob
+
+__version__ = '1.0'
+__author__ = 'Rek'
+
+# Standard Library
+import os
+import io
+import sys
+import shutil
+import glob
 import json
-import zipfile, tarfile
+import zipfile
+import tarfile
+
+# Third party library
 import click
+
+# Local library
 from rekdoc import doc
 from rekdoc import tools
 from rekdoc.const import *
@@ -38,7 +51,7 @@ def clean_files(dir, verbose):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg="red")
+            click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg=ERROR)
             return -1
 
 
@@ -46,14 +59,14 @@ def clean_up(path, prompt="Remove files?", verbose=False, force=False):
     if force:
         clean_files(path, verbose)
     else:
-        choice = click.confirm(click.style(prompt, fg="red"), default="y")
+        choice = click.confirm(click.style(prompt, fg=ERROR), default="y")
         if choice:
             clean_files(path, verbose)
         return
 
 
 def clean_up_force(path):
-    click.secho("FORCE CLEAN UP DUE TO ERROR!", fg="red")
+    click.secho("FORCE CLEAN UP DUE TO ERROR!", fg=ERROR)
     clean_files(path)
     return -1
 
@@ -62,74 +75,119 @@ def check_valid(path):
     return os.path.isdir(path)
 
 
-def drw_ilom(path, out_dir, verbose=False, debug=False):
+##### IMAGE PROCESSING #####
+## DRAW ILOM ##
+def drw_fault(path, out_dir, debug):
     fault = io.StringIO()
     fault.write(path + FAULT + "\n")
     fault.write(tools.cat(os.path.normpath(path + FAULT), debug=debug))
     tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
 
+
+def drw_temp(path, out_dir, debug):
     temp = io.StringIO()
     temp.write(path + TEMP + "\n")
     reg = "^ /System/Cooling$"
-    temp.write(
-        # tools.cursed_grep(os.path.normpath(path + TEMP), reg, 8, debug=debug).getvalue()
-        tools.grep(os.path.normpath(path + TEMP), reg, False, 8, debug=debug)
-    )
+    temp.write(tools.grep(os.path.normpath(path + TEMP), reg, False, 8, debug))
     tools.drw_text_image(temp, os.path.normpath(out_dir + "/temp.png"))
 
+
+def drw_firmware(path, out_dir, debug):
     firmware = io.StringIO()
     firmware.write(path + FIRMWARE + "\n")
     reg = "^Oracle"
-    firmware.write(
-        tools.grep(os.path.normpath(path + FIRMWARE), reg, False, 5, debug)
-        # tools.cursed_grep(os.path.normpath(path + FIRMWARE), reg, 5, debug).getvalue()
-    )
+    firmware.write(tools.grep(os.path.normpath(path + FIRMWARE), reg, True, 5, debug))
     tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
+
+
+def drw_ilom(path, out_dir, verbose=False, debug=False):
+    drw_fault(path, out_dir, debug)
+    drw_temp(path, out_dir, debug)
+    drw_firmware(path, out_dir, debug)
+
     return ["fault.png", "temp.png", "firmware.png"]
 
 
-def drw_os(path, out_dir, verbose=False, debug=False):
+## END DRAW ILOM ##
+
+
+## DRAW OF ##
+def drw_image(path, out_dir, debug):
     image = io.StringIO()
     image.write(path + IMAGE_SOL + "\n")
     image.write(tools.cat(os.path.normpath(path + IMAGE_SOL), debug=debug))
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
+    return image
 
+
+def drw_vol(path, out_dir, debug):
     vol = io.StringIO()
     vol.write(path + PARTITION_SOL + "\n")
     vol.write(tools.cat(os.path.normpath(path + PARTITION_SOL), debug=debug))
     tools.drw_text_image(vol, os.path.normpath(out_dir + "/vol.png"))
+    return vol
 
+
+def drw_raid(path, out_dir, debug):
     raid = io.StringIO()
     raid.write(path + RAID_SOL + "\n")
     raid.write(tools.cat(os.path.normpath(path + RAID_SOL), debug=debug))
     tools.drw_text_image(raid, os.path.normpath(out_dir + "/raid.png"))
+    return raid
 
+
+def drw_net(path, out_dir, debug):
     net = io.StringIO()
     net.write(path + NETWORK_SOL + "\n")
     net.write(tools.cat(os.path.normpath(path + NETWORK_SOL), debug=debug))
     tools.drw_text_image(net, os.path.normpath(out_dir + "/net.png"))
+    return net
 
+
+def drw_cpu(path, out_dir, debug):
     cpu_idle = io.StringIO()
     cpu_idle.write(path + CPU_ULTILIZATION_SOL + "\n")
     cpu_idle.write(
         tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL), debug=debug)
     )
     tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + "/cpu_idle.png"))
+    return cpu_idle
 
+
+def drw_load(path, out_dir, debug):
     load = io.StringIO()
     load.write(path + CPU_LOAD_SOL + "\n")
     load.write(tools.cat(os.path.normpath(path + CPU_LOAD_SOL), debug=debug))
     tools.drw_text_image(load, os.path.normpath(out_dir + "/load.png"))
+    return load
 
+
+def drw_mem(path, out_dir, debug):
     mem = io.StringIO()
     mem.write(path + MEM_SOL + "\n")
     mem.write(tools.cat(os.path.normpath(path + MEM_SOL), debug=debug))
     tools.drw_text_image(mem, os.path.normpath(out_dir + "/mem.png"))
+    return mem
 
+
+def drw_swap(path, out_dir, debug):
     swap = io.StringIO()
     swap.write(path + SWAP_SOL + "\n")
     swap.write(tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug))
     tools.drw_text_image(swap, os.path.normpath(out_dir + "/swap.png"))
+    return swap
+
+
+# SUCKS, rewrite later
+def drw_os(path, out_dir, verbose=False, debug=False):
+    drw_image(path, out_dir, debug)
+    drw_vol(path, out_dir, debug)
+    drw_raid(path, out_dir, debug)
+    drw_net(path, out_dir, debug)
+    drw_cpu(path, out_dir, debug)
+    drw_load(path, out_dir, debug)
+    drw_mem(path, out_dir, debug)
+    drw_swap(path, out_dir, debug)
     return [
         "image.png",
         ["vol.png", "raid.png"],
@@ -198,9 +256,13 @@ def get_file(regex, root=""):
         return files[c]
 
 
-def get_ilom(path, verbose, debug=False):
+##### FETCH ILOM ######
+def get_fault(path, debug):
     fault = tools.cat(os.path.normpath(path + FAULT), debug=debug).strip()
+    return fault
 
+
+def get_temp(path, debug):
     inlet_temp = (
         tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True, debug=debug)
         .strip()
@@ -214,13 +276,23 @@ def get_ilom(path, verbose, debug=False):
         .split()
     )
     exhaust_temp = " ".join(exhaust_temp[2:5])
+    return inlet_temp, exhaust_temp
 
+
+def get_firmware(path, debug):
     firmware = (
         tools.grep(os.path.normpath(path + FIRMWARE), "Version", True, debug=debug)
         .strip()
         .split()
     )
     firmware = " ".join(firmware[1:])
+    return firmware
+
+
+def get_ilom(path, verbose, debug=False):
+    fault = get_fault(path, debug)
+    inlet_temp, exhaust_temp = get_temp(path, debug)
+    firmware = get_firmware(path, debug)
 
     return {
         "fault": fault,
@@ -230,107 +302,172 @@ def get_ilom(path, verbose, debug=False):
     }
 
 
+#####
+
+
+##### FETCH OS ######
+def get_image(path, debug):
+    image = (
+        tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True, debug=debug)
+        .strip()
+        .split()
+    )
+    image = image[2]
+    return image
+
+
+def get_vol(path, debug):
+    vol = (
+        tools.grep(
+            os.path.normpath(path + PARTITION_SOL), "\\B\/\\B", True, debug=debug
+        )
+        .strip()
+        .split()
+    )
+    vol = vol[-2]
+    return vol
+
+
+def get_raid(path, debug):
+    raid = (
+        tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True, debug=debug)
+        .strip()
+        .split()
+    )
+    if "ONLINE" in raid:
+        raid_stat = True
+    else:
+        raid_stat = False
+    return raid_stat
+
+
+def get_bonding(path, debug):
+    net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True, debug)
+    net_aggr = tools.grep(
+        os.path.normpath(path + NETWORK_SOL), "aggr", True, debug=debug
+    )
+
+    if not net_ipmp and not net_aggr:
+        bonding = "none"
+    elif net_ipmp and not net_aggr:
+        bonding = "ipmp"
+    elif net_aggr and not net_ipmp:
+        bonding = "aggr"
+    else:
+        bonding = "both"
+    return bonding
+
+
+def get_cpu_util(path, debug):
+    cpu_idle = (
+        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL), debug=debug)
+        .strip()
+        .split("\n")
+    )
+    cpu_idle = cpu_idle[2]
+    cpu_idle = cpu_idle.split()[21]
+    cpu_util = 100 - int(cpu_idle)
+    return cpu_idle, cpu_util
+
+
+def get_load_avg(path, debug):
+    load = (
+        tools.grep(
+            os.path.normpath(path + CPU_LOAD_SOL), "load average", True, debug=debug
+        )
+        .strip()
+        .split(", ")
+    )
+    load_avg = " ".join(load).split()[-3:]
+    load_avg = float((max(load_avg)))
+    return load_avg
+
+
+def get_vcpu(path, debug):
+    vcpu = (
+        tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True, debug=debug)
+        .strip()
+        .split()[4]
+    )
+    vcpu = int(vcpu)
+    return vcpu
+
+
+def get_load(path, debug):
+    load_avg = get_load_avg(path, debug)
+    vcpu = get_vcpu(path, debug)
+    load_avg_per = load_avg / vcpu
+    load_avg_per = float(f"{load_avg_per:.3f}")
+    return load_avg, vcpu, load_avg_per
+
+
+def get_mem_util(path, debug):
+    mem = (
+        tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True, debug=debug)
+        .strip()
+        .split()
+    )
+    mem_free = mem[-1]
+    mem_util = 100 - int(mem_free[:-1])
+    return mem_free, mem_util
+
+
+def get_swap_util(path, debug):
+    swap_free = (
+        tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug).strip().split()
+    )
+    swap_free = [swap_free[8], swap_free[10]]
+    swap_free[0] = int(swap_free[0][:-2])
+    swap_free[1] = int(swap_free[1][:-2])
+    swap_util = swap_free[0] / (swap_free[0] + swap_free[1])
+    swap_util = int(swap_util * 100)
+
+    return swap_free, swap_util
+
+
 def get_os(path, os_name="SOL", verbose=False, debug=False):
     x = {}
     if os_name == "SOL":
-        image = (
-            tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True, debug=debug)
-            .strip()
-            .split()
-        )
-        image = image[2]
-        x["image"] = image
+        image = get_image(path, debug)
 
-        vol = (
-            tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/\\B", True, debug=debug)
-            .strip()
-            .split()
-        )
-        vol = vol[-2]
+        vol = get_vol(path, debug)
         vol_avail = 100 - int(vol[:-1])
+        x["image"] = image
         x["vol_avail"] = vol_avail
 
-        raid = (
-            tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True, debug=debug)
-            .strip()
-            .split()
-        )
-        if "ONLINE" in raid:
-            raid_stat = True
-        else:
-            raid_stat = False
+        raid_stat = get_raid(path, debug)
         x["raid_stat"] = raid_stat
 
-        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True, debug)
-        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True, debug=debug)
-        if not net_ipmp and not net_aggr:
-            bonding = "none"
-        elif net_ipmp and not net_aggr:
-            bonding = "ipmp"
-        elif net_aggr and not net_ipmp:
-            bonding = "aggr"
-        else:
-            bonding = "both"
+        bonding = get_bonding(path, debug)
         x["bonding"] = bonding
 
-        cpu_idle = (
-            tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL), debug=debug)
-            .strip()
-            .split("\n")
-        )
-        cpu_idle = cpu_idle[2]
-        cpu_idle = cpu_idle.split()[21]
-        cpu_util = 100 - int(cpu_idle)
+        cpu_util = get_cpu_util(path, debug)[1]
         x["cpu_util"] = cpu_util
 
+        load = get_load(path, debug)
         x["load"] = {}
-        load = (
-            tools.grep(
-                os.path.normpath(path + CPU_LOAD_SOL), "load average", True, debug=debug
-            )
-            .strip()
-            .split(", ")
-        )
-        load_avg = " ".join(load).split()[-3:]
-        load_avg = float((max(load_avg)))
-        vcpu = (
-            tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True, debug=debug)
-            .strip()
-            .split()[4]
-        )
-        vcpu = int(vcpu)
-        load_avg_per = load_avg / vcpu
-        load_avg_per = float(f"{load_avg_per:.3f}")
-        x["load"]["load_avg"] = load_avg
-        x["load"]["vcpu"] = vcpu
-        x["load"]["load_avg_per"] = load_avg_per
+        x["load"]["load_avg"] = load[0]
+        x["load"]["vcpu"] = load[1]
+        x["load"]["load_avg_per"] = load[2]
 
-        mem = (
-            tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True, debug=debug)
-            .strip()
-            .split()
-        )
-        mem_free = mem[-1]
-        mem_util = 100 - int(mem_free[:-1])
+        mem_util = get_mem_util(path, debug)[1]
         x["mem_util"] = mem_util
 
-        swap = tools.cat(os.path.normpath(path + SWAP_SOL), debug=debug).strip().split()
-        swap = [swap[8], swap[10]]
-        swap[0] = int(swap[0][:-2])
-        swap[1] = int(swap[1][:-2])
-        swap_util = swap[0] / (swap[0] + swap[1])
-        swap_util = int(swap_util * 100)
+        swap_util = get_swap_util(path, debug)[1]
         x["swap_util"] = swap_util
 
     return x
 
 
+##### FETCH OS ######
+
+
 def get_content(node, path, verbose):
     # @@
     ilom = get_ilom(path[0], verbose)
-    print(json.dumps(ilom, indent=2))
     os_info = get_os(path[1], "SOL", verbose)
-    print(json.dumps(os_info, indent=2))
+    # print(json.dumps(ilom, indent=2))
+    # print(json.dumps(os_info, indent=2))
     name = node
 
     content = {}
@@ -392,16 +529,6 @@ def untar(file, verbose, force):
                 except Exception as err:
                     click.echo(err)
                     return -1
-            # try:
-            #     tar.extractall(path="temp/")
-            # except IOError as err:
-            #     clean_up(
-            #         os.path.normpath(
-            #             "temp/" + os.path.split(tools.rm_ext(file, "tar.gz"))[1]
-            #         ),
-            #         force=force,
-            #     )
-            #     tar.extractall(path="temp/")
     except IOError as err:
         print(err)
         return -1
@@ -411,9 +538,12 @@ def compile(nodes, root, verbose, force):
     n = len(nodes)
     content_files = []
     for node in nodes:
+        create_dir(root + "/" + node, verbose=verbose, force=force)
+
+    for node in nodes:
         progress_bar = click.progressbar(
             range(100),
-            label=node,
+            label=click.style(node, fg=SECTION),
             fill_char="*",
             empty_char=" ",
             show_eta=False,
@@ -429,24 +559,8 @@ def compile(nodes, root, verbose, force):
         if verbose:
             print("EXTRACTED FILES: ", path)
 
-        # click.secho(node, fg="cyan")
-
-        # node = path[1].split('.')[2] # get machine name
         content_files += [node]
-        try:
-            os.mkdir(os.path.normpath(root + "/" + node))
-            if verbose:
-                click.secho("\nFolder created: " + node)
-        except FileExistsError as err:
-            click.secho(node + " folder exist!")
-            clean_up(
-                path=os.path.normpath(root + "/" + node),
-                prompt="Do you want to replace it?",
-                force=force,
-            )
-            click.secho()
         progress_bar.update(20)
-        # create_dir('./output/' + node, verbose)
 
         file_name = node
         for i in range(0, len(path)):
@@ -477,7 +591,7 @@ def compile(nodes, root, verbose, force):
 
         progress_bar.update(20)
         click.secho(" ", nl=False)
-        click.secho("DONE", bg="green", fg="black")
+        click.secho("DONE", bg=SUCCESS, fg="black")
         progress_bar.finish()
         if verbose:
             click.echo()
@@ -490,6 +604,8 @@ def create_dir(path, verbose=False, force=False):
         if verbose:
             click.secho("\nFolder created: " + path)
     except FileExistsError as err:
+        if not os.listdir(path):
+            return
         if force:
             clean_up(
                 path=os.path.normpath(path),
@@ -497,7 +613,7 @@ def create_dir(path, verbose=False, force=False):
                 force=force,
             )
         else:
-            click.secho(click.style(path, fg="cyan") + " folder exist!")
+            click.secho(click.style(path, fg=SECTION) + " folder exist!")
             clean_up(
                 path=os.path.normpath(path),
                 prompt="Do you want to replace it?",
@@ -516,7 +632,7 @@ def run(nodes, output, verbose, force):
     # fetch and cook to images from logs
     content_files = compile(nodes, out_dir, verbose, force)
     if content_files == -1:
-        click.secho("Error: ", fg="red", nl=False)
+        click.secho("Error: ", fg=ERROR, nl=False)
         click.echo("No files to join!")
         return -1
 

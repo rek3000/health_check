@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+###
 import docx
-import click
 import sys, os
 import json
+
+###
+import click
 from docx.enum.style import WD_STYLE_TYPE, WD_STYLE
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
@@ -10,11 +13,155 @@ from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
+
+###
 from rekdoc import tools
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
+
+def assert_fault(data):
+    if data["fault"] == "No faults found":
+        score = 5
+        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[5]]
+    else:
+        score = 1
+        comment = ["Lỗi ảnh hưởng tới hoạt động của hệ thống", "Đánh giá: " + ASSERTION[1]]
+
+    fault = [score, comment]
+    return fault
+
+def assert_temp(data):
+    inlet_temp = data["inlet"].split()[0]
+    inlet_temp = int(inlet_temp)
+    if inlet_temp >= 21 and inlet_temp <= 23:
+        score = 5
+        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+    elif inlet_temp > 23 and inlet_temp <= 26:
+        score = 3
+        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+    elif inlet_temp > 26:
+        score = 1
+        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+
+    temp = [score, comment]
+    return temp 
+
+def assert_firmware(data):
+    score = data["firmware"]
+    comment = ["Phiên bản Ilom hiện tại: " + data["firmware"], "Phiên bản Ilom mới nhất: "]
+    firmware = [score, comment]
+    return firmware
+
+def assert_image(data):
+    score = data["image"]
+    comment = ["Phiên bản OS hiện tại: " + data["image"], "Phiên bản OS mới nhất: "]
+    image = [score, comment]
+    return image
+
+def assert_vol(data):
+    if data["vol_avail"] > 30 and data["raid_stat"] == True:
+        score = 5
+        comment = [
+            "Phân vùng OS được cấu hình RAID",
+            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
+            "Đánh giá: " + ASSERTION[5],
+        ]
+    elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
+        "raid_stat"
+    ] == True:
+        score = 3
+        comment = [
+            "Phân vùng OS được cấu hình RAID",
+            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
+            "Đánh giá: " + ASSERTION[3],
+        ]
+    elif data["vol_avail"] <= 15 and data["raid_stat"] == False:
+        score = 1
+        comment = [
+            "Phân vùng OS không được cấu hình RAID",
+            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
+            "Đánh giá: " + ASSERTION[1],
+        ]
+    elif data["vol_avail"] <= 15 and data["raid_stat"] == True:
+        score = 1
+        comment = [
+            "Phân vùng OS được cấu hình RAID",
+            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
+            "Đánh giá: " + ASSERTION[1],
+        ]
+
+    vol = [score, comment]
+    return vol
+
+def assert_bonding(data):
+    if data["bonding"] == "none":
+        score = 1
+        comment = ["Network không được cấu hình bonding"]
+    elif data["bonding"] == "aggr":
+        score = 5
+        comment = ["Network được cấu hình bonding Aggregration"]
+    elif data["bonding"] == "ipmp":
+        score = 5
+        comment = ["Network được cấu hình bonding IPMP"]
+
+    bonding = [score, comment]
+    return bonding
+
+def assert_cpu_util(data):
+    if data["cpu_util"] <= 30:
+        score = 5
+    elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
+        score = 3
+    else:
+        score = 1
+    comment = ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
+
+    cpu_util = [score, comment]
+    return cpu_util
+
+def assert_load(data):
+    if data["load"]["load_avg_per"] <= 2:
+        score = 5
+    elif data["load"]["load_avg_per"] > 2 and data["load_avg"]["load_avg_per"] <= 5:
+        score = 3
+    else:
+        score = 1
+    comment = [
+        "CPU Load Average: " + str(data["load"]["load_avg"]),
+        "Number of Cores: " + str(data["load"]["vcpu"]),
+        "CPU Load Average per core = CPU Load Average / Number of Cores = "
+        + str(data["load"]["load_avg_per"]),
+    ]
+
+    load = [score, comment]
+    return load
+
+def assert_mem_free(data):
+    mem_free = 100 - data["mem_util"]
+    if mem_free >= 20:
+        score = 5
+    elif mem_free > 10 and mem_free < 20:
+        score = 3
+    else:
+        score = 1
+    comment = ["Physical memory free: " + str(mem_free) + "%"]
+
+    mem_free = [score, comment]
+    return mem_free
+
+def assert_swap_util(data):
+    if data["swap_util"] <= 2:
+        score = 5
+    elif data["swap_util"] > 2 and data["swap_util"] <= 5:
+        score = 3
+    else:
+        score = 1
+    comment = ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
+
+    swap_util = [score, comment]
+    return swap_util
 
 def assert_data(data):
     asserted = {}
@@ -28,127 +175,48 @@ def assert_data(data):
         if i == "mem_util":
             i = "mem_free"
         asserted[i] = ["", []]
-    if data["fault"] == "No faults found":
-        asserted["fault"][0] = 5
-        asserted["fault"][1].extend(["Lỗi: Không", "Đánh giá: " + ASSERTION[5]])
-    else:
-        asserted["fault"][0] = 1
-        asserted["fault"][1].extend(
-            ["Lỗi ảnh hưởng tới hoạt động của hệ thống", "Đánh giá: " + ASSERTION[1]]
-        )
 
-    temp = data["inlet"].split()[0]
-    temp = int(temp)
-    if temp >= 21 and temp <= 23:
-        asserted["temp"][0] = 5
-        asserted["temp"][1].extend(
-            ["Nhiệt độ bên trong: " + str(temp), "Đánh giá: " + ASSERTION[5]]
-        )
-    elif temp > 23 and temp <= 26:
-        asserted["temp"][0] = 3
-        asserted["temp"][1].extend(
-            ["Nhiệt độ bên trong: " + str(temp), "Đánh giá: " + ASSERTION[5]]
-        )
-    elif temp > 26:
-        asserted["temp"][0] = 1
-        asserted["temp"][1].extend(
-            ["Nhiệt độ bên trong: " + str(temp), "Đánh giá: " + ASSERTION[5]]
-        )
+    fault = assert_fault(data)
+    asserted["fault"][0] = fault[0]
+    asserted["fault"][1].extend(fault[1])
 
-    asserted["firmware"][0] = data["firmware"]
-    asserted["firmware"][1].extend(
-        ["Phiên bản Ilom hiện tại: " + data["firmware"], "Phiên bản Ilom mới nhất: "]
-    )
+    temp = assert_temp(data)
+    asserted["temp"][0] = temp[0]
+    asserted["temp"][1].extend(temp[1])
 
-    asserted["image"][0] = data["image"]
-    asserted["image"][1].extend(
-        ["Phiên bản OS hiện tại: " + data["image"], "Phiên bản OS mới nhất: "]
-    )
+    firmware = assert_firmware(data)
+    asserted["firmware"][0] = firmware[0]
+    asserted["firmware"][1].extend(firmware[1])
 
-    if data["vol_avail"] > 30 and data["raid_stat"] == True:
-        asserted["vol_avail"][0] = 5
-        asserted["vol_avail"][1].extend([
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[5],
-        ])
-    elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
-        "raid_stat"
-    ] == True:
-        asserted["vol_avail"][0] = 3
-        asserted["vol_avail"][1].extend([
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[3],
-        ])
-    elif data["vol_avail"] <= 15 and data["raid_stat"] == False:
-        asserted["vol_avail"][0] = 1
-        asserted["vol_avail"][1].extend([
-            "Phân vùng OS không được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[1],
-        ])
-    elif data["vol_avail"] <= 15 and data["raid_stat"] == True:
-        asserted["vol_avail"][0] = 1
-        asserted["vol_avail"][1].extend([
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[1],
-        ])
+    image = assert_image(data)
+    asserted["image"][0] = image[0]
+    asserted["image"][1].extend(image[1])
+    
+    vol = assert_vol(data)
+    asserted["vol_avail"][0] = vol[0]
+    asserted["vol_avail"][1].extend(vol[1])
 
-    if data["bonding"] == "none":
-        asserted["bonding"][0] = 1
-        asserted["bonding"][1].extend(["Network không được cấu hình bonding"])
-    elif data["bonding"] == "aggr":
-        asserted["bonding"][0] = 5
-        asserted["bonding"][1].extend(["Network được cấu hình bonding Aggregration"])
-    elif data["bonding"] == "ipmp":
-        asserted["bonding"][0] = 5
-        asserted["bonding"][1].extend(["Network được cấu hình bonding IPMP"])
+    bonding = assert_bonding(data)
+    asserted["bonding"][0] = bonding[0]
+    asserted["bonding"][1].extend(bonding[1])
 
-    if data["cpu_util"] <= 30:
-        asserted["cpu_util"][0] = 5
-    elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
-        asserted["cpu_util"][0] = 3
-    else:
-        asserted["cpu_util"][0] = 1
-    asserted["cpu_util"][1].extend(
-        ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
-    )
+    cpu_util = assert_cpu_util(data)
+    asserted["cpu_util"][0] = cpu_util[0]
+    asserted["cpu_util"][1].extend(cpu_util[1])
 
-    if data["load"]["load_avg_per"] <= 2:
-        asserted["load"][0] = 5
-    elif data["load"]["load_avg_per"] > 2 and data["load_avg"]["load_avg_per"] <= 5:
-        asserted["load"][0] = 3
-    else:
-        asserted["load"][0] = 1
-    asserted["load"][1].extend([
-        "CPU Load Average: " + str(data["load"]["load_avg"]),
-        "Number of Cores: " + str(data["load"]["vcpu"]),
-        "CPU Load Average per core = CPU Load Average / Number of Cores = "
-        + str(data["load"]["load_avg_per"]),
-    ])
+    load = assert_load(data)
+    asserted["load"][0] = load[0]
+    asserted["load"][1].extend(load[1])
+    
+    mem_free = assert_mem_free(data)
+    asserted["mem_free"][0] = mem_free[0]
+    asserted["mem_free"][1].extend(mem_free[1])
 
-    mem_free = 100 - data["mem_util"]
-    if mem_free >= 20:
-        asserted["mem_free"][0] = 5
-    elif mem_free > 10 and mem_free < 20:
-        asserted["mem_free"][0] = 3
-    else:
-        asserted["mem_free"][0] = 1
-    asserted["mem_free"][1].extend(["Physical memory free: " + str(mem_free) + "%"])
 
-    if data["swap_util"] <= 2:
-        asserted["swap_util"][0] = 5
-    elif data["swap_util"] > 2 and data["swap_util"] <= 5:
-        asserted["swap_util"][0] = 3
-    else:
-        asserted["swap_util"][0] = 1
-    asserted["swap_util"][1].extend(
-        ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
-    )
+    swap_util = assert_swap_util(data)
+    asserted["swap_util"][0] = swap_util[0]
+    asserted["swap_util"][1].extend(swap_util[1])
 
-    # print(asserted)
     return asserted
 
 
@@ -170,8 +238,8 @@ def get_score(asserted):
     keys = list(asserted)
 
     for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i - 1]][0]
-        comment = asserted[keys[i - 1]][1]
+        asserted_score = asserted[keys[i-1]][0]
+        comment = asserted[keys[i-1]][1]
         try:
             score = ASSERTION[asserted_score]
         except:
@@ -179,7 +247,6 @@ def get_score(asserted):
         checklist[i][2][0] = score
         checklist[i][2][1] = comment
 
-    # print(checklist)
     return checklist
 
 
@@ -189,7 +256,6 @@ def drw_table(doc, checklist, row, col, info=False):
         return -1
     tab = doc.add_table(row, col)
     tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-    # tab.style = WD_STYLE.TABLE_LIGHT_GRID
     tab.style = "Table Grid"
 
     # ADD TITLE CELLS AND COLOR THEM
@@ -263,16 +329,18 @@ def drw_menu(doc, nodes):
     doc.add_page_break()
 
 
-def drw_doc(doc, input, force):
+def drw_doc(doc, input, out_dir, force):
     nodes = tools.read_json(input)
     asserted_list = []
     doc.add_page_break()
     # drw_menu(doc, nodes)
+    input_dir = os.path.split(input)[0]
     for node in nodes:
         progress_bar = click.progressbar(
             range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
         )
-        images = tools.read_json(os.path.normpath("output/" + node + "/images.json"))
+        image_json = os.path.normpath(input_dir + '/' + node + "/images.json")
+        images = tools.read_json(image_json)
         progress_bar.update(10)
 
         file_dump = {}
@@ -308,7 +376,7 @@ def drw_doc(doc, input, force):
         asserted_list += [asserted_file]
 
         tools.save_json(
-            os.path.normpath("output/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(input_dir + "/" + node + "/" + asserted_file + ".json"),
             file_dump,
         )
         progress_bar.update(10)
@@ -331,8 +399,9 @@ def print_style(doc):
 
 def run(input, output, verbose=False, force=False):
     doc = define_doc()
+    out_dir = os.path.split(output)[0]
     try:
-        doc = drw_doc(doc, input, force)
+        doc = drw_doc(doc, input, out_dir, force)
         if doc == -1:
             return -1
     except Exception as err:
@@ -345,7 +414,7 @@ def run(input, output, verbose=False, force=False):
         click.secho("List of all styles", bg="cyan", fg="black")
         print_style(doc)
         click.echo()
-    file_name = os.path.normpath(output)
+    file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
     doc.save(file_name)
     return file_name
 

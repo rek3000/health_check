@@ -34,7 +34,7 @@ def cli():
 @click.argument("node", required=False, nargs=-1)
 def fetch(input, output, node, verbose, force):
     """
-    \b 
+    \b
     Fetch information to json and convert to images
     This command examine the 'sample/' folder for logs
     """
@@ -86,14 +86,13 @@ def fetch(input, output, node, verbose, force):
 )
 def doc(input, output, verbose, force):
     """
-    \b 
+    \b
     Generate report from JSON file
     Require to have a sample docx file with defined styling rules to generate the document
     """
 
     if output == None:
         output = input
-        output = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
 
     file_name = rekdoc.run(input, output, verbose, force)
     if file_name == -1:
@@ -104,10 +103,12 @@ def doc(input, output, verbose, force):
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
+
 # @click.command(no_args_is_help=True, short_help="show rules")
 @click.command(short_help="show rules")
 def rule():
-    click.echo("""
+    click.echo(
+        """
     DOCUMENT SAMPLE RULES (These must be defined on 'docx' office software):
         1. Header
             /   TYPE    |  NAME   \\
@@ -130,7 +131,8 @@ def rule():
             |normal variable : snake_case        |
             |function name   : snake_case        |
             \comment         : use '#'           /
-    """)
+    """
+    )
 
 
 cli.add_command(fetch)
