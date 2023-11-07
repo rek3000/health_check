@@ -93,7 +93,6 @@ def doc(input, output, verbose, force):
 
     if output == None:
         output = input
-        output = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
 
     file_name = rekdoc.run(input, output, verbose, force)
     if file_name == -1:

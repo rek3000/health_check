@@ -247,7 +247,6 @@ def get_score(asserted):
         checklist[i][2][0] = score
         checklist[i][2][1] = comment
 
-    # print(checklist)
     return checklist
 
 
@@ -416,7 +415,6 @@ def run(input, output, verbose=False, force=False):
         print_style(doc)
         click.echo()
     file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
-    # file_name = os.path.normpath(output)
     doc.save(file_name)
     return file_name
 
