@@ -29,8 +29,8 @@ def read_json(file):
     except FileNotFoundError as err:
         raise RuntimeError("Input file not found!") from err
         return -1
-    except OSError as err:
-        raise RuntimeError("Cannot read JSON") from err
+    except ValueError as err:
+        print('Invalid JSON file')
         return -1
 
 

@@ -331,6 +331,8 @@ def drw_menu(doc, nodes):
 
 def drw_doc(doc, input, out_dir, force):
     nodes = tools.read_json(input)
+    if nodes == -1:
+        return -1
     asserted_list = []
     doc.add_page_break()
     # drw_menu(doc, nodes)
@@ -405,8 +407,6 @@ def run(input, output, verbose=False, force=False):
         if doc == -1:
             return -1
     except Exception as err:
-        print()
-        print(err)
         return -1
 
     if verbose:
