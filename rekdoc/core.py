@@ -131,6 +131,7 @@ def rule():
             |normal variable : snake_case        |
             |function name   : snake_case        |
             \comment         : use '#'           /
+    For more information, visit: https://peps.python.org/pep-0008
     """
     )
 
