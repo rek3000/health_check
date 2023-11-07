@@ -6,6 +6,7 @@ build:
 	pip install -r requirements.txt 
 	pyinstaller --hidden-import wand --hidden-import click --hidden-import python-docx -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
 	deactivate
+	echo "#!/bin/sh ./rekdoc.py $@" > dist/rekdoc.sh
 install:
 	echo Building container
 	
