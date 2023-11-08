@@ -79,7 +79,7 @@ def drw_text_image(text, file):
             w = int(metrics.text_width * 1.2)
             h = int(metrics.text_height * 1.3)
             img.resize(w, h)
-            context.font_family = "monospace"
+            # context.font_family = "monospace"
             context.font_size = y
             context.fill_color = Color("white")
             context.gravity = "north_west"
@@ -135,7 +135,6 @@ def grep(path, regex, single_match, next=0, debug=False):
         command.extend(["-A", str(next)])
     command.extend([path])
 
-    # print('Command: ' + ' '.join(command))
     stdout, stderr, code = run(command, False)
 
     return stdout
