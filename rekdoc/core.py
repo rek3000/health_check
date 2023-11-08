@@ -42,10 +42,11 @@ def fetch(input, output, node, verbose, force):
     try:
         for line in input:
             nodes.append(line.strip())
-        if node:
-            nodes.append(node)
     except:
-        print()
+        pass
+    if node:
+        nodes.extend(node)
+    print(nodes)
 
     root = os.path.split(output)[0]
     if rekfetch.run(nodes, output, verbose, force) == -1:
@@ -131,6 +132,7 @@ def rule():
             |normal variable : snake_case        |
             |function name   : snake_case        |
             \comment         : use '#'           /
+    For more information, visit: https://peps.python.org/pep-0008
     """
     )
 
