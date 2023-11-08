@@ -4,7 +4,7 @@ build:
 	echo Building rekdoc ...
 	source venv/bin/activate
 	pip install -r requirements.txt 
-	pyinstaller --hidden-import wand \
+	pyinstaller --hidden-import pillow \
 		--hidden-import click \
 		--hidden-import python-docx \
 		-F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \

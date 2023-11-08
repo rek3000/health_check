@@ -1,11 +1,8 @@
-# FROM archlinux:base
-# FROM python:3.11-slim
-# FROM alpine:3.18
-# FROM frolvlad/alpine-glibc
-# RUN ln -s /lib/libcrypto.so /lib/libcrypto.so.3
-# RUN apt update -y
-# RUN apt install --no-install-recommends fonts-dejavu-core libmagickwand-dev -y
-# RUN apt clean && rm -rf /var/lib/apt/lists/*
+FROM debian:experimental
+# RUN echo deb https://deb.debian.org/debian experimental main >> /etc/apt/sources.list
+RUN apt update -y
+RUN apt -t experimental install --no-install-recommends libc6 -y
+RUN apt clean && rm -rf /var/lib/apt/lists/*
 # RUN --mount=type=cache,sharing=locked,target=/var/cache/pacman \
 # pacman -Syu --needed ttf-dejavu imagemagick --noconfirm
 
@@ -15,5 +12,5 @@ RUN useradd  py
 WORKDIR /home/py
 COPY --chown=py dist/rekdoc .
 USER py
-CMD ["sh"]
+CMD ["bash"]
 # ENTRYPOINT ["./rekdoc"]
