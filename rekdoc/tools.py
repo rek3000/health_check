@@ -34,7 +34,7 @@ def read_json(file):
         raise RuntimeError("Input file not found!") from err
         return -1
     except ValueError as err:
-        print('Invalid JSON file')
+        print("Invalid JSON file")
         return -1
 
 
@@ -75,24 +75,27 @@ def rm_ext(file, ext):
 def drw_text_image(text, file):
     size = 14
     try:
-        font = ImageFont.truetype('DejaVuSansMono', size=size, layour_engine=ImageFont.Layout.BASIC)
+        font = ImageFont.truetype(
+            "DejaVuSansMono", size=size, layour_engine=ImageFont.Layout.BASIC
+        )
     except:
         font = ImageFont.load_default(size)
     with Image.new("RGB", (1000, 1000)) as img:
         d1 = ImageDraw.Draw(img)
-        left, top , right, bottom = d1.textbbox((10,10), text.getvalue(), font=font)
+        left, top, right, bottom = d1.textbbox((10, 10), text.getvalue(), font=font)
         w = int(right * 1.1) + 10
         h = int(bottom * 1.1) + 10
         img_resize = img.crop((0, 0, w, h))
         d2 = ImageDraw.Draw(img_resize)
         x = 10
         y = 10
-        left, top , right, bottom = font.getbbox(text.getvalue())
+        left, top, right, bottom = font.getbbox(text.getvalue())
         attSpacing = bottom
-        for line in text.getvalue().split('\n'):
-            d2.text((x, y), line.strip('\r'), font=font)
+        for line in text.getvalue().split("\n"):
+            d2.text((x, y), line.strip("\r"), font=font)
             y = y + attSpacing
-        img_resize.save(file, format='PNG')
+        img_resize.save(file, format="PNG")
+
 
 ##### END OF IMAGE #####
 
@@ -141,4 +144,6 @@ def grep(path, regex, single_match, next=0, debug=False):
     stdout, stderr, code = run(command, False)
 
     return stdout
+
+
 ##### END BASE #####

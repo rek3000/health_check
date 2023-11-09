@@ -1,16 +1,14 @@
-FROM debian:experimental
-# RUN echo deb https://deb.debian.org/debian experimental main >> /etc/apt/sources.list
-RUN apt update -y
-RUN apt -t experimental install --no-install-recommends libc6 -y
-RUN apt clean && rm -rf /var/lib/apt/lists/*
-# RUN --mount=type=cache,sharing=locked,target=/var/cache/pacman \
-# pacman -Syu --needed ttf-dejavu imagemagick --noconfirm
-
-# RUN find /usr/share/fonts/TTF/* ! -name 'DejaVuSansMono.ttf' -type f -exec rm -f {} + \
-    # && fc-cache
-RUN useradd  py
-WORKDIR /home/py
-COPY --chown=py dist/rekdoc .
+FROM python:alpine as base
+RUN mkdir package
+WORKDIR /package
+RUN apk add --no-cache pkgconf binutils
+RUN pip install --no-cache pyinstaller pillow python-docx mysql.connector click
+COPY rekdoc /package/rekdoc/
+RUN pyinstaller --strip --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
 USER py
-CMD ["bash"]
-# ENTRYPOINT ["./rekdoc"]
+CMD ["sh"]
+FROM alpine:3.18.4 as final
+COPY --from=base /package/dist/rekdoc /usr/bin/rekdoc 
+RUN adduser -D py
+WORKDIR /home/py
+USER py
