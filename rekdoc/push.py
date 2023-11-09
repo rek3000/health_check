@@ -89,4 +89,5 @@ def run(file):
 
 
 if __name__ == "__main__":
-    run("./output/test.json")
+    # run("./output/test.json")
+    pass
