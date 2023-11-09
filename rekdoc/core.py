@@ -105,12 +105,11 @@ def doc(input, output, verbose, force):
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
+
 @click.command(no_args_is_help=True, short_help="push data to database")
 @click.option("-i", "--input", required=True, help="data json file.")
 def push(input):
     rekpush.run(input)
-
-
 
 
 # @click.command(no_args_is_help=True, short_help="show rules")

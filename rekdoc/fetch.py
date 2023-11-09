@@ -318,9 +318,7 @@ def get_image(path, debug):
 
 def get_vol(path, debug):
     vol = (
-        tools.grep(
-            os.path.normpath(path + PARTITION_SOL), "\\B\/$", True, debug=debug
-        )
+        tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/$", True, debug=debug)
         .strip()
         .split()
     )

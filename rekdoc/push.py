@@ -1,18 +1,26 @@
 from datetime import datetime
 import mysql.connector
+import mysql.connector.locales.eng.client_error
 import os
 from rekdoc import tools
 
 
 def create_connection():
+    default_host = "127.0.0.1"
+    default_database = "logs_mps"
+    default_username = "rekdoc"
+    default_password = "welcome1"
+    default_port = 3360
+
+    host = os.environ.get("DB_HOST", default_host)
+    port = os.environ.get("DB_PORT", default_port)
+    username = os.environ.get("DB_USERNAME", default_username)
+    password = os.environ.get("DB_PASSWORD", default_password)
+    database = os.environ.get("DB_DATABASE", default_database)
     try:
         conn = mysql.connector.connect(
-                host='127.0.0.1',
-                port=3306,
-                user='rek',
-                password='thuanlp123',
-                database='log_mps'
-                )
+            host=host, port=port, user=username, password=password, database=database
+        )
 
         if conn.is_connected():
             db_Info = conn.get_server_info()
@@ -21,9 +29,10 @@ def create_connection():
         print("Error while connecting to MySQL", e)
     return conn
 
+
 def insert_data(data, cursor):
     for idMachine, info in data.items():
-    # Lấy thời gian hiện tại
+        # Lấy thời gian hiện tại
         now = datetime.now()
         initTime = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -44,10 +53,30 @@ def insert_data(data, cursor):
 
         mem_util = info.get("mem_util", None)
         swap_util = info.get("swap_util", None)
-    
-        cursor.execute("INSERT INTO Clusters (idCluster) VALUES (%s)", (idMachine,))
 
-        cursor.execute("INSERT INTO Details (idMachine, initTime, fault, inlet, exhaust, firmware, image, vol_avail, raid_stat, bonding, cpu_util, load_avg, load_vcpu, load_avg_per, mem_util, swap_util) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)", (idMachine, initTime, fault, inlet, exhaust, firmware, image, vol_avail, raid_stat, bonding, cpu_util, load_avg, load_vcpu, load_avg_per, mem_util, swap_util))
+        # cursor.execute("INSERT INTO Clusters (idCluster) VALUES (%s)", (idMachine,))
+
+        cursor.execute(
+            "INSERT INTO Details (idMachine, initTime, fault, inlet, exhaust, firmware, image, vol_avail, raid_stat, bonding, cpu_util, load_avg, load_vcpu, load_avg_per, mem_util, swap_util) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)",
+            (
+                idMachine,
+                initTime,
+                fault,
+                inlet,
+                exhaust,
+                firmware,
+                image,
+                vol_avail,
+                raid_stat,
+                bonding,
+                cpu_util,
+                load_avg,
+                load_vcpu,
+                load_avg_per,
+                mem_util,
+                swap_util,
+            ),
+        )
 
 
 def run(file):
@@ -57,7 +86,7 @@ def run(file):
     insert_data(data, cursor)
     conn.commit()
     conn.close()
+
+
 if __name__ == "__main__":
-    run('./output/test.json')
-
-
+    run("./output/test.json")
