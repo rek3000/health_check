@@ -1,0 +1,17 @@
+version: 'latest'
+services:
+  db:
+    image: rapidfort/mysql-official
+    container_name: logs_db
+    command: --default-authentication-plugin=caching_sha2_password
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_USER=ming
+      - MYSQL_PASSWORD=123456
+      - MYSQL_DATABASE=logs_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./init_tables_script.sql:/docker-entrypoint-initdb.d/init_tables_script.sql
