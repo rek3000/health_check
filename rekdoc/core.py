@@ -3,6 +3,7 @@ import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
 from rekdoc import tools
+from rekdoc import push as rekpush
 from rekdoc.const import *
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -104,6 +105,13 @@ def doc(input, output, verbose, force):
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
+@click.command(no_args_is_help=True, short_help="push data to database")
+@click.option("-i", "--input", required=True, help="data json file.")
+def push(input):
+    rekpush.run(input)
+
+
+
 
 # @click.command(no_args_is_help=True, short_help="show rules")
 @click.command(short_help="show rules")
@@ -139,6 +147,7 @@ def rule():
 
 cli.add_command(fetch)
 cli.add_command(doc)
+cli.add_command(push)
 cli.add_command(rule)
 
 if __name__ == "__main__":

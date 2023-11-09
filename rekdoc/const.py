@@ -30,7 +30,7 @@ SWAP_SOL = "/disks/swap-s.out"
 ##### END_PATHS #####
 
 ##### COLOR #####
-SUCCESS='green'
-ERROR='red'
-SECTION='cyan'
+SUCCESS = "green"
+ERROR = "red"
+SECTION = "cyan"
 ##### COLOR #####

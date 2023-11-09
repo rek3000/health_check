@@ -3,8 +3,8 @@
 # DOCUMENT FILE FROM LOG FILES GENERATOR
 #
 
-__version__ = '1.0'
-__author__ = 'Rek'
+__version__ = "1.0"
+__author__ = "Rek"
 
 # Standard Library
 import os
@@ -319,7 +319,7 @@ def get_image(path, debug):
 def get_vol(path, debug):
     vol = (
         tools.grep(
-            os.path.normpath(path + PARTITION_SOL), "\\B\/\\B", True, debug=debug
+            os.path.normpath(path + PARTITION_SOL), "\\B\/$", True, debug=debug
         )
         .strip()
         .split()

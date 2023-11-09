@@ -27,38 +27,57 @@ def assert_fault(data):
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[5]]
     else:
         score = 1
-        comment = ["Lỗi ảnh hưởng tới hoạt động của hệ thống", "Đánh giá: " + ASSERTION[1]]
+        comment = [
+            "Lỗi ảnh hưởng tới hoạt động của hệ thống",
+            "Đánh giá: " + ASSERTION[1],
+        ]
 
     fault = [score, comment]
     return fault
+
 
 def assert_temp(data):
     inlet_temp = data["inlet"].split()[0]
     inlet_temp = int(inlet_temp)
     if inlet_temp >= 21 and inlet_temp <= 23:
         score = 5
-        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+        comment = [
+            "Nhiệt độ bên trong: " + str(inlet_temp),
+            "Đánh giá: " + ASSERTION[5],
+        ]
     elif inlet_temp > 23 and inlet_temp <= 26:
         score = 3
-        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+        comment = [
+            "Nhiệt độ bên trong: " + str(inlet_temp),
+            "Đánh giá: " + ASSERTION[5],
+        ]
     elif inlet_temp > 26:
         score = 1
-        comment = ["Nhiệt độ bên trong: " + str(inlet_temp), "Đánh giá: " + ASSERTION[5]]
+        comment = [
+            "Nhiệt độ bên trong: " + str(inlet_temp),
+            "Đánh giá: " + ASSERTION[5],
+        ]
 
     temp = [score, comment]
-    return temp 
+    return temp
+
 
 def assert_firmware(data):
     score = data["firmware"]
-    comment = ["Phiên bản Ilom hiện tại: " + data["firmware"], "Phiên bản Ilom mới nhất: "]
+    comment = [
+        "Phiên bản Ilom hiện tại: " + data["firmware"],
+        "Phiên bản Ilom mới nhất: ",
+    ]
     firmware = [score, comment]
     return firmware
+
 
 def assert_image(data):
     score = data["image"]
     comment = ["Phiên bản OS hiện tại: " + data["image"], "Phiên bản OS mới nhất: "]
     image = [score, comment]
     return image
+
 
 def assert_vol(data):
     if data["vol_avail"] > 30 and data["raid_stat"] == True:
@@ -95,6 +114,7 @@ def assert_vol(data):
     vol = [score, comment]
     return vol
 
+
 def assert_bonding(data):
     if data["bonding"] == "none":
         score = 1
@@ -109,6 +129,7 @@ def assert_bonding(data):
     bonding = [score, comment]
     return bonding
 
+
 def assert_cpu_util(data):
     if data["cpu_util"] <= 30:
         score = 5
@@ -120,6 +141,7 @@ def assert_cpu_util(data):
 
     cpu_util = [score, comment]
     return cpu_util
+
 
 def assert_load(data):
     if data["load"]["load_avg_per"] <= 2:
@@ -138,6 +160,7 @@ def assert_load(data):
     load = [score, comment]
     return load
 
+
 def assert_mem_free(data):
     mem_free = 100 - data["mem_util"]
     if mem_free >= 20:
@@ -151,6 +174,7 @@ def assert_mem_free(data):
     mem_free = [score, comment]
     return mem_free
 
+
 def assert_swap_util(data):
     if data["swap_util"] <= 2:
         score = 5
@@ -162,6 +186,7 @@ def assert_swap_util(data):
 
     swap_util = [score, comment]
     return swap_util
+
 
 def assert_data(data):
     asserted = {}
@@ -191,7 +216,7 @@ def assert_data(data):
     image = assert_image(data)
     asserted["image"][0] = image[0]
     asserted["image"][1].extend(image[1])
-    
+
     vol = assert_vol(data)
     asserted["vol_avail"][0] = vol[0]
     asserted["vol_avail"][1].extend(vol[1])
@@ -207,11 +232,10 @@ def assert_data(data):
     load = assert_load(data)
     asserted["load"][0] = load[0]
     asserted["load"][1].extend(load[1])
-    
+
     mem_free = assert_mem_free(data)
     asserted["mem_free"][0] = mem_free[0]
     asserted["mem_free"][1].extend(mem_free[1])
-
 
     swap_util = assert_swap_util(data)
     asserted["swap_util"][0] = swap_util[0]
@@ -238,8 +262,8 @@ def get_score(asserted):
     keys = list(asserted)
 
     for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i-1]][0]
-        comment = asserted[keys[i-1]][1]
+        asserted_score = asserted[keys[i - 1]][0]
+        comment = asserted[keys[i - 1]][1]
         try:
             score = ASSERTION[asserted_score]
         except:
@@ -341,7 +365,7 @@ def drw_doc(doc, input, out_dir, force):
         progress_bar = click.progressbar(
             range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
         )
-        image_json = os.path.normpath(input_dir + '/' + node + "/images.json")
+        image_json = os.path.normpath(input_dir + "/" + node + "/images.json")
         images = tools.read_json(image_json)
         progress_bar.update(10)
 
