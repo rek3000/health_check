@@ -4,10 +4,11 @@ networks:
 
 services:
   rekdoc:
-    build:
-      context: ./
-      dockerfile: ./dockerfiles/rekdoc.dockerfile
-    container_name: 'rekdoc'
+    image: rek3000/rekdoc:1.0
+    # build:
+    #   context: ./
+    #   dockerfile: ./dockerfiles/rekdoc.dockerfile
+    # container_name: 'rekdoc'
     volumes:
       - ./sample:/home/py/sample
       - ./output:/home/py/output

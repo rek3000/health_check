@@ -11,7 +11,7 @@ build:
 
 install:
 	echo Building container
-	docker build -t rekdoc -f dockerfiles/rekdoc.dockerfile .
+	docker build -t rek3000/rekdoc:1.0 -f dockerfiles/rekdoc.dockerfile .
 run:
 	# docker run -it --name rekdoc --rm rekdoc "$@"
 	docker run -it -v $(pwd)/sample:/home/py/sample/  --name rekdoc --rm rekdoc "$@"
