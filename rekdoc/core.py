@@ -1,4 +1,5 @@
 import os, sys
+import logging
 import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
@@ -39,6 +40,9 @@ def fetch(input, output, node, verbose, force):
     Fetch information to json and convert to images
     This command examine the 'sample/' folder for logs
     """
+    if verbose:
+        logging.basicConfig(level=logging.INFO)
+    # logger = logging.Formatter('')
     nodes = []
     try:
         for line in input:
@@ -48,6 +52,9 @@ def fetch(input, output, node, verbose, force):
     if node:
         nodes.extend(node)
     print(nodes)
+
+    # if debug:
+    #     logging.basicConfig(level=logging.DEBUG)
 
     root = os.path.split(output)[0]
     if rekfetch.run(nodes, output, verbose, force) == -1:
@@ -99,14 +106,14 @@ def doc(input, output, sample, image, verbose, force):
     """
 
     if output == None:
-        output_file = input
+        output = input
     if image == None:
         images_root = os.path.split(input)[0]
     else:
         images_root = image
     print(images_root)
 
-    file_name = rekdoc.run(input, output_file, sample, images_root, verbose, force)
+    file_name = rekdoc.run(input, output, sample, images_root, verbose, force)
     if file_name == -1:
         click.secho("Error found!", bg="red", fg="black")
         return -1
