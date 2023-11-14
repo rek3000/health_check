@@ -23,7 +23,7 @@ def cli():
     short_help="fetch info to img",
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
-@click.option("-o", "--output", required=True, help="output file name.")
+@click.option("-o", "--output", required=True, help="output file.")
 @click.option("-v", "--verbose", default=False, is_flag=True)
 @click.option(
     "-f",
@@ -77,7 +77,9 @@ def fetch(input, output, node, verbose, force):
     help="summary file.",
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
 )
-@click.option("-o", "--output", help="output file name.", type=click.STRING)
+@click.option("-m", "--image", help="image root path.", type=click.Path(exists=True, file_okay=False, dir_okay=True))
+@click.option("-s", "--sample", help="sample file.", type=click.Path(exists=True), default="sample.docx")
+@click.option("-o", "--output", help="output file.", type=click.STRING)
 @click.option("-v", "--verbose", default=False, is_flag=True)
 @click.option(
     "-f",
@@ -86,17 +88,25 @@ def fetch(input, output, node, verbose, force):
     help="Force replace if exist output file.",
     is_flag=True,
 )
-def doc(input, output, verbose, force):
+def doc(input, output, sample, image, verbose, force):
     """
     \b
     Generate report from JSON file
     Require to have a sample docx file with defined styling rules to generate the document
+
+    If there is not sample docx specified, 'sample.docx' will be used as the argument
+    If there is not image root directory, the root of the input file is used.
     """
 
     if output == None:
-        output = input
+        output_file = input
+    if image == None:
+        images_root = os.path.split(input)[0]
+    else:
+        images_root = image
+    print(images_root)
 
-    file_name = rekdoc.run(input, output, verbose, force)
+    file_name = rekdoc.run(input, output_file, sample, images_root, verbose, force)
     if file_name == -1:
         click.secho("Error found!", bg="red", fg="black")
         return -1
