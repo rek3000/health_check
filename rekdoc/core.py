@@ -25,7 +25,8 @@ def cli():
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
 @click.option("-o", "--output", required=True, help="output file.")
-@click.option("-v", "--verbose", default=False, is_flag=True)
+@click.option("-v", "--verbose","log", default=False, flag_value='VERBOSE')
+@click.option("--debug", "log", default=False, flag_value='DEBUG')
 @click.option(
     "-f",
     "--force",
@@ -34,15 +35,18 @@ def cli():
     is_flag=True,
 )
 @click.argument("node", required=False, nargs=-1)
-def fetch(input, output, node, verbose, force):
+def fetch(input, output, node, log, force):
     """
     \b
     Fetch information to json and convert to images
     This command examine the 'sample/' folder for logs
     """
-    if verbose:
-        logging.basicConfig(level=logging.INFO)
-    # logger = logging.Formatter('')
+    if log == 'VERBOSE':
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.INFO)
+    elif log == 'DEBUG':
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.WARNING)
     nodes = []
     try:
         for line in input:
@@ -53,11 +57,8 @@ def fetch(input, output, node, verbose, force):
         nodes.extend(node)
     print(nodes)
 
-    # if debug:
-    #     logging.basicConfig(level=logging.DEBUG)
-
     root = os.path.split(output)[0]
-    if rekfetch.run(nodes, output, verbose, force) == -1:
+    if rekfetch.run(nodes, output, force) == -1:
         rekfetch.clean_up_force("./temp/")
         click.secho("Error found!", bg="red", fg="black")
         sys.stdout.write("\033[?25h")
@@ -69,7 +70,6 @@ def fetch(input, output, node, verbose, force):
         prompt="Remove "
         + click.style("temp/", fg="cyan")
         + click.style(" directory items?", fg="red"),
-        verbose=verbose,
     )
 
     click.secho("Finish!", bg="green", fg="black")
