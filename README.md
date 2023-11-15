@@ -9,12 +9,12 @@ Use 'rekdoc rule' to show the rules that need to comply to interact successfully
 
 Tree of rekdoc module:\
 -- rekdoc\ 
-  \\|── const.py\
+  \|── const.py\
    |── core.py\
    |── doc.py\
    |── fetch.py\
    |── __init__.py\
-   \\── push.py\
+   \\── push.py
 
 ## Intallation
 3 ways:\
