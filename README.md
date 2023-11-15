@@ -35,11 +35,11 @@ Tree of rekdoc module:\
         //Instruction to be implemented\
 
 ## Dependencies
-- python-docx: used by 'doc' submodule to generate document.
-- pillow: generate image from information of the 'fetch' module.
-- click: create this cli toolset.
-- mysql.connector: connect to a database to insert data.
-- pyinstaller : Optional, only needed for building executable file.
+- **python-docx**: used by 'doc' submodule to generate document.
+- **pillow**: generate image from information of the 'fetch' module.
+- **click**: create this cli toolset.
+- **mysql.connector**: connect to a database to insert data.
+- **pyinstaller**: Optional, only needed for building executable file.
 
 ## Modules Explanation (TODO)
 - core.py
