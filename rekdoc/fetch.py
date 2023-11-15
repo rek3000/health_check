@@ -638,7 +638,10 @@ def run(nodes, output, force):
 
     # create output and temp directory
     create_dir(os.path.normpath(out_dir), force)
-    create_dir(os.path.normpath("temp"), force=True)
+    try:
+        os.mkdir(os.path.normpath("temp"))
+    except FileExistsError as err:
+        pass
 
     # fetch and cook to images from logs
     content_files = compile(nodes, out_dir, force)
