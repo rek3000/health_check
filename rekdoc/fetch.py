@@ -483,7 +483,7 @@ def get_content(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info(json.dumps(content, indent=2))
+    logging.info("JSON file: " + json.dumps(content, indent = 2))
     return content
 
 
@@ -566,7 +566,7 @@ def compile(nodes, root, force):
         if path == [-1, -1]:
             logging.error("Error: file not exist!")
             return -1
-        logging.info("EXTRACTED FILES: " + json.dumps(path).strip())
+        # logging.info("EXTRACTED FILES: " + json.dumps(path).strip())
 
         content_files += [node]
         progress_bar.update(20)
@@ -605,6 +605,8 @@ def compile(nodes, root, force):
             click.secho("DONE", bg=SUCCESS, fg="black")
 
         progress_bar.finish()
+
+    sys.stdout.write("\033[?25h")
     return content_files
 
 

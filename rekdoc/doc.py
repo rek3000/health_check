@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 ###
-import docx
-import sys, os
+import sys
+import os
+import logging
 import json
+import docx
 
 ###
 import click
@@ -16,6 +18,7 @@ from docx.oxml import parse_xml
 
 ###
 from rekdoc import tools
+from rekdoc.const import *
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
@@ -241,8 +244,9 @@ def assert_data(data):
     asserted["swap_util"][0] = swap_util[0]
     asserted["swap_util"][1].extend(swap_util[1])
 
+    for field in asserted:
+        logging.debug('ASSERTED:' + field + ": " + str(asserted[field][0]))
     return asserted
-
 
 def get_score(asserted):
     checklist = [
@@ -269,6 +273,7 @@ def get_score(asserted):
         except:
             score = asserted_score
         checklist[i][2][0] = score
+        logging.info(checklist[i][1] + ':' + score)
         checklist[i][2][1] = comment
 
     return checklist
@@ -328,10 +333,6 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
         else:
             path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
             doc.add_picture(path, width=Inches(6.73),)
-        # try:
-        #     drw_image_to_doc(doc, node, images_root, images_name)
-        # except Exception as err:
-            # print(err)
         for line in checklist[i][2][1]:
             doc.add_paragraph(line, style="Dash List")
     doc.add_page_break()
@@ -341,7 +342,7 @@ def define_doc(sample):
     try:
         doc = docx.Document(os.path.normpath(sample))
     except Exception as err:
-        print("Sample docx not found!")
+        click.echo("Sample docx not found!")
         sys.exit()
     return doc
 
@@ -367,14 +368,32 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
     # drw_menu(doc, nodes)
     input_root = os.path.split(input_file)[0]
     for node in nodes:
-        progress_bar = click.progressbar(
-            range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
-        )
+        level = logging.root.level
+        if (logging.DEBUG == level) or (logging.INFO == level):
+            click.secho(node, bg="cyan", fg="black")
+            progress_bar = click.progressbar(
+                    range(100),
+                    label=click.style(node, fg=SECTION),
+                    fill_char="*",
+                    empty_char=" ",
+                    show_eta=False,
+                    bar_template='',
+                    )
+            progress_bar.finish()
+        else:
+            progress_bar = click.progressbar(
+                    range(100),
+                    label=click.style(node, fg=SECTION),
+                    fill_char="*",
+                    empty_char=" ",
+                    show_eta=False,
+                    )
         image_json = os.path.normpath(images_root + "/" + node + "/images.json")
         images_name = tools.read_json(image_json)
         progress_bar.update(10)
 
         file_dump = {}
+        progress_bar.update(1)
         asserted = assert_data(nodes[node])
         progress_bar.update(10)
 
@@ -411,9 +430,12 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
             file_dump,
         )
         progress_bar.update(10)
-        click.secho(" ", nl=False)
-        click.secho("DONE", bg="green", fg="black")
-        progress_bar.finish()
+        if (logging.DEBUG == level) or (logging.INFO == level):
+            click.secho(node + " DONE", bg=SUCCESS, fg="black")
+            click.echo()
+        else:
+            click.echo(" " , nl=False)
+            click.secho("DONE", bg=SUCCESS, fg="black")
     file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
     tools.join_json(asserted_list, file_name)
     return doc
@@ -422,10 +444,10 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
 def print_style(doc):
     styles = doc.styles
     for style in styles:
-        print(style.name)
+        click.echo(style.name)
 
 
-def run(input_file, output_file, sample, images_dir, verbose=False, force=False):
+def run(input_file, output_file, sample, images_dir, force=False):
     doc = define_doc(sample)
     out_dir = os.path.split(output_file)[0]
     try:
@@ -433,9 +455,10 @@ def run(input_file, output_file, sample, images_dir, verbose=False, force=False)
         if doc == -1:
             return -1
     except Exception as err:
+        click.echo(err)
         return -1
-
-    if verbose:
+    
+    if logging.root.level == 10:
         click.echo()
         click.secho("List of all styles", bg="cyan", fg="black")
         print_style(doc)

@@ -87,7 +87,8 @@ def fetch(input, output, node, log, force):
 @click.option("-m", "--image", help="image root path.", type=click.Path(exists=True, file_okay=False, dir_okay=True))
 @click.option("-s", "--sample", help="sample file.", type=click.Path(exists=True), default="sample.docx")
 @click.option("-o", "--output", help="output file.", type=click.STRING)
-@click.option("-v", "--verbose", default=False, is_flag=True)
+@click.option("-v", "--verbose","log", default=False, flag_value='VERBOSE')
+@click.option("--debug", "log", default=False, flag_value='DEBUG')
 @click.option(
     "-f",
     "--force",
@@ -95,7 +96,7 @@ def fetch(input, output, node, log, force):
     help="Force replace if exist output file.",
     is_flag=True,
 )
-def doc(input, output, sample, image, verbose, force):
+def doc(input, output, sample, image, log, force):
     """
     \b
     Generate report from JSON file
@@ -104,6 +105,12 @@ def doc(input, output, sample, image, verbose, force):
     If there is not sample docx specified, 'sample.docx' will be used as the argument
     If there is not image root directory, the root of the input file is used.
     """
+    if log == 'VERBOSE':
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.INFO)
+    elif log == 'DEBUG':
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.DEBUG)
+    else:
+        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.WARNING)
 
     if output == None:
         output = input
@@ -111,9 +118,8 @@ def doc(input, output, sample, image, verbose, force):
         images_root = os.path.split(input)[0]
     else:
         images_root = image
-    print(images_root)
 
-    file_name = rekdoc.run(input, output, sample, images_root, verbose, force)
+    file_name = rekdoc.run(input, output, sample, images_root, force)
     if file_name == -1:
         click.secho("Error found!", bg="red", fg="black")
         return -1
