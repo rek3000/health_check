@@ -16,6 +16,18 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
+    """
+    \b
+    rekdoc - fetch, analyze and pump information to other source.
+
+    A toolset allows user to get useful information from logs file of servers,
+    generate images from them, analyze them pump to a document docx file. Moreover, it supports
+    pushing those information to SQL database.
+
+    There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
+
+    Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
+    """
     pass
 
 
@@ -25,8 +37,8 @@ def cli():
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
 @click.option("-o", "--output", required=True, help="output file.")
-@click.option("-v", "--verbose","log", default=False, flag_value='VERBOSE')
-@click.option("--debug", "log", default=False, flag_value='DEBUG')
+@click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
+@click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
     "-f",
     "--force",
@@ -41,12 +53,12 @@ def fetch(input, output, node, log, force):
     Fetch information to json and convert to images
     This command examine the 'sample/' folder for logs
     """
-    if log == 'VERBOSE':
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.INFO)
-    elif log == 'DEBUG':
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.DEBUG)
+    if log == "VERBOSE":
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+    elif log == "DEBUG":
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
     else:
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
     nodes = []
     try:
         for line in input:
@@ -84,11 +96,22 @@ def fetch(input, output, node, log, force):
     help="summary file.",
     type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
 )
-@click.option("-m", "--image", help="image root path.", type=click.Path(exists=True, file_okay=False, dir_okay=True))
-@click.option("-s", "--sample", help="sample file.", type=click.Path(exists=True), default="sample.docx")
+@click.option(
+    "-m",
+    "--image",
+    help="image root path.",
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+)
+@click.option(
+    "-s",
+    "--sample",
+    help="sample file.",
+    type=click.Path(exists=True),
+    default="sample.docx",
+)
 @click.option("-o", "--output", help="output file.", type=click.STRING)
-@click.option("-v", "--verbose","log", default=False, flag_value='VERBOSE')
-@click.option("--debug", "log", default=False, flag_value='DEBUG')
+@click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
+@click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
     "-f",
     "--force",
@@ -105,12 +128,12 @@ def doc(input, output, sample, image, log, force):
     If there is not sample docx specified, 'sample.docx' will be used as the argument
     If there is not image root directory, the root of the input file is used.
     """
-    if log == 'VERBOSE':
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.INFO)
-    elif log == 'DEBUG':
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.DEBUG)
+    if log == "VERBOSE":
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+    elif log == "DEBUG":
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
     else:
-        logging.basicConfig(format='%(levelname)s:%(message)s',level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
 
     if output == None:
         output = input

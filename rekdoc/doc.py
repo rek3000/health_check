@@ -245,8 +245,9 @@ def assert_data(data):
     asserted["swap_util"][1].extend(swap_util[1])
 
     for field in asserted:
-        logging.debug('ASSERTED:' + field + ": " + str(asserted[field][0]))
+        logging.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
     return asserted
+
 
 def get_score(asserted):
     checklist = [
@@ -273,13 +274,13 @@ def get_score(asserted):
         except:
             score = asserted_score
         checklist[i][2][0] = score
-        logging.info(checklist[i][1] + ':' + score)
+        logging.info(checklist[i][1] + ":" + score)
         checklist[i][2][1] = comment
 
     return checklist
 
 
-# This function table with last column cells may or may not contain 
+# This function table with last column cells may or may not contain
 # list of string
 def drw_table(doc, checklist, row, col, info=False):
     if checklist == []:
@@ -332,7 +333,10 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
             doc.add_picture(path, width=Inches(6.73))
         else:
             path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
-            doc.add_picture(path, width=Inches(6.73),)
+            doc.add_picture(
+                path,
+                width=Inches(6.73),
+            )
         for line in checklist[i][2][1]:
             doc.add_paragraph(line, style="Dash List")
     doc.add_page_break()
@@ -372,22 +376,22 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         if (logging.DEBUG == level) or (logging.INFO == level):
             click.secho(node, bg="cyan", fg="black")
             progress_bar = click.progressbar(
-                    range(100),
-                    label=click.style(node, fg=SECTION),
-                    fill_char="*",
-                    empty_char=" ",
-                    show_eta=False,
-                    bar_template='',
-                    )
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+                bar_template="",
+            )
             progress_bar.finish()
         else:
             progress_bar = click.progressbar(
-                    range(100),
-                    label=click.style(node, fg=SECTION),
-                    fill_char="*",
-                    empty_char=" ",
-                    show_eta=False,
-                    )
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+            )
         image_json = os.path.normpath(images_root + "/" + node + "/images.json")
         images_name = tools.read_json(image_json)
         progress_bar.update(10)
@@ -419,7 +423,7 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
         progress_bar.update(10)
 
-        drw_info(doc, node,  checklist, images_root, images_name)
+        drw_info(doc, node, checklist, images_root, images_name)
         progress_bar.update(10)
 
         asserted_file = node + "_asserted"
@@ -434,7 +438,7 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
             click.secho(node + " DONE", bg=SUCCESS, fg="black")
             click.echo()
         else:
-            click.echo(" " , nl=False)
+            click.echo(" ", nl=False)
             click.secho("DONE", bg=SUCCESS, fg="black")
     file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
     tools.join_json(asserted_list, file_name)
@@ -457,7 +461,7 @@ def run(input_file, output_file, sample, images_dir, force=False):
     except Exception as err:
         click.echo(err)
         return -1
-    
+
     if logging.root.level == 10:
         click.echo()
         click.secho("List of all styles", bg="cyan", fg="black")

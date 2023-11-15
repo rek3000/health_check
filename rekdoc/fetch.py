@@ -147,9 +147,7 @@ def drw_net(path, out_dir):
 def drw_cpu(path, out_dir):
     cpu_idle = io.StringIO()
     cpu_idle.write(path + CPU_ULTILIZATION_SOL + "\n")
-    cpu_idle.write(
-        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL))
-    )
+    cpu_idle.write(tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)))
     tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + "/cpu_idle.png"))
     return cpu_idle
 
@@ -263,16 +261,12 @@ def get_fault(path):
 
 def get_temp(path):
     inlet_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True)
-        .strip()
-        .split()
+        tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True).strip().split()
     )
     inlet_temp = " ".join(inlet_temp[2:5])
 
     exhaust_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True)
-        .strip()
-        .split()
+        tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True).strip().split()
     )
     exhaust_temp = " ".join(exhaust_temp[2:5])
     return inlet_temp, exhaust_temp
@@ -280,9 +274,7 @@ def get_temp(path):
 
 def get_firmware(path):
     firmware = (
-        tools.grep(os.path.normpath(path + FIRMWARE), "Version", True)
-        .strip()
-        .split()
+        tools.grep(os.path.normpath(path + FIRMWARE), "Version", True).strip().split()
     )
     firmware = " ".join(firmware[1:])
     return firmware
@@ -310,9 +302,7 @@ def get_ilom(path):
 ##### FETCH OS ######
 def get_image(path):
     image = (
-        tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True)
-        .strip()
-        .split()
+        tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True).strip().split()
     )
     image = image[2]
     return image
@@ -329,11 +319,7 @@ def get_vol(path):
 
 
 def get_raid(path):
-    raid = (
-        tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True)
-        .strip()
-        .split()
-    )
+    raid = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True).strip().split()
     if "ONLINE" in raid:
         raid_stat = True
     else:
@@ -343,9 +329,7 @@ def get_raid(path):
 
 def get_bonding(path):
     net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
-    net_aggr = tools.grep(
-        os.path.normpath(path + NETWORK_SOL), "aggr", True
-    )
+    net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
 
     if not net_ipmp and not net_aggr:
         bonding = "none"
@@ -360,9 +344,7 @@ def get_bonding(path):
 
 def get_cpu_util(path):
     cpu_idle = (
-        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL))
-        .strip()
-        .split("\n")
+        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)).strip().split("\n")
     )
     cpu_idle = cpu_idle[2]
     cpu_idle = cpu_idle.split()[21]
@@ -372,9 +354,7 @@ def get_cpu_util(path):
 
 def get_load_avg(path):
     load = (
-        tools.grep(
-            os.path.normpath(path + CPU_LOAD_SOL), "load average", True
-        )
+        tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
         .strip()
         .split(", ")
     )
@@ -402,20 +382,14 @@ def get_load(path):
 
 
 def get_mem_util(path):
-    mem = (
-        tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True)
-        .strip()
-        .split()
-    )
+    mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
     mem_free = mem[-1]
     mem_util = 100 - int(mem_free[:-1])
     return mem_free, mem_util
 
 
 def get_swap_util(path):
-    swap_free = (
-        tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
-    )
+    swap_free = tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
     swap_free = [swap_free[8], swap_free[10]]
     swap_free[0] = int(swap_free[0][:-2])
     swap_free[1] = int(swap_free[1][:-2])
@@ -483,7 +457,7 @@ def get_content(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content, indent = 2))
+    logging.info("JSON file: " + json.dumps(content, indent=2))
     return content
 
 
@@ -541,22 +515,22 @@ def compile(nodes, root, force):
         if (logging.DEBUG == level) or (logging.INFO == level):
             click.secho(node, bg="cyan", fg="black")
             progress_bar = click.progressbar(
-                    range(100),
-                    label=click.style(node, fg=SECTION),
-                    fill_char="*",
-                    empty_char=" ",
-                    show_eta=False,
-                    bar_template='',
-                    )
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+                bar_template="",
+            )
             progress_bar.finish()
         else:
             progress_bar = click.progressbar(
-                    range(100),
-                    label=click.style(node, fg=SECTION),
-                    fill_char="*",
-                    empty_char=" ",
-                    show_eta=False,
-                    )
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+            )
 
         path = ["", ""]
         path[0] = extract_file(node, "zip", force)
@@ -601,7 +575,7 @@ def compile(nodes, root, force):
             click.secho(node + " DONE", bg=SUCCESS, fg="black")
             click.echo()
         else:
-            click.echo(" " , nl=False)
+            click.echo(" ", nl=False)
             click.secho("DONE", bg=SUCCESS, fg="black")
 
         progress_bar.finish()
@@ -632,25 +606,25 @@ def create_dir(path, force=False):
             )
 
 
-# FLOW OF PROGRAM
+# Flow of program
 def run(nodes, output, force):
     out_dir = os.path.split(output)[0]
 
-    # create output and temp directory
+    # Create output and temp directory
     create_dir(os.path.normpath(out_dir), force)
     try:
         os.mkdir(os.path.normpath("temp"))
     except FileExistsError as err:
         pass
 
-    # fetch and cook to images from logs
+    # Fetch and cook images from logs
     content_files = compile(nodes, out_dir, force)
     if content_files == -1:
         click.secho("Error: ", fg=ERROR, nl=False)
         click.echo("No files to join!")
         return -1
 
-    # union all jsons to one file
+    # Union all jsons to one file
     tools.join_json(content_files, output)
 
 
