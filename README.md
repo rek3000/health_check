@@ -8,31 +8,31 @@ There are 3 subcommands also known as modules (fetch, push, doc) for user to int
 Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
 
 Tree of rekdoc module:
--- rekdoc 
-  \|── const.py
-   |── core.py
-   |── doc.py
-   |── fetch.py
-   |── __init__.py
-   \── push.py
+-- rekdoc\ 
+  \\|── const.py\
+   |── core.py\
+   |── doc.py\
+   |── fetch.py\
+   |── __init__.py\
+   \\── push.py\
 
 ## Intallation
-3 ways:
-    1. Using pip: 
-        `pip install .`
-    2. Bundle them as a single execution:
-        - Create virtualenv: 'python -m venv venv' 
-        - Access virtualenv: 
-                For Linux: 'source venv/bin/activate'
-                For Windows: './venv/activate/activate.bat'
-        - Download dependencies: 'pip install python-dox pillow click pyinstaller mysql.connector'
-        - Run command: 'make build' (Read Makefile for more information) (Require 'make' tool)
-        - Now the output execution is in the dir: dist/bin/rekdoc 
-                                                or dist/bin/rekdoc.exe on Windows
-        NOTE: Run this tool only require gcc or musl depending on the system (Python not
-        needed)
-    3. Using docker
-        //Instruction to be implemented
+3 ways:\
+    1. Using pip:\
+        `pip install .`\
+    2. Bundle them as a single execution:\
+        - Create virtualenv: 'python -m venv venv'\
+        - Access virtualenv:\
+                For Linux: 'source venv/bin/activate'\
+                For Windows: './venv/activate/activate.bat'\
+        - Download dependencies: 'pip install python-dox pillow click pyinstaller mysql.connector'\
+        - Run command: 'make build' (Read Makefile for more information) (Require 'make' tool)\
+        - Now the output execution is in the dir: dist/bin/rekdoc\
+                                                or dist/bin/rekdoc.exe on Windows\
+        NOTE: Run this tool only require gcc or musl depending on the system (Python not\
+        needed)\
+    3. Using docker\
+        //Instruction to be implemented\
 
 ## Dependencies
 - python-docx: used by 'doc' submodule to generate document.
