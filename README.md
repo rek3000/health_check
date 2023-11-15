@@ -8,19 +8,13 @@ There are 3 subcommands also known as modules (fetch, push, doc) for user to int
 Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
 
 Tree of rekdoc module:
-├── rekdoc 
-
-│   ├── const.py
-
-│   ├── core.py
-
-│   ├── doc.py
-
-│   ├── fetch.py
-
-│   ├── __init__.py
-
-│   ├── push.py
+-- rekdoc 
+  \|── const.py
+   |── core.py
+   |── doc.py
+   |── fetch.py
+   |── __init__.py
+   \── push.py
 
 ## Intallation
 3 ways:
