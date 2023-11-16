@@ -20,7 +20,7 @@ Source code tree of the program:\
    \\── push.py
 
 ## Intallation
-Currently there are three ways to use rekdoc
+Currently there are 4 ways to use rekdoc
 ### Using pip:
 ```bash
 pip install .
