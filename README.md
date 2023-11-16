@@ -21,12 +21,12 @@ Source code tree of the program:\
 
 ## Intallation
 Currently there are three ways to use rekdoc
-    ### Using pip:
-    ```bash
+### Using pip:
+    ```
     pip install .
     ```
-    ### Using pyinstaller (bundle all dependencies and modules as an executable):
-    ```bash
+### Using pyinstaller (bundle all dependencies and modules as an executable):
+    ```
     # Use virtualenv (optional)
     # Create virtualenv 
     python -m venv venv
@@ -44,25 +44,25 @@ Currently there are three ways to use rekdoc
     dist/bin/rekdoc.exe # Windows
     ```
 
-    ### Using docker (TODO)
-    ```bash
+### Using docker 
+    ```
     # Build image
     docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
     # or
     make install # Build image locally
-
     # Run 
     cd ./test_env
     ./docker.sh
     ```
 
-    NOTE: 
-    - Run this tool built by pyinstaller only require gcc or musl depending on the system (Python not needed).\
-    - Windows builds are experimental, need further tests.
+**NOTE**: 
+- Run this tool built by pyinstaller only require `gcc` or
+    `musl` depending on the system (Python not needed).
+- Windows builds are experimental, need further tests.
 
 ## Dependencies
-- **python-docx**: used by 'doc' submodule to generate document.
-- **pillow**: generate image from information of the 'fetch' module.
+- **python-docx**: used by `doc` submodule to generate document.
+- **pillow**: generate image from information of the `fetch` module.
 - **click**: create this cli toolset.
 - **mysql.connector**: connect to a database to insert data.
 - **pyinstaller**: Optional, only needed for building executable file.
@@ -76,7 +76,7 @@ Currently there are three ways to use rekdoc
 
 ## TODO
 - [x] Basic usage.
-- [x] Build and test with docker (sql container + client(**rekdoc**) container)
+- [x] Build and test with docker (sql container + `rekdoc` container)
 - [ ] Enhance better log message.
 - [ ] Fix program flow.
 - [ ] Expand the document generate to adapt to more type of report.
