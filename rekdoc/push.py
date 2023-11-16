@@ -7,10 +7,10 @@ from rekdoc import tools
 
 def create_connection():
     default_host = "127.0.0.1"
-    default_database = "logs_mps"
+    default_database = "logs"
     default_username = "rekdoc"
     default_password = "welcome1"
-    default_port = 3360
+    default_port = 3306
 
     host = os.environ.get("DB_HOST", default_host)
     port = os.environ.get("DB_PORT", default_port)

@@ -1,11 +1,14 @@
-# rekdoc - fetch, analyze and pump information to other source.
-A toolset allows user to get useful information from logs file of servers,
+# rekdoc
+
+A toolset allows user fetch useful information from logs file of servers,
 generate images from them, analyze them pump to a document docx file. Moreover, it supports
 pushing those information to SQL database.
 
 There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
 
+Use command with '-h' to show help texts.
 Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
+
 
 Tree of rekdoc module:\
 -- rekdoc\
@@ -28,9 +31,9 @@ Tree of rekdoc module:\
         - Download dependencies: 'pip install python-dox pillow click pyinstaller mysql.connector'\
         - Run command: 'make build' (Read Makefile for more information) (Require 'make' tool)\
         - Now the output execution is in the dir: dist/bin/rekdoc\
-                                                or dist/bin/rekdoc.exe on Windows\
-        NOTE: Run this tool only require gcc or musl depending on the system (Python not\
-        needed)\
+                                                or dist/bin/rekdoc.exe on Windows\ 
+        NOTE: - Run this tool only require gcc or musl depending on the system (Python not\ needed).\
+              - Windows builds are experimental, need further tests.\
     3. Using docker\
         //Instruction to be implemented\
 
@@ -45,6 +48,12 @@ Tree of rekdoc module:\
 - core.py
 - const.py
 - fetch.py
-- push.py
+- push.py: Insert data to a SQL database
 - doc.py
 
+- [x] Basic usage.
+- [x] Build and test with docker (sql container + client(**rekdoc**) container)
+- [ ] Enhance better log message.
+- [ ] Expand the document generate to adapt to more type of report.
+
+Crafted with passion.

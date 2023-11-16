@@ -20,9 +20,10 @@ def cli():
     \b
     rekdoc - fetch, analyze and pump information to other source.
 
+    \b
     A toolset allows user to get useful information from logs file of servers,
-    generate images from them, analyze them pump to a document docx file. Moreover, it supports
-    pushing those information to SQL database.
+    generate images from them, analyze them pump to a document docx file. 
+    Moreover, the data fetched could be pushed to a SQL server.
 
     There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
 
@@ -127,6 +128,7 @@ def doc(input, output, sample, image, log, force):
 
     If there is not sample docx specified, 'sample.docx' will be used as the argument
     If there is not image root directory, the root of the input file is used.
+
     """
     if log == "VERBOSE":
         logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
@@ -155,6 +157,29 @@ def doc(input, output, sample, image, log, force):
 @click.command(no_args_is_help=True, short_help="push data to database")
 @click.option("-i", "--input", required=True, help="data json file.")
 def push(input):
+    '''
+    \b
+    Insert data to SQL database
+
+    \b
+    Environment Variables
+    ---------------------
+    This module works by specifying Environment Variables to connect to SQL server 
+    and insert data to database.
+        - DB_HOST: specify host of the SQL server
+        - DB_PORT: specify port which the SQL server is listening to
+        - DB_USERNAME
+        - DB_PASSWORD
+        - DB_DATABASE: specify a database to work with
+    Default Environment Value:
+        {
+            DB_HOST: '127.0.0.1',
+            DB_PORT: '3306',
+            DB_USERNAME: 'rekdoc',
+            DB_PASSWORD: 'welcome1',
+            DB_DATABASE: 'logs',
+        }
+    '''
     rekpush.run(input)
 
 
@@ -174,9 +199,10 @@ def rule():
             Bullet-list('-' symbol): 'Dash List'
         Note: Failing to define styles with this specific name leads to 
               docx file generated having no style at all!
-
-    MANDATORY DIRECTORY:
-        'sample/'
+    \b
+    REQUIREMENT: 
+        - logs
+        - a sample docx file to use 'doc' module
 
     CODING CONVENTION:
         1. Naming style: 
