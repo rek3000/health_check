@@ -22,38 +22,40 @@ Source code tree of the program:\
 ## Intallation
 Currently there are three ways to use rekdoc
 ### Using pip:
-    ```
-    pip install .
-    ```
+```bash
+pip install .
+```
 ### Using pyinstaller (bundle all dependencies and modules as an executable):
-    ```
-    # Use virtualenv (optional)
-    # Create virtualenv 
-    python -m venv venv
-    # Access virtualenv
-    source ./venv/bin/activate # Linux
-    ./venv/activate/activate.bat # Windows
+```bash
+# Use virtualenv (optional)
+# Create virtualenv 
+python -m venv venv
+# Access virtualenv
+source ./venv/bin/activate # Linux
+./venv/activate/activate.bat # Windows
 
-    # Download dependencies
-    pip install python-dox pillow click pyinstaller mysql.connector
-    # Build with pyinstaller (Read Makefile)
-    make build
+# Download dependencies
+pip install python-dox pillow click pyinstaller mysql.connector
+# Build with pyinstaller (Read Makefile)
+make build
 
-    # Run the executable 
-    dist/bin/rekdoc # Linux
-    dist/bin/rekdoc.exe # Windows
-    ```
+# Run the executable 
+dist/bin/rekdoc # Linux
+dist/bin/rekdoc.exe # Windows
+```
 
 ### Using docker 
-    ```
-    # Build image
-    docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
-    # or
-    make install # Build image locally
-    # Run 
-    cd ./test_env
-    ./docker.sh
-    ```
+
+```bash
+# Build image
+docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
+# or
+make install # Build image locally
+
+# Run 
+cd ./test_env
+./docker.sh
+```
 
 **NOTE**: 
 - Run this tool built by pyinstaller only require `gcc` or
