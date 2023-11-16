@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 ###
-import docx
-import sys, os
+import sys
+import os
+import logging
 import json
+import docx
 
 ###
 import click
@@ -16,6 +18,7 @@ from docx.oxml import parse_xml
 
 ###
 from rekdoc import tools
+from rekdoc.const import *
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
@@ -241,6 +244,8 @@ def assert_data(data):
     asserted["swap_util"][0] = swap_util[0]
     asserted["swap_util"][1].extend(swap_util[1])
 
+    for field in asserted:
+        logging.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
     return asserted
 
 
@@ -269,12 +274,14 @@ def get_score(asserted):
         except:
             score = asserted_score
         checklist[i][2][0] = score
+        logging.info(checklist[i][1] + ":" + score)
         checklist[i][2][1] = comment
 
     return checklist
 
 
-# #!@#!@#@!
+# This function table with last column cells may or may not contain
+# list of string
 def drw_table(doc, checklist, row, col, info=False):
     if checklist == []:
         return -1
@@ -315,16 +322,19 @@ def drw_table(doc, checklist, row, col, info=False):
     return tab
 
 
-def drw_info(doc, node, checklist, images=[]):
+# def drw_image_to_doc(doc, node, images_root, images_name):
+# path?
+def drw_info(doc, node, checklist, images_root, images_name=[]):
     for i in range(1, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
-        if isinstance(images[i - 1], list):
-            for image in images[i - 1]:
-                path = os.path.normpath("output/" + node + "/" + image)
-                doc.add_picture(path, width=Inches(6.73))
+        if isinstance(images_name[i - 1], list):
+            for image in images_name[i - 1]:
+                path = os.path.normpath(images_root + "/" + node + "/" + image)
+            doc.add_picture(path, width=Inches(6.73))
         else:
+            path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
             doc.add_picture(
-                os.path.normpath("output/" + node + "/" + images[i - 1]),
+                path,
                 width=Inches(6.73),
             )
         for line in checklist[i][2][1]:
@@ -332,17 +342,17 @@ def drw_info(doc, node, checklist, images=[]):
     doc.add_page_break()
 
 
-def define_doc():
+def define_doc(sample):
     try:
-        doc = docx.Document(os.path.normpath("sample/dcx8m2.docx"))
+        doc = docx.Document(os.path.normpath(sample))
     except Exception as err:
-        print("Error:", err)
+        click.echo("Sample docx not found!")
         sys.exit()
     return doc
 
 
 def drw_menu(doc, nodes):
-    doc.add_paragraph("ORACLE EXADATA X8M-2", style="baocao1")
+    # doc.add_paragraph("ORACLE EXADATA X8M-2", style="baocao1")
     doc.add_paragraph("Kiểm tra nhiệt độ môi trường", style="baocao2")
     doc.add_paragraph("Mục lục", style="Heading")
     for node in nodes:
@@ -353,23 +363,41 @@ def drw_menu(doc, nodes):
     doc.add_page_break()
 
 
-def drw_doc(doc, input, out_dir, force):
-    nodes = tools.read_json(input)
+def drw_doc(doc, input_file, out_dir, images_root, force):
+    nodes = tools.read_json(input_file)
     if nodes == -1:
         return -1
     asserted_list = []
     doc.add_page_break()
     # drw_menu(doc, nodes)
-    input_dir = os.path.split(input)[0]
+    input_root = os.path.split(input_file)[0]
     for node in nodes:
-        progress_bar = click.progressbar(
-            range(100), label=node, fill_char="*", empty_char=" ", show_eta=False
-        )
-        image_json = os.path.normpath(input_dir + "/" + node + "/images.json")
-        images = tools.read_json(image_json)
+        level = logging.root.level
+        if (logging.DEBUG == level) or (logging.INFO == level):
+            click.secho(node, bg="cyan", fg="black")
+            progress_bar = click.progressbar(
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+                bar_template="",
+            )
+            progress_bar.finish()
+        else:
+            progress_bar = click.progressbar(
+                range(100),
+                label=click.style(node, fg=SECTION),
+                fill_char="*",
+                empty_char=" ",
+                show_eta=False,
+            )
+        image_json = os.path.normpath(images_root + "/" + node + "/images.json")
+        images_name = tools.read_json(image_json)
         progress_bar.update(10)
 
         file_dump = {}
+        progress_bar.update(1)
         asserted = assert_data(nodes[node])
         progress_bar.update(10)
 
@@ -395,50 +423,51 @@ def drw_doc(doc, input, out_dir, force):
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
         progress_bar.update(10)
 
-        drw_info(doc, node, checklist, images)
+        drw_info(doc, node, checklist, images_root, images_name)
         progress_bar.update(10)
 
         asserted_file = node + "_asserted"
         asserted_list += [asserted_file]
 
         tools.save_json(
-            os.path.normpath(input_dir + "/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(input_root + "/" + node + "/" + asserted_file + ".json"),
             file_dump,
         )
         progress_bar.update(10)
-        click.secho(" ", nl=False)
-        click.secho("DONE", bg="green", fg="black")
-        progress_bar.finish()
-    file_name = os.path.normpath(tools.rm_ext(input, "json") + "_asserted.json")
+        if (logging.DEBUG == level) or (logging.INFO == level):
+            click.secho(node + " DONE", bg=SUCCESS, fg="black")
+            click.echo()
+        else:
+            click.echo(" ", nl=False)
+            click.secho("DONE", bg=SUCCESS, fg="black")
+    file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
     tools.join_json(asserted_list, file_name)
     return doc
 
 
 def print_style(doc):
     styles = doc.styles
-    # p_styles = [s for s in styles if s.type == WD_STYLE_TYPE.PARAGRAPH]
-    # p_styles = [s for s in styles if s.type == WD_STYLE_TYPE.TABLE]
-    # for style in p_styles:
     for style in styles:
-        print(style.name)
+        click.echo(style.name)
 
 
-def run(input, output, verbose=False, force=False):
-    doc = define_doc()
-    out_dir = os.path.split(output)[0]
+def run(input_file, output_file, sample, images_dir, force=False):
+    doc = define_doc(sample)
+    out_dir = os.path.split(output_file)[0]
     try:
-        doc = drw_doc(doc, input, out_dir, force)
+        doc = drw_doc(doc, input_file, out_dir, images_dir, force)
         if doc == -1:
             return -1
     except Exception as err:
+        click.echo(err)
         return -1
 
-    if verbose:
+    if logging.root.level == 10:
         click.echo()
         click.secho("List of all styles", bg="cyan", fg="black")
         print_style(doc)
         click.echo()
-    file_name = os.path.normpath(tools.rm_ext(output, "json") + ".docx")
+    file_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
     doc.save(file_name)
     return file_name
 

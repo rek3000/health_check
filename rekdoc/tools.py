@@ -1,4 +1,6 @@
 import json
+import logging
+import click
 import sys, re, io, os, subprocess
 # from wand.image import Image
 # from wand.drawing import Drawing
@@ -14,13 +16,13 @@ from PIL import ImageFont
 # get a dictionary as input and dump it to a json type file
 def save_json(file, content):
     if not content:
-        print("No content from input to save!")
+        click.echo("No content from input to save!")
         return -1
     try:
         with open(file, "w") as f:
             json.dump(content, f, indent=2)
     except OSError as err:
-        print("OS error: ", err)
+        logging.error("OS error: ", err)
         raise RuntimeError("Cannot save JSON") from err
         return -1
 
@@ -34,7 +36,7 @@ def read_json(file):
         raise RuntimeError("Input file not found!") from err
         return -1
     except ValueError as err:
-        print("Invalid JSON file")
+        logging.error("Invalid JSON file")
         return -1
 
 
@@ -50,7 +52,7 @@ def join_json(content_files, output):
                 x[key] = buffer[key]
             json.dump(x, file, indent=4)
     except OSError as err:
-        print("OS error: ", err)
+        logging.error("OS error: ", err)
         return -1
 
 
@@ -125,13 +127,14 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file, stdout=False, debug=False):
+def cat(file, stdout=False):
     command = ["cat", file]
     stdout, stderr, code = run(command, False)
+    logging.debug(stdout)
     return stdout
 
 
-def grep(path, regex, single_match, next=0, debug=False):
+def grep(path, regex, single_match, next=0):
     command = ["grep", "-e", regex]
 
     if single_match:
@@ -143,6 +146,7 @@ def grep(path, regex, single_match, next=0, debug=False):
 
     stdout, stderr, code = run(command, False)
 
+    logging.debug(stdout)
     return stdout
 
 

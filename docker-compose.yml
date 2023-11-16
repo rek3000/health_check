@@ -1,17 +1,45 @@
-version: 'latest'
+version: '1.0'
+networks:
+  rekdoc:
+
 services:
-  db:
+  rekdoc:
+    image: rek3000/rekdoc:1.0
+    # build:
+    #   context: ./
+    #   dockerfile: ./dockerfiles/rekdoc.dockerfile
+    # container_name: 'rekdoc'
+    volumes:
+      - ./sample:/home/py/sample
+      - ./output:/home/py/output
+      - ./temp:/home/py/temp
+    networks:
+      - rekdoc
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
+
+  mysql:
     image: rapidfort/mysql-official
-    container_name: logs_db
-    command: --default-authentication-plugin=caching_sha2_password
+    command: --default-authentication-plugin=caching_sha2_password --ssl=0
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=123456
-      - MYSQL_USER=ming
-      - MYSQL_PASSWORD=123456
-      - MYSQL_DATABASE=logs_db
+       MYSQL_DATABASE: '${DB_DATABASE}'
+       MYSQL_USER: '${DB_USERNAME}'
+       MYSQL_PASSWORD: '${DB_PASSWORD}'
+       MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+       SERVICE_NAME: mysql
+    cap_add:
+      - SYS_NICE
+    networks:
+      - rekdoc
     ports:
-      - "3307:3306"
+      - "3360:3306"
     volumes:
+      - ./init_tables_scripts.sql:/docker-entrypoint-initdb.d/init.sql
       - ./mysql-data:/var/lib/mysql
-      - ./init_tables_script.sql:/docker-entrypoint-initdb.d/init_tables_script.sql
+    logging:
+      options:
+        max-size: 10m
+        max-file: "5"
