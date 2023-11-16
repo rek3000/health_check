@@ -17,3 +17,4 @@ build
 .env
 *data
 test_env/sample/*
+target/*

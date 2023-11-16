@@ -25,7 +25,7 @@ Currently there are three ways to use rekdoc
 ```bash
 pip install .
 ```
-### Using pyinstaller (bundle all dependencies and modules as an executable):
+### Using pyinstaller - localbuild (bundle all dependencies and modules as an executable):
 ```bash
 # Use virtualenv (optional)
 # Create virtualenv 
@@ -36,7 +36,7 @@ source ./venv/bin/activate # Linux
 
 # Download dependencies
 pip install python-dox pillow click pyinstaller mysql.connector
-# Build with pyinstaller (Read Makefile)
+# Build and install rekdoc to ./target/local/ (Read Makefile)
 make build
 
 # Run the executable 
@@ -44,8 +44,15 @@ dist/bin/rekdoc # Linux
 dist/bin/rekdoc.exe # Windows
 ```
 
-### Using docker 
+### Using pyinstaller - docker with gcc build (bundle all dependencies and modules as an executable):
+```bash
+# Build rekdoc 
+make crossbuild
+# Install rekdoc to ./target/docker/
+make crossinstall
+```
 
+### Using docker 
 ```bash
 # Build image
 docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
