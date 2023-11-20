@@ -2,14 +2,17 @@ import json
 import logging
 import click
 import sys, re, io, os, subprocess
-# from wand.image import Image
-# from wand.drawing import Drawing
-# from wand.color import Color
 from textwrap import wrap
+# try:
 from PIL import Image
 from PIL import ImageColor
 from PIL import ImageDraw
 from PIL import ImageFont
+# # except:
+#     from pil import Image
+#     from pil import ImageColor
+#     from pil import ImageDraw
+# from pil import ImageFont
 
 
 ##### JSON #####
@@ -20,7 +23,7 @@ def save_json(file, content):
         return -1
     try:
         with open(file, "w") as f:
-            json.dump(content, f, indent=2)
+            json.dump(content, f, indent=2, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
         raise RuntimeError("Cannot save JSON") from err
@@ -50,7 +53,7 @@ def join_json(content_files, output):
                 buffer = read_json(path)
                 key = list(buffer)[0]
                 x[key] = buffer[key]
-            json.dump(x, file, indent=4)
+            json.dump(x, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
         return -1
@@ -80,10 +83,13 @@ def drw_text_image(text, file):
         font = ImageFont.truetype(
             "DejaVuSansMono", size=size, layour_engine=ImageFont.Layout.BASIC
         )
-    except:
+    except OSError:
         font = ImageFont.load_default(size)
+    except:
+        font = ImageFont.load_default()
     with Image.new("RGB", (1000, 1000)) as img:
         d1 = ImageDraw.Draw(img)
+        # left, top, right, bottom = 1
         left, top, right, bottom = d1.textbbox((10, 10), text.getvalue(), font=font)
         w = int(right * 1.1) + 10
         h = int(bottom * 1.1) + 10

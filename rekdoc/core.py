@@ -22,7 +22,7 @@ def cli():
 
     \b
     A toolset allows user to get useful information from logs file of servers,
-    generate images from them, analyze them pump to a document docx file. 
+    generate images from them, analyze them pump to a document docx file.
     Moreover, the data fetched could be pushed to a SQL server.
 
     There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
@@ -34,7 +34,7 @@ def cli():
 
 @click.command(
     no_args_is_help=True,
-    short_help="fetch info to img",
+    short_help="get information",
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
 @click.option("-o", "--output", required=True, help="output file.")
@@ -157,14 +157,14 @@ def doc(input, output, sample, image, log, force):
 @click.command(no_args_is_help=True, short_help="push data to database")
 @click.option("-i", "--input", required=True, help="data json file.")
 def push(input):
-    '''
+    """
     \b
     Insert data to SQL database
 
     \b
     Environment Variables
     ---------------------
-    This module works by specifying Environment Variables to connect to SQL server 
+    This module works by specifying Environment Variables to connect to SQL server
     and insert data to database.
         - DB_HOST: specify host of the SQL server
         - DB_PORT: specify port which the SQL server is listening to
@@ -179,7 +179,7 @@ def push(input):
             DB_PASSWORD: 'welcome1',
             DB_DATABASE: 'logs',
         }
-    '''
+    """
     rekpush.run(input)
 
 

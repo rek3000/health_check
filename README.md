@@ -47,9 +47,9 @@ dist/bin/rekdoc.exe # Windows
 ### Using pyinstaller - docker with gcc build (bundle all dependencies and modules as an executable):
 ```bash
 # Build rekdoc 
-make crossbuild
+make build-gcc 
 # Install rekdoc to ./target/docker/
-make crossinstall
+make install-gcc
 ```
 
 ### Using docker 

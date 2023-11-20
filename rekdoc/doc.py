@@ -66,18 +66,72 @@ def assert_temp(data):
 
 
 def assert_firmware(data):
-    score = data["firmware"]
+    latest = ""
+    while True:
+        try:
+            latest = input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ") or data["firmware"]
+        except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+        except ValueError:
+                continue
+        break
+
+    if latest == data["firmware"]:
+        score = 5
+    else:
+        while True:
+            try:
+                click.echo("Đánh giá")
+                click.echo("[0] Tốt")
+                click.echo("[1] Cần lưu ý")
+                click.echo("[2] Kém")
+                score = int(input("Chọn đánh giá\n [0] ") or "0")
+            except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+            except ValueError:
+                continue
+            break
+
     comment = [
         "Phiên bản Ilom hiện tại: " + data["firmware"],
-        "Phiên bản Ilom mới nhất: ",
+        "Phiên bản Ilom mới nhất: " + latest,
     ]
     firmware = [score, comment]
     return firmware
 
 
 def assert_image(data):
-    score = data["image"]
-    comment = ["Phiên bản OS hiện tại: " + data["image"], "Phiên bản OS mới nhất: "]
+    while True:
+        try:
+            latest = input("\nEnter latest OS version\n [" + data["image"] + "] ") or data["image"]
+        except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+        except ValueError:
+                continue
+        break
+
+    if latest == data["image"]:
+        score = 5
+    else:
+        while True:
+            try:
+                click.echo("Đánh giá")
+                click.echo("[0] Tốt")
+                click.echo("[1] Cần lưu ý")
+                click.echo("[2] Kém")
+                score = int(input("Chọn đánh giá\n [0] ") or "0")
+            except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+            except ValueError:
+                continue
+            break
+
+    comment = ["Phiên bản OS hiện tại: " + data["image"],
+               "Phiên bản OS mới nhất: " + latest]
     image = [score, comment]
     return image
 

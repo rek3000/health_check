@@ -1,6 +1,8 @@
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
 FAULT = "/fma/@usr@local@bin@fmadm_faulty.out"
+PRODUCT = "/ilom/@usr@local@bin@collect_properties.out"
+SERIAL = "/ilom/@usr@local@bin@collect_properties.out"
 TEMP = "/ilom/@usr@local@bin@collect_properties.out"
 FIRMWARE = "/ilom/@usr@local@bin@collect_properties.out"
 ##

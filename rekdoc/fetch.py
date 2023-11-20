@@ -433,10 +433,38 @@ def get_os(path, os_name="SOL", verbose=False):
     return x
 
 
-##### FETCH OS ######
+##### END FETCH OS ######
 
+##### FETCH OVERVIEW #####
+def get_product(path):
+    product = grep(os.path.normpath(path + PRODUCT), "product_name", True)
+    return product
 
-def get_content(node, path):
+def get_serial(path):
+    serial = grep(os.path.normpath(path + SERIAL), "serial_number", True)
+    return serial
+
+def get_ip(path):
+    # ip = grep(os.path.normpath(path + NETWORK_SOL), "serial_number", True)
+    pass
+##### END OVERVIEW #####
+def get_overview(node, path):
+    pass
+    name = node
+    product_name = get_product(path[0])
+    serial = get_serial(path[0])
+    ip = get_ip(path[1])
+    content = {}
+    content[name] = {
+            "host_name": name,
+            "product_name": product_name,
+            "serial": serial,
+            "ip": ip,
+            }
+
+    return content
+
+def get_detail(node, path):
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], "SOL")
@@ -548,7 +576,7 @@ def compile(nodes, root, force):
         file_name = node
         for i in range(0, len(path)):
             path[i] = os.path.normpath("temp/" + str(path[i]))
-        content = get_content(node, path)
+        content = get_detail(node, path)
         progress_bar.update(20)
 
         # DRAW IMAGES FOR CONTENT

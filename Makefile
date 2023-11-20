@@ -1,6 +1,6 @@
 .ONESHELL:
 
-build:
+build-alpine:
 	# echo Building rekdoc ...
 	source venv/bin/activate
 	mkdir -p target/local > /dev/null 2>&1
@@ -9,18 +9,24 @@ build:
 		-n rekdoc --distpath target/local
 	deactivate
 
-install:
-	echo Building container
-	docker build -t rek3000/rekdoc:1.0 -f dockerfiles/rekdoc.dockerfile .
+# install:
+# 	echo Building container
+# 	docker build -t rek3000/rekdoc:1.0 -f dockerfiles/rekdoc.dockerfile .
 
-build-gcc:
-	mkdir -p target/docker > /dev/null 2>&1
-	docker build -t rek3000/rekdoc:1.0-gcc -f dockerfiles/rekdoc-gcc.dockerfile .
-
-install-gcc:
+build-debian:
+	mkdir -p target/docker/debian > /dev/null 2>&1
+	docker build -t rek3000/rekdoc:1.0-bookworm -f dockerfiles/debian.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-gcc /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-bookworm /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/debian/'
+
+build-ol:
+	mkdir -p target/docker/ol > /dev/null 2>&1
+	docker build -t rek3000/rekdoc:1.0-ol -f dockerfiles/ol.dockerfile .
+	docker run --rm -it \
+		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
+		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/ol/'
+# install-debian:
 
 run:
 	docker run -it -v $(pwd)/sample:/home/py/sample/ --name rekdoc --rm rekdoc "$@"
