@@ -254,6 +254,8 @@ def get_file(regex, root=""):
 
 
 ##### FETCH ILOM ######
+#TODO - ☠️ if the file is large, this will get all of its content. 
+#Not good.
 def get_fault(path):
     fault = tools.cat(os.path.normpath(path + FAULT)).strip()
     return fault
