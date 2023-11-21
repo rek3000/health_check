@@ -293,7 +293,7 @@ def get_ilom(path):
         "firmware": firmware,
     }
 
-    logging.debug(json.dumps(ilom))
+    logging.debug(json.dumps(ilom, ensure_ascii=False))
 
     return ilom
 
@@ -495,7 +495,7 @@ def get_detail(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content, indent=2))
+    logging.info("JSON file: " + json.dumps(content, indent=2, ensure_ascii=False))
     return content
 
 

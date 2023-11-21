@@ -36,7 +36,7 @@ def assert_fault(data):
         ]
 
     fault = [score, comment]
-    logging.debug(json.dumps(fault))
+    logging.debug(json.dumps(fault, ensure_ascii=False))
     return fault
 
 
@@ -63,7 +63,7 @@ def assert_temp(data):
         ]
 
     temp = [score, comment]
-    logging.debug(json.dumps(temp))
+    logging.debug(json.dumps(temp, ensure_ascii=False))
     return temp
 
 
@@ -101,7 +101,7 @@ def assert_firmware(data):
         "Phiên bản Ilom mới nhất: " + latest,
     ]
     firmware = [score, comment]
-    logging.debug(json.dumps(firmware))
+    logging.debug(json.dumps(firmware, ensure_ascii=False))
     return firmware
 
 
@@ -137,7 +137,7 @@ def assert_image(data):
     comment = ["Phiên bản OS hiện tại: " + data["image"],
                "Phiên bản OS mới nhất: " + latest]
     image = [score, comment]
-    logging.debug(json.dumps(image))
+    logging.debug(json.dumps(image, ensure_ascii=False))
 
     return image
 
@@ -184,9 +184,8 @@ def assert_vol(data):
         ]
     
 
-    logging.debug(score)
     vol = [score, comment]
-    logging.debug(json.dumps(vol))
+    logging.debug(json.dumps(vol, ensure_ascii=False))
 
     return vol
 
@@ -203,7 +202,7 @@ def assert_bonding(data):
         comment = ["Network được cấu hình bonding IPMP"]
 
     bonding = [score, comment]
-    logging.debug(json.dumps(bonding))
+    logging.debug(json.dumps(bonding, ensure_ascii=False))
 
     return bonding
 
@@ -218,7 +217,7 @@ def assert_cpu_util(data):
     comment = ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
 
     cpu_util = [score, comment]
-    logging.debug(json.dumps(cpu_util))
+    logging.debug(json.dumps(cpu_util, ensure_ascii=False))
 
     return cpu_util
 
@@ -238,7 +237,7 @@ def assert_load(data):
     ]
 
     load = [score, comment]
-    logging.debug(json.dumps(load))
+    logging.debug(json.dumps(load, ensure_ascii=False))
 
     return load
 
@@ -254,7 +253,7 @@ def assert_mem_free(data):
     comment = ["Physical memory free: " + str(mem_free) + "%"]
 
     mem_free = [score, comment]
-    logging.debug(json.dumps(mem_free))
+    logging.debug(json.dumps(mem_free, ensure_ascii=False))
 
     return mem_free
 
@@ -269,7 +268,7 @@ def assert_swap_util(data):
     comment = ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
 
     swap_util = [score, comment]
-    logging.debug(json.dumps(swap_util))
+    logging.debug(json.dumps(swap_util, ensure_ascii=False))
 
     return swap_util
 
