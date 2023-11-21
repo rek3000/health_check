@@ -366,12 +366,17 @@ def get_load_avg(path):
 
 
 def get_vcpu(path):
-    vcpu = (
-        tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True)
-        .strip()
+    # vcpu = (
+    #     tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True)
+    #     .strip()
+    #     .split()[4]
+    # )
+
+    vcpu = ( tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
+        .split("\n")[-2]
         .split()[4]
     )
-    vcpu = int(vcpu)
+    vcpu = int(vcpu) + 1
     return vcpu
 
 
@@ -384,19 +389,22 @@ def get_load(path):
 
 
 def get_mem_util(path):
-    mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
+    # mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
+    mem = (tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+                .split("\n")[-2].split()
+           )
     mem_free = mem[-1]
-    mem_util = 100 - int(mem_free[:-1])
+    mem_util = 100 - float(mem_free[:-1])
     return mem_free, mem_util
 
 
 def get_swap_util(path):
     swap_free = tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
     swap_free = [swap_free[8], swap_free[10]]
-    swap_free[0] = int(swap_free[0][:-2])
-    swap_free[1] = int(swap_free[1][:-2])
+    swap_free[0] = float(swap_free[0][:-2])
+    swap_free[1] = float(swap_free[1][:-2])
     swap_util = swap_free[0] / (swap_free[0] + swap_free[1])
-    swap_util = int(swap_util * 100)
+    swap_util = float("{:.1f}".format(swap_util * 100))
 
     return swap_free, swap_util
 
