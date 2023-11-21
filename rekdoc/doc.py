@@ -27,12 +27,12 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 def assert_fault(data):
     if data["fault"] == "No faults found":
         score = 5
-        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[5]]
+        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     else:
         score = 1
         comment = [
             "Lỗi ảnh hưởng tới hoạt động của hệ thống",
-            "Đánh giá: " + ASSERTION[1],
+            "Đánh giá: " + ASSERTION[score],
         ]
 
     fault = [score, comment]
@@ -47,19 +47,19 @@ def assert_temp(data):
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif inlet_temp > 23 and inlet_temp <= 26:
         score = 3
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif inlet_temp > 26:
         score = 1
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
 
     temp = [score, comment]
@@ -71,12 +71,15 @@ def assert_firmware(data):
     latest = ""
     while True:
         try:
-            latest = input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ") or data["firmware"]
+            latest = (
+                input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                or data["firmware"]
+            )
         except KeyboardInterrupt:
-                click.echo()
-                sys.exit()
+            click.echo()
+            sys.exit()
         except ValueError:
-                continue
+            continue
         break
 
     if latest == data["firmware"]:
@@ -109,12 +112,15 @@ def assert_image(data):
     score = 0
     while True:
         try:
-            latest = input("\nEnter latest OS version\n [" + data["image"] + "] ") or data["image"]
+            latest = (
+                input("\nEnter latest OS version\n [" + data["image"] + "] ")
+                or data["image"]
+            )
         except KeyboardInterrupt:
-                click.echo()
-                sys.exit()
+            click.echo()
+            sys.exit()
         except ValueError:
-                continue
+            continue
         break
 
     if latest == data["image"]:
@@ -134,8 +140,10 @@ def assert_image(data):
                 continue
             break
 
-    comment = ["Phiên bản OS hiện tại: " + data["image"],
-               "Phiên bản OS mới nhất: " + latest]
+    comment = [
+        "Phiên bản OS hiện tại: " + data["image"],
+        "Phiên bản OS mới nhất: " + latest,
+    ]
     image = [score, comment]
     logging.debug(json.dumps(image, ensure_ascii=False))
 
@@ -182,7 +190,6 @@ def assert_vol(data):
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
             "Đánh giá: " + ASSERTION[score],
         ]
-    
 
     vol = [score, comment]
     logging.debug(json.dumps(vol, ensure_ascii=False))

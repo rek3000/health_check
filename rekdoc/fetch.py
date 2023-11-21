@@ -254,8 +254,8 @@ def get_file(regex, root=""):
 
 
 ##### FETCH ILOM ######
-#TODO - ☠️ if the file is large, this will get all of its content. 
-#Not good.
+# TODO - ☠️ if the file is large, this will get all of its content.
+# Not good.
 def get_fault(path):
     fault = tools.cat(os.path.normpath(path + FAULT)).strip()
     return fault
@@ -372,7 +372,8 @@ def get_vcpu(path):
     #     .split()[4]
     # )
 
-    vcpu = ( tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
+    vcpu = (
+        tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
         .split("\n")[-2]
         .split()[4]
     )
@@ -390,9 +391,11 @@ def get_load(path):
 
 def get_mem_util(path):
     # mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
-    mem = (tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
-                .split("\n")[-2].split()
-           )
+    mem = (
+        tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+        .split("\n")[-2]
+        .split()
+    )
     mem_free = mem[-1]
     mem_util = 100 - float(mem_free[:-1])
     return mem_free, mem_util
@@ -445,18 +448,23 @@ def get_os(path, os_name="SOL", verbose=False):
 
 ##### END FETCH OS ######
 
+
 ##### FETCH OVERVIEW #####
 def get_product(path):
     product = grep(os.path.normpath(path + PRODUCT), "product_name", True)
     return product
 
+
 def get_serial(path):
     serial = grep(os.path.normpath(path + SERIAL), "serial_number", True)
     return serial
 
+
 def get_ip(path):
     # ip = grep(os.path.normpath(path + NETWORK_SOL), "serial_number", True)
     pass
+
+
 ##### END OVERVIEW #####
 def get_overview(node, path):
     pass
@@ -466,13 +474,14 @@ def get_overview(node, path):
     ip = get_ip(path[1])
     content = {}
     content[name] = {
-            "host_name": name,
-            "product_name": product_name,
-            "serial": serial,
-            "ip": ip,
-            }
+        "host_name": name,
+        "product_name": product_name,
+        "serial": serial,
+        "ip": ip,
+    }
 
     return content
+
 
 def get_detail(node, path):
     # @@
