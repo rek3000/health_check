@@ -27,15 +27,16 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 def assert_fault(data):
     if data["fault"] == "No faults found":
         score = 5
-        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[5]]
+        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     else:
         score = 1
         comment = [
             "Lỗi ảnh hưởng tới hoạt động của hệ thống",
-            "Đánh giá: " + ASSERTION[1],
+            "Đánh giá: " + ASSERTION[score],
         ]
 
     fault = [score, comment]
+    logging.debug(json.dumps(fault, ensure_ascii=False))
     return fault
 
 
@@ -46,49 +47,119 @@ def assert_temp(data):
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif inlet_temp > 23 and inlet_temp <= 26:
         score = 3
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif inlet_temp > 26:
         score = 1
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
 
     temp = [score, comment]
+    logging.debug(json.dumps(temp, ensure_ascii=False))
     return temp
 
 
 def assert_firmware(data):
-    score = data["firmware"]
+    latest = ""
+    while True:
+        try:
+            sys.stdout.write("\033[?25h")
+            latest = (
+                input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                or data["firmware"]
+            )
+        except KeyboardInterrupt:
+            click.echo()
+            sys.exit()
+        except ValueError:
+            continue
+        break
+
+    if latest == data["firmware"]:
+        score = 5
+    else:
+        while True:
+            try:
+                click.echo("Đánh giá")
+                click.echo("[0] Tốt")
+                click.echo("[1] Cần lưu ý")
+                click.echo("[2] Kém")
+                score = int(input("Chọn đánh giá\n [0] ") or "0")
+            except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+            except ValueError:
+                continue
+            break
+
     comment = [
         "Phiên bản Ilom hiện tại: " + data["firmware"],
-        "Phiên bản Ilom mới nhất: ",
+        "Phiên bản Ilom mới nhất: " + latest,
     ]
     firmware = [score, comment]
+    logging.debug(json.dumps(firmware, ensure_ascii=False))
     return firmware
 
 
 def assert_image(data):
-    score = data["image"]
-    comment = ["Phiên bản OS hiện tại: " + data["image"], "Phiên bản OS mới nhất: "]
+    score = 0
+    while True:
+        try:
+            sys.stdout.write("\033[?25h")
+            latest = (
+                input("\nEnter latest OS version\n [" + data["image"] + "] ")
+                or data["image"]
+            )
+        except KeyboardInterrupt:
+            click.echo()
+            sys.exit()
+        except ValueError:
+            continue
+        break
+
+    if latest == data["image"]:
+        score = 5
+    else:
+        while True:
+            try:
+                click.echo("Đánh giá")
+                click.echo("[0] Tốt")
+                click.echo("[1] Cần lưu ý")
+                click.echo("[2] Kém")
+                score = int(input("Chọn đánh giá\n [0] ") or "0")
+            except KeyboardInterrupt:
+                click.echo()
+                sys.exit()
+            except ValueError:
+                continue
+            break
+
+    comment = [
+        "Phiên bản OS hiện tại: " + data["image"],
+        "Phiên bản OS mới nhất: " + latest,
+    ]
     image = [score, comment]
+    logging.debug(json.dumps(image, ensure_ascii=False))
+
     return image
 
 
 def assert_vol(data):
+    score = 0
     if data["vol_avail"] > 30 and data["raid_stat"] == True:
         score = 5
         comment = [
             "Phân vùng OS được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[5],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
         "raid_stat"
@@ -97,24 +168,33 @@ def assert_vol(data):
         comment = [
             "Phân vùng OS được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[3],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif data["vol_avail"] <= 15 and data["raid_stat"] == False:
         score = 1
         comment = [
             "Phân vùng OS không được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[1],
+            "Đánh giá: " + ASSERTION[score],
         ]
     elif data["vol_avail"] <= 15 and data["raid_stat"] == True:
         score = 1
         comment = [
             "Phân vùng OS được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[1],
+            "Đánh giá: " + ASSERTION[score],
+        ]
+    elif data["vol_avail"] > 30 and data["raid_stat"] == False:
+        score = 3
+        comment = [
+            "Phân vùng OS không được cấu hình RAID",
+            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
+            "Đánh giá: " + ASSERTION[score],
         ]
 
     vol = [score, comment]
+    logging.debug(json.dumps(vol, ensure_ascii=False))
+
     return vol
 
 
@@ -130,6 +210,8 @@ def assert_bonding(data):
         comment = ["Network được cấu hình bonding IPMP"]
 
     bonding = [score, comment]
+    logging.debug(json.dumps(bonding, ensure_ascii=False))
+
     return bonding
 
 
@@ -143,6 +225,8 @@ def assert_cpu_util(data):
     comment = ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
 
     cpu_util = [score, comment]
+    logging.debug(json.dumps(cpu_util, ensure_ascii=False))
+
     return cpu_util
 
 
@@ -161,6 +245,8 @@ def assert_load(data):
     ]
 
     load = [score, comment]
+    logging.debug(json.dumps(load, ensure_ascii=False))
+
     return load
 
 
@@ -175,6 +261,8 @@ def assert_mem_free(data):
     comment = ["Physical memory free: " + str(mem_free) + "%"]
 
     mem_free = [score, comment]
+    logging.debug(json.dumps(mem_free, ensure_ascii=False))
+
     return mem_free
 
 
@@ -188,6 +276,8 @@ def assert_swap_util(data):
     comment = ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
 
     swap_util = [score, comment]
+    logging.debug(json.dumps(swap_util, ensure_ascii=False))
+
     return swap_util
 
 

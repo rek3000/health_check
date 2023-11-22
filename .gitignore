@@ -17,3 +17,6 @@ build
 .env
 *data
 test_env/sample/*
+test_env/temp/*
+test_env/output/*
+target/*

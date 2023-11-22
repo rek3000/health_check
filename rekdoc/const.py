@@ -1,6 +1,8 @@
 ##### DEFAULT PATHS #####
 ## INTERGRATED LIGHT OUT MANAGEMENT
 FAULT = "/fma/@usr@local@bin@fmadm_faulty.out"
+PRODUCT = "/ilom/@usr@local@bin@collect_properties.out"
+SERIAL = "/ilom/@usr@local@bin@collect_properties.out"
 TEMP = "/ilom/@usr@local@bin@collect_properties.out"
 FIRMWARE = "/ilom/@usr@local@bin@collect_properties.out"
 ##
@@ -23,7 +25,8 @@ RAID_SOL = "/disks/zfs/zpool_status_-v.out"
 NETWORK_SOL = "/netinfo/ipadm.out"
 CPU_ULTILIZATION_SOL = "/sysconfig/vmstat_3_3.out"
 CPU_LOAD_SOL = "/sysconfig/prstat-L.out"
-VCPU_SOL = "/sysconfig/ldm_list_-l.out"
+# VCPU_SOL = "/sysconfig/ldm_list_-l.out"
+VCPU_SOL = "/sysconfig/psrinfo-v.out"
 MEM_SOL = "/disks/zfs/mdb/mdb-memstat.out"
 SWAP_SOL = "/disks/swap-s.out"
 ##

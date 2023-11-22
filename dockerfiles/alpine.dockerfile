@@ -6,8 +6,7 @@ RUN pip install --no-cache pyinstaller pillow python-docx mysql-connector-python
 COPY rekdoc/ /package/rekdoc/
 RUN pyinstaller --strip --clean \
     -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
-USER py
-CMD ["sh"]
+
 FROM alpine:3.18.4 as final
 COPY --from=base /package/dist/rekdoc /usr/bin/rekdoc 
 RUN adduser -D py

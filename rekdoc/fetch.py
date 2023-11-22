@@ -254,6 +254,8 @@ def get_file(regex, root=""):
 
 
 ##### FETCH ILOM ######
+# TODO - ☠️ if the file is large, this will get all of its content.
+# Not good.
 def get_fault(path):
     fault = tools.cat(os.path.normpath(path + FAULT)).strip()
     return fault
@@ -291,7 +293,7 @@ def get_ilom(path):
         "firmware": firmware,
     }
 
-    logging.debug(json.dumps(ilom))
+    logging.debug(json.dumps(ilom, ensure_ascii=False))
 
     return ilom
 
@@ -364,12 +366,18 @@ def get_load_avg(path):
 
 
 def get_vcpu(path):
+    # vcpu = (
+    #     tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True)
+    #     .strip()
+    #     .split()[4]
+    # )
+
     vcpu = (
-        tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True)
-        .strip()
+        tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
+        .split("\n")[-2]
         .split()[4]
     )
-    vcpu = int(vcpu)
+    vcpu = int(vcpu) + 1
     return vcpu
 
 
@@ -382,19 +390,24 @@ def get_load(path):
 
 
 def get_mem_util(path):
-    mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
+    # mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
+    mem = (
+        tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+        .split("\n")[-2]
+        .split()
+    )
     mem_free = mem[-1]
-    mem_util = 100 - int(mem_free[:-1])
+    mem_util = 100 - float(mem_free[:-1])
     return mem_free, mem_util
 
 
 def get_swap_util(path):
     swap_free = tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
     swap_free = [swap_free[8], swap_free[10]]
-    swap_free[0] = int(swap_free[0][:-2])
-    swap_free[1] = int(swap_free[1][:-2])
+    swap_free[0] = float(swap_free[0][:-2])
+    swap_free[1] = float(swap_free[1][:-2])
     swap_util = swap_free[0] / (swap_free[0] + swap_free[1])
-    swap_util = int(swap_util * 100)
+    swap_util = float("{:.1f}".format(swap_util * 100))
 
     return swap_free, swap_util
 
@@ -433,10 +446,44 @@ def get_os(path, os_name="SOL", verbose=False):
     return x
 
 
-##### FETCH OS ######
+##### END FETCH OS ######
 
 
-def get_content(node, path):
+##### FETCH OVERVIEW #####
+def get_product(path):
+    product = grep(os.path.normpath(path + PRODUCT), "product_name", True)
+    return product
+
+
+def get_serial(path):
+    serial = grep(os.path.normpath(path + SERIAL), "serial_number", True)
+    return serial
+
+
+def get_ip(path):
+    # ip = grep(os.path.normpath(path + NETWORK_SOL), "serial_number", True)
+    pass
+
+
+##### END OVERVIEW #####
+def get_overview(node, path):
+    pass
+    name = node
+    product_name = get_product(path[0])
+    serial = get_serial(path[0])
+    ip = get_ip(path[1])
+    content = {}
+    content[name] = {
+        "host_name": name,
+        "product_name": product_name,
+        "serial": serial,
+        "ip": ip,
+    }
+
+    return content
+
+
+def get_detail(node, path):
     # @@
     ilom = get_ilom(path[0])
     os_info = get_os(path[1], "SOL")
@@ -457,7 +504,7 @@ def get_content(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content, indent=2))
+    logging.info("JSON file: " + json.dumps(content, indent=2, ensure_ascii=False))
     return content
 
 
@@ -548,7 +595,7 @@ def compile(nodes, root, force):
         file_name = node
         for i in range(0, len(path)):
             path[i] = os.path.normpath("temp/" + str(path[i]))
-        content = get_content(node, path)
+        content = get_detail(node, path)
         progress_bar.update(20)
 
         # DRAW IMAGES FOR CONTENT

@@ -20,12 +20,12 @@ Source code tree of the program:\
    \\── push.py
 
 ## Intallation
-Currently there are three ways to use rekdoc
+Currently there are 4 ways to use rekdoc
 ### Using pip:
 ```bash
 pip install .
 ```
-### Using pyinstaller (bundle all dependencies and modules as an executable):
+### Using pyinstaller - local (bundle all dependencies and modules as an executable):
 ```bash
 # Use virtualenv (optional)
 # Create virtualenv 
@@ -36,21 +36,28 @@ source ./venv/bin/activate # Linux
 
 # Download dependencies
 pip install python-dox pillow click pyinstaller mysql.connector
-# Build with pyinstaller (Read Makefile)
+# Build and install rekdoc to ./target/local/ (Read Makefile)
 make build
 
 # Run the executable 
 dist/bin/rekdoc # Linux
 dist/bin/rekdoc.exe # Windows
 ```
+**NOTE**: 
+- Before running `make build`, be sure to clean up the target folder (./target/local/)
+
+### Using pyinstaller - docker with gcc build (bundle all dependencies and modules as an executable):
+```bash
+# Build and Install to ./target/docker/debian/
+make build-debian 
+```
 
 ### Using docker 
-
 ```bash
 # Build image
 docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
 # or
-make install # Build image locally
+make build-alpine # Build image locally
 
 # Run 
 cd ./test_env
@@ -80,7 +87,7 @@ cd ./test_env
 - [x] Basic usage.
 - [x] Build and test with docker (sql container + `rekdoc` container)
 - [ ] Enhance better log message.
-- [ ] Fix program flow.
+- [ ] Enhance program flow.
 - [ ] Expand the document generate to adapt to more type of report.
 
 Crafted with passion.
