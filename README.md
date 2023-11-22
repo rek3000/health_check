@@ -2,13 +2,13 @@
 
 ## Introduction
 **rekdoc** is a toolset allows user fetch useful information from logs file of servers,
-generate images from them, analyze them pump to a document docx file. Moreover, it supports
-pushing those information to SQL database.
+generate *images* from them, analyze them pump to a document *docx* file. Moreover, it supports
+pushing those information to *SQL* server.
 
 There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
 
-Use command with '-h' to show help texts.
-Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
+Use command with `-h` to show help texts.
+Use `rekdoc rule` to show the rules that need to comply to interact successfully with the toolset.
 
 Source code tree of the program:\
 -- rekdoc\
@@ -27,26 +27,20 @@ pip install .
 ```
 ### Using pyinstaller - local (bundle all dependencies and modules as an executable):
 ```bash
-# Use virtualenv (optional)
-# Create virtualenv 
-python -m venv venv
-# Access virtualenv
-source ./venv/bin/activate # Linux
-./venv/activate/activate.bat # Windows
-
-# Download dependencies
-pip install python-dox pillow click pyinstaller mysql.connector
-# Build and install rekdoc to ./target/local/ (Read Makefile)
+# 1. Install virtualenv
+# 2. Init the virtualenv
+make init
+# 3. Build and install rekdoc to ./target/local/ (Read Makefile)
 make build
-
-# Run the executable 
-dist/bin/rekdoc # Linux
-dist/bin/rekdoc.exe # Windows
+# 4. Run the executable 
+./target/local/rekdoc # Linux
+# or
+./target/local/rekdoc.exe # Windows
 ```
 **NOTE**: 
 - Before running `make build`, be sure to clean up the target folder (./target/local/)
 
-### Using pyinstaller - docker with gcc build (bundle all dependencies and modules as an executable):
+### Using pyinstaller - build with docker (glibc) (bundle all dependencies and modules as an executable):
 ```bash
 # Build and Install to ./target/docker/debian/
 make build-debian 
@@ -54,14 +48,19 @@ make build-debian
 
 ### Using docker 
 ```bash
-# Build image
-docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
+# Get image from Dockerhub.
+docker pull rek3000/rekdoc:1.0  # alpine
 # or
-make build-alpine # Build image locally
+docker pull rek3000/rekdoc:1.0-deb # debian
 
-# Run 
+# or Build image locally
+make build-alpine  # alpine
+
+make build-debian  # debian 
+
+# Run test
 cd ./test_env
-./docker.sh
+./docker.sh + <image>
 ```
 
 **NOTE**: 
@@ -86,8 +85,9 @@ cd ./test_env
 ## TODO
 - [x] Basic usage.
 - [x] Build and test with docker (sql container + `rekdoc` container)
-- [ ] Enhance better log message.
+- [x] Enhance better log message.
+- [ ] Fix bug handling system. (critical)
 - [ ] Enhance program flow.
-- [ ] Expand the document generate to adapt to more type of report.
+- [ ] Expand the document generate to adapt to more type of report. (TODO: to be determined)
 
 Crafted with passion.
