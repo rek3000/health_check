@@ -40,6 +40,7 @@ def cli():
 @click.option("-o", "--output", required=True, help="output file.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
+@click.option("--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run")
 @click.option(
     "-f",
     "--force",
@@ -48,7 +49,7 @@ def cli():
     is_flag=True,
 )
 @click.argument("node", required=False, nargs=-1)
-def fetch(input, output, node, log, force):
+def fetch(input, output, node, log, force, dryrun):
     """
     \b
     Fetch information to json and convert to images
@@ -69,6 +70,15 @@ def fetch(input, output, node, log, force):
     if node:
         nodes.extend(node)
     print(nodes)
+    if dryrun:
+        rekfetch.clean_up(
+                "./temp/",
+                prompt="Remove "
+                + click.style("temp/", fg="cyan")
+                + click.style(" directory items?", fg="red"),
+                force=True
+                )
+
 
     root = os.path.split(output)[0]
     if rekfetch.run(nodes, output, force) == -1:
@@ -78,12 +88,6 @@ def fetch(input, output, node, log, force):
         return -1
 
     click.secho("Summary file created after fetch: " + output, fg="cyan")
-    rekfetch.clean_up(
-        "./temp/",
-        prompt="Remove "
-        + click.style("temp/", fg="cyan")
-        + click.style(" directory items?", fg="red"),
-    )
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")

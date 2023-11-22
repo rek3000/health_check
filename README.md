@@ -25,7 +25,7 @@ Currently there are 4 ways to use rekdoc
 ```bash
 pip install .
 ```
-### Using pyinstaller - localbuild (bundle all dependencies and modules as an executable):
+### Using pyinstaller - local (bundle all dependencies and modules as an executable):
 ```bash
 # Use virtualenv (optional)
 # Create virtualenv 
@@ -43,13 +43,13 @@ make build
 dist/bin/rekdoc # Linux
 dist/bin/rekdoc.exe # Windows
 ```
+**NOTE**: 
+- Before running `make build`, be sure to clean up the target folder (./target/local/)
 
 ### Using pyinstaller - docker with gcc build (bundle all dependencies and modules as an executable):
 ```bash
-# Build rekdoc 
-make build-gcc 
-# Install rekdoc to ./target/docker/
-make install-gcc
+# Build and Install to ./target/docker/debian/
+make build-debian 
 ```
 
 ### Using docker 
@@ -57,7 +57,7 @@ make install-gcc
 # Build image
 docker pull rek3000/rekdoc:1.0 # Get image from Dockerhub.
 # or
-make install # Build image locally
+make build-alpine # Build image locally
 
 # Run 
 cd ./test_env
@@ -87,7 +87,7 @@ cd ./test_env
 - [x] Basic usage.
 - [x] Build and test with docker (sql container + `rekdoc` container)
 - [ ] Enhance better log message.
-- [ ] Fix program flow.
+- [ ] Enhance program flow.
 - [ ] Expand the document generate to adapt to more type of report.
 
 Crafted with passion.

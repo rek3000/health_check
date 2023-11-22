@@ -1,6 +1,6 @@
 .ONESHELL:
 
-build-alpine:
+build:
 	# echo Building rekdoc ...
 	source venv/bin/activate
 	mkdir -p target/local > /dev/null 2>&1
@@ -15,10 +15,17 @@ build-alpine:
 
 build-debian:
 	mkdir -p target/docker/debian > /dev/null 2>&1
-	docker build -t rek3000/rekdoc:1.0-bookworm -f dockerfiles/debian.dockerfile .
+	docker build -t rek3000/rekdoc:1.0-deb -f dockerfiles/debian.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-bookworm /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/debian/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/debian/'
+
+build-alpine-glibc:
+	mkdir -p target/docker/alpine-glibc > /dev/null 2>&1
+	docker build -t rek3000/rekdoc:1.0-alpine-glibc -f dockerfiles/alpine-glibc.dockerfile .
+	docker run --rm -it \
+		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
+		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine-glibc /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/alpine-glibc/'
 
 build-ol:
 	mkdir -p target/docker/ol > /dev/null 2>&1
@@ -45,4 +52,4 @@ purge:
 	rm -rf *.egg-info
 tree:
 	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info
-# .PHONY:
+.PHONY: build-debian

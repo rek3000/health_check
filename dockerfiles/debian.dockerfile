@@ -1,6 +1,7 @@
-FROM python:bookworm as base
+FROM python:slim-buster as base
 RUN apt update -y
-RUN apt install libc-bin=2.17 libc-bin=2.17 python3-lxml libxslt-dev zlib1g-dev -y
+RUN apt install libc-bin python3-lxml libxslt-dev zlib1g-dev -y
+RUN apt install binutils -y
 RUN pip install --no-cache pyinstaller pillow python-docx mysql-connector-python click
 # RUN useradd py
 RUN mkdir package
@@ -11,7 +12,7 @@ COPY rekdoc/ /package/rekdoc/
 RUN pyinstaller --strip --clean \
     -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
 
-FROM debian:bookworm-slim as final
+FROM debian:buster-slim as final
 COPY --from=base /package/dist/rekdoc /usr/bin/rekdoc 
 RUN useradd py -u 1000
 USER py

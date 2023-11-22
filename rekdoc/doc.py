@@ -71,6 +71,7 @@ def assert_firmware(data):
     latest = ""
     while True:
         try:
+            sys.stdout.write("\033[?25h")
             latest = (
                 input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
                 or data["firmware"]
@@ -112,6 +113,7 @@ def assert_image(data):
     score = 0
     while True:
         try:
+            sys.stdout.write("\033[?25h")
             latest = (
                 input("\nEnter latest OS version\n [" + data["image"] + "] ")
                 or data["image"]
@@ -152,7 +154,6 @@ def assert_image(data):
 
 def assert_vol(data):
     score = 0
-    print(data["raid_stat"])
     if data["vol_avail"] > 30 and data["raid_stat"] == True:
         score = 5
         comment = [
