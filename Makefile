@@ -9,16 +9,19 @@ build:
 		-n rekdoc --distpath target/local
 	deactivate
 
-# install:
-# 	echo Building container
-# 	docker build -t rek3000/rekdoc:1.0 -f dockerfiles/rekdoc.dockerfile .
-
 build-debian:
 	mkdir -p target/docker/debian > /dev/null 2>&1
 	docker build -t rek3000/rekdoc:1.0-deb -f dockerfiles/debian.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
 		--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/debian/'
+
+build-alpine:
+	mkdir -p target/docker/alpine > /dev/null 2>&1
+	docker build -t rek3000/rekdoc:1.0-alpine -f dockerfiles/alpine.dockerfile .
+	docker run --rm -it \
+		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
+		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/alpine/'
 
 build-alpine-glibc:
 	mkdir -p target/docker/alpine-glibc > /dev/null 2>&1
@@ -33,7 +36,6 @@ build-ol:
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
 		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/ol/'
-# install-debian:
 
 run:
 	docker run -it -v $(pwd)/sample:/home/py/sample/ --name rekdoc --rm rekdoc "$@"

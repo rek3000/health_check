@@ -1,15 +1,8 @@
 #!/bin/sh
-#
-# docker run -it -v $(pwd)/sample:/home/py/sample \
-#     -v $(pwd)/output:/home/py/output \
-#     -v $(pwd)/temp:/home/py/temp \
-#     --name rekdoc --rm rekdoc "$@"
-# docker run -it -v $(pwd)/sample:/home/py/sample \
-#     -v $(pwd)/output:/home/py/output \
-#     -v $(pwd)/temp:/home/py/temp \
-#     --name rekdoc --rm rekdoc:1.0  
+# image=rek3000/rekdoc:1.0-alpine
+image=$1
 docker run -it -v $(pwd)/sample:/home/py/sample \
     -v $(pwd)/output:/home/py/output \
     -v $(pwd)/temp:/home/py/temp \
-    --name rekdoc-gcc --rm rek3000/rekdoc:1.0-alpine-glibc
+    --name rekdoc --rm $1 
 
