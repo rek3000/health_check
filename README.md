@@ -24,7 +24,8 @@ Source code tree of the program:\
 
 ## Installation
 Requirement: `libc` version 2.28
-Download file from release
+
+Download pre-compiled rekdoc from release
 ## Build
 Currently there are 4 ways to build rekdoc
 ### Using pip:
