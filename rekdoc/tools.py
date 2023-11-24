@@ -27,7 +27,6 @@ def save_json(file, content):
     except OSError as err:
         logging.error("OS error: ", err)
         raise RuntimeError("Cannot save JSON") from err
-        return -1
 
 
 def read_json(file):
@@ -36,11 +35,11 @@ def read_json(file):
             content = json.load(f)
         return content
     except FileNotFoundError as err:
-        raise RuntimeError("Input file not found!") from err
-        return -1
+        logging.error("Input file not found!")
+        raise RuntimeError("JSON file must be exist") from err
     except ValueError as err:
         logging.error("Invalid JSON file")
-        return -1
+        raise RuntimeError("Cannot read JSON file") from err
 
 
 def join_json(content_files, output):
@@ -56,7 +55,7 @@ def join_json(content_files, output):
             json.dump(x, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
-        return -1
+        raise RuntimeError("Cannot write contents to JSON file") from err
 
 
 ##### END JSON #####
@@ -67,8 +66,8 @@ def save_file(file, content):
         with open(file, "w") as f:
             f.write(content)
     except OSError as err:
+        logging.error("OS error: ", err)
         raise RuntimeError("Cannot save file: ") from err
-        return -1
 
 
 def rm_ext(file, ext):
@@ -110,11 +109,16 @@ def drw_text_image(text, file):
 
 ##### BASE ######
 def run(command, tokenize):
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+    try:
+        process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                )
+    except FileNotFoundError as err:
+        click.echo()
+        click.echo("Command not found: " + command[0])
+        raise RuntimeError(err)
     stdout_stream, stderr_stream = process.communicate()
     returncode = process.wait()
 
@@ -134,8 +138,14 @@ def run(command, tokenize):
 
 
 def cat(file, stdout=False):
-    command = ["cat", file]
-    stdout, stderr, code = run(command, False)
+    try:
+        command = ["cat", file]
+        stdout, stderr, code = run(command, False)
+    except RuntimeError:
+        click.echo("Cannot cat file: " + file)
+        raise
+    # except Exception as err:
+    #     raise RuntimeError("Cat command failed.")
     logging.debug(stdout)
     return stdout
 

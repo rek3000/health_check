@@ -40,7 +40,16 @@ def cli():
 @click.option("-o", "--output", required=True, help="output file.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
-@click.option("--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run")
+@click.option(
+    "--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run"
+)
+@click.option(
+    "-s",
+    "--sample",
+    help="sample folder.",
+    type=click.Path(exists=True),
+    default="./sample/",
+)
 @click.option(
     "-f",
     "--force",
@@ -49,7 +58,7 @@ def cli():
     is_flag=True,
 )
 @click.argument("node", required=False, nargs=-1)
-def fetch(input, output, node, log, force, dryrun):
+def fetch(input, output, sample, node, log, force, dryrun):
     """
     \b
     Fetch information to json and convert to images
@@ -72,17 +81,21 @@ def fetch(input, output, node, log, force, dryrun):
     print(nodes)
     if dryrun:
         rekfetch.clean_up(
-                "./temp/",
-                prompt="Remove "
-                + click.style("temp/", fg="cyan")
-                + click.style(" directory items?", fg="red"),
-                force=True
-                )
-
+            "./temp/",
+            prompt="Remove "
+            + click.style("temp/", fg="cyan")
+            + click.style(" directory items?", fg="red"),
+            force=True,
+        )
 
     root = os.path.split(output)[0]
-    if rekfetch.run(nodes, output, force) == -1:
+    try:
+        rekfetch.run(nodes, sample, output, force)
+    except RuntimeError:
+        # click.echo()
+        # click.echo(err)
         rekfetch.clean_up_force("./temp/")
+        # rekfetch.clean_up_force("./temp/")
         click.secho("Error found!", bg="red", fg="black")
         sys.stdout.write("\033[?25h")
         return -1

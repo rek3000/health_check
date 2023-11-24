@@ -205,10 +205,10 @@ def drw_content(path, output):
     return images
 
 
-def extract_file(serial, compress, force):
+def extract_file(serial, root, compress, force):
     compress = compress.lower()
     regex = "*" + serial + "*." + compress
-    file = get_file(regex, root="./sample/")
+    file = get_file(regex, root=root)
     if file == -1:
         return -1
 
@@ -227,12 +227,11 @@ def extract_file(serial, compress, force):
 
 
 # Find return the file with serial number
-def get_file(regex, root=""):
+def get_file(regex, root="./sample/"):
     path = root + regex
     files = glob.glob(path, recursive=True)
     if len(files) == 0:
-        click.echo("No file found matched!")
-        return -1
+        raise RuntimeError("No file found matched!")
     elif len(files) == 1:
         return files[0]
     else:
@@ -257,35 +256,50 @@ def get_file(regex, root=""):
 # TODO - ☠️ if the file is large, this will get all of its content.
 # Not good.
 def get_fault(path):
-    fault = tools.cat(os.path.normpath(path + FAULT)).strip()
-    return fault
+    try:
+        fault = tools.cat(os.path.normpath(path + FAULT)).strip()
+        return fault
+    except RuntimeError:
+        click.echo("Failed to fetch fault data")
+        raise 
 
 
 def get_temp(path):
-    inlet_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True).strip().split()
-    )
-    inlet_temp = " ".join(inlet_temp[2:5])
+    try:
+        inlet_temp = (
+                tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True).strip().split()
+                )
+        inlet_temp = " ".join(inlet_temp[2:5])
 
-    exhaust_temp = (
-        tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True).strip().split()
-    )
-    exhaust_temp = " ".join(exhaust_temp[2:5])
-    return inlet_temp, exhaust_temp
-
+        exhaust_temp = (
+            tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True).strip().split()
+            )
+        return inlet_temp, exhaust_temp
+    except RuntimeError:
+        click.echo("Failed to fetch temperature")
+        raise
 
 def get_firmware(path):
-    firmware = (
-        tools.grep(os.path.normpath(path + FIRMWARE), "Version", True).strip().split()
-    )
-    firmware = " ".join(firmware[1:])
-    return firmware
+    try:
+        firmware = (
+                tools.grep(os.path.normpath(path + FIRMWARE), "Version", True).strip().split()
+                )
+        firmware = " ".join(firmware[1:])
+        return firmware
+    except RuntimeError:
+        click.echo("Failed to fetch firmware")
+        raise
 
 
 def get_ilom(path):
-    fault = get_fault(path)
-    inlet_temp, exhaust_temp = get_temp(path)
-    firmware = get_firmware(path)
+    try:
+        fault = get_fault(path)
+        inlet_temp, exhaust_temp = get_temp(path)
+        firmware = get_firmware(path)
+    except RuntimeError as err:
+        click.echo("Fetching ILOM is interrupted because of error")
+        raise
+
     ilom = {
         "fault": fault,
         "inlet": inlet_temp,
@@ -303,146 +317,181 @@ def get_ilom(path):
 
 ##### FETCH OS ######
 def get_image(path):
-    image = (
-        tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True).strip().split()
-    )
-    image = image[2]
-    return image
+    try:
+        image = (
+            tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True).strip().split()
+            )
+        image = image[2]
+        return image
+    except RuntimeError:
+        click.echo("Failed to fetch image")
+        raise
 
 
 def get_vol(path):
-    vol = (
-        tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/$", True)
-        .strip()
-        .split()
-    )
-    vol = vol[-2]
-    return vol
+    try:
+        vol = (
+                tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/$", True)
+                .strip()
+                .split()
+                )
+        vol = vol[-2]
+        return vol
+    except RuntimeError:
+        click.echo("Failed to fetch volume")
+        raise
 
 
 def get_raid(path):
-    raid = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True).strip().split()
-    if "ONLINE" in raid:
-        raid_stat = True
-    else:
-        raid_stat = False
-    return raid_stat
+    try:
+        raid = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True).strip().split()
+        if "ONLINE" in raid:
+            raid_stat = True
+        else:
+            raid_stat = False
+        return raid_stat
+    except RuntimeError:
+        click.echo("Failed to fetch raid")
+        raise
 
 
 def get_bonding(path):
-    net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
-    net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
-
-    if not net_ipmp and not net_aggr:
-        bonding = "none"
-    elif net_ipmp and not net_aggr:
-        bonding = "ipmp"
-    elif net_aggr and not net_ipmp:
-        bonding = "aggr"
-    else:
-        bonding = "both"
-    return bonding
+    try:
+        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
+        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
+        if not net_ipmp and not net_aggr:
+            bonding = "none"
+        elif net_ipmp and not net_aggr:
+            bonding = "ipmp"
+        elif net_aggr and not net_ipmp:
+            bonding = "aggr"
+        else:
+            bonding = "both"
+        return bonding
+    except RuntimeError:
+        click.echo("Failed to fetch bonding status")
+        raise
 
 
 def get_cpu_util(path):
-    cpu_idle = (
-        tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)).strip().split("\n")
-    )
-    cpu_idle = cpu_idle[2]
-    cpu_idle = cpu_idle.split()[21]
-    cpu_util = 100 - int(cpu_idle)
-    return cpu_idle, cpu_util
+    try:
+        pass
+        cpu_idle = (
+            tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)).strip().split("\n")
+        )
+        cpu_idle = cpu_idle[2]
+        cpu_idle = cpu_idle.split()[21]
+        cpu_util = 100 - int(cpu_idle)
+        return cpu_idle, cpu_util
+    except RuntimeError:
+        click.echo("Failed to feth cpu util")
 
 
 def get_load_avg(path):
-    load = (
-        tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
-        .strip()
-        .split(", ")
-    )
-    load_avg = " ".join(load).split()[-3:]
-    load_avg = float((max(load_avg)))
-    return load_avg
+    try:
+        load = (
+                tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
+                .strip()
+                .split(", ")
+                )
+        load_avg = " ".join(load).split()[-3:]
+        load_avg = float((max(load_avg)))
+        return load_avg
+    except RuntimeError:
+        click.echo("Failed to get load average")
+        raise
 
 
 def get_vcpu(path):
-    # vcpu = (
-    #     tools.grep(os.path.normpath(path + VCPU_SOL), "primary", True)
-    #     .strip()
-    #     .split()[4]
-    # )
-
-    vcpu = (
-        tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
-        .split("\n")[-2]
-        .split()[4]
-    )
-    vcpu = int(vcpu) + 1
-    return vcpu
-
+    try:
+        vcpu = (
+                tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
+                .split("\n")[-2]
+                .split()[4]
+                )
+        vcpu = int(vcpu) + 1
+        return vcpu
+    except RuntimeError:
+        click.echo("Failed to fetch VCPU")
+        raise
 
 def get_load(path):
-    load_avg = get_load_avg(path)
-    vcpu = get_vcpu(path)
-    load_avg_per = load_avg / vcpu
-    load_avg_per = float(f"{load_avg_per:.3f}")
-    return load_avg, vcpu, load_avg_per
+    try:
+        load_avg = get_load_avg(path)
+        vcpu = get_vcpu(path)
+        load_avg_per = load_avg / vcpu
+        load_avg_per = float(f"{load_avg_per:.3f}")
+        return load_avg, vcpu, load_avg_per
+    except RuntimeError:
+        click.echo("Failed to fetch load")
+        raise
+        
 
 
 def get_mem_util(path):
-    # mem = tools.grep(os.path.normpath(path + MEM_SOL), "freelist", True).strip().split()
-    mem = (
-        tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
-        .split("\n")[-2]
-        .split()
-    )
-    mem_free = mem[-1]
-    mem_util = 100 - float(mem_free[:-1])
-    return mem_free, mem_util
+    try:
+        mem = (
+                tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+                .split("\n")[-2]
+                .split()
+                )
+        mem_free = mem[-1]
+        mem_util = 100 - float(mem_free[:-1])
+        return mem_free, mem_util
+    except RuntimeError:
+        click.echo("Failed to fetch memory util")
+        raise
 
 
 def get_swap_util(path):
-    swap_free = tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
-    swap_free = [swap_free[8], swap_free[10]]
-    swap_free[0] = float(swap_free[0][:-2])
-    swap_free[1] = float(swap_free[1][:-2])
-    swap_util = swap_free[0] / (swap_free[0] + swap_free[1])
-    swap_util = float("{:.1f}".format(swap_util * 100))
+    try:
+        swap_free = tools.cat(os.path.normpath(path + SWAP_SOL)).strip().split()
+        swap_free = [swap_free[8], swap_free[10]]
+        swap_free[0] = float(swap_free[0][:-2])
+        swap_free[1] = float(swap_free[1][:-2])
+        swap_util = swap_free[0] / (swap_free[0] + swap_free[1])
+        swap_util = float("{:.1f}".format(swap_util * 100))
 
-    return swap_free, swap_util
+        return swap_free, swap_util
+    except RuntimeError:
+        click.echo("Failed to get swap util")
+        raise
 
 
 def get_os(path, os_name="SOL", verbose=False):
     x = {}
     if os_name == "SOL":
-        image = get_image(path)
+        try:
+            image = get_image(path)
 
-        vol = get_vol(path)
-        vol_avail = 100 - int(vol[:-1])
-        x["image"] = image
-        x["vol_avail"] = vol_avail
+            vol = get_vol(path)
+            vol_avail = 100 - int(vol[:-1])
+            x["image"] = image
+            x["vol_avail"] = vol_avail
 
-        raid_stat = get_raid(path)
-        x["raid_stat"] = raid_stat
+            raid_stat = get_raid(path)
+            x["raid_stat"] = raid_stat
 
-        bonding = get_bonding(path)
-        x["bonding"] = bonding
+            bonding = get_bonding(path)
+            x["bonding"] = bonding
 
-        cpu_util = get_cpu_util(path)[1]
-        x["cpu_util"] = cpu_util
+            cpu_util = get_cpu_util(path)[1]
+            x["cpu_util"] = cpu_util
 
-        load = get_load(path)
-        x["load"] = {}
-        x["load"]["load_avg"] = load[0]
-        x["load"]["vcpu"] = load[1]
-        x["load"]["load_avg_per"] = load[2]
+            load = get_load(path)
+            x["load"] = {}
+            x["load"]["load_avg"] = load[0]
+            x["load"]["vcpu"] = load[1]
+            x["load"]["load_avg_per"] = load[2]
 
-        mem_util = get_mem_util(path)[1]
-        x["mem_util"] = mem_util
+            mem_util = get_mem_util(path)[1]
+            x["mem_util"] = mem_util
 
-        swap_util = get_swap_util(path)[1]
-        x["swap_util"] = swap_util
-
+            swap_util = get_swap_util(path)[1]
+            x["swap_util"] = swap_util
+        except RuntimeError:
+            click.echo("Failed to fetch OS information")
+            raise
     return x
 
 
@@ -485,8 +534,11 @@ def get_overview(node, path):
 
 def get_detail(node, path):
     # @@
-    ilom = get_ilom(path[0])
-    os_info = get_os(path[1], "SOL")
+    try:
+        ilom = get_ilom(path[0])
+        os_info = get_os(path[1], "SOL")
+    except RuntimeError:
+        raise 
     name = node
 
     content = {}
@@ -550,7 +602,7 @@ def untar(file, force):
         return -1
 
 
-def compile(nodes, root, force):
+def compile(nodes, sample, root, force):
     n = len(nodes)
     content_files = []
     for node in nodes:
@@ -580,42 +632,50 @@ def compile(nodes, root, force):
             )
 
         path = ["", ""]
-        path[0] = extract_file(node, "zip", force)
-        path[1] = extract_file(node, "tar.gz", force)
+        try:
+            path[0] = extract_file(node, sample, "zip", force)
+            path[1] = extract_file(node, sample, "tar.gz", force)
+        except RuntimeError as err:
+            err.add_note("Data files must be exist!")
+            raise err
         progress_bar.update(20)
 
-        if path == [-1, -1]:
-            logging.error("Error: file not exist!")
-            return -1
+        # if path == [-1, -1]:
+        #     logging.error("Error: file not exist!")
+        #     return -1
         # logging.info("EXTRACTED FILES: " + json.dumps(path).strip())
 
         content_files += [node]
         progress_bar.update(20)
 
-        file_name = node
+        # file_name = node
         for i in range(0, len(path)):
             path[i] = os.path.normpath("temp/" + str(path[i]))
-        content = get_detail(node, path)
+
+        try:
+            content = get_detail(node, path)
+        except RuntimeError as err:
+            raise
         progress_bar.update(20)
 
         # DRAW IMAGES FOR CONTENT
-        images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
+        try:
+            images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
+        except RuntimeError as err:
+            raise err
         progress_bar.update(20)
         # END DRAWING
-        if (
-            tools.save_json(
-                os.path.normpath(root + "/" + node + "/" + node + ".json"), content
-            )
-            == -1
-        ):
-            return -1
-        if (
+        try:
+            # SAVE IMAGE NAME
             tools.save_json(
                 os.path.normpath(root + "/" + node + "/images.json"), images
             )
-            == -1
-        ):
-            return -1
+            # SAVE INFORMATION
+            tools.save_json(
+                os.path.normpath(root + "/" + node + "/" + node + ".json"), content
+            )
+        except RuntimeError as err:
+            raise err
 
         progress_bar.update(20)
         if (logging.DEBUG == level) or (logging.INFO == level):
@@ -635,7 +695,7 @@ def create_dir(path, force=False):
     try:
         os.mkdir(os.path.normpath(path))
         logging.info("Folder created: " + path)
-    except FileExistsError as err:
+    except FileExistsError:
         if not os.listdir(path):
             return
         if force:
@@ -654,7 +714,7 @@ def create_dir(path, force=False):
 
 
 # Flow of program
-def run(nodes, output, force):
+def run(nodes, sample, output, force):
     out_dir = os.path.split(output)[0]
 
     # Create output and temp directory
@@ -665,7 +725,12 @@ def run(nodes, output, force):
         pass
 
     # Fetch and cook images from logs
-    content_files = compile(nodes, out_dir, force)
+    try:
+        content_files = compile(nodes, sample, out_dir, force)
+    except RuntimeError:
+        click.echo("Aborted")
+        raise 
+
     if content_files == -1:
         click.secho("Error: ", fg=ERROR, nl=False)
         click.echo("No files to join!")
