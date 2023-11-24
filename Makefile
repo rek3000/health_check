@@ -43,8 +43,6 @@ run:
 init:
 	python -m venv venv
 
-test: 
-	./dist/rekdoc-1.0.0.pex -i input -o test
 clean:
 	rm -rf temp/*
 	rm -rf output/*
@@ -53,5 +51,5 @@ purge:
 	rm -rf build dist target
 	rm -rf *.egg-info
 tree:
-	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info
-.PHONY: build-debian
+	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info -I test_env -I mysql-data 
+ PHONY: build-debian
