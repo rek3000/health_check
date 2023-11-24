@@ -19,6 +19,9 @@ Source code tree of the program:\
    |── __init__.py\
    \\── push.py
 
+## Data Flow
+![alt Data flow image](./rekdoc.png)
+
 ## Installation
 Requirement: `libc` version 2.28
 Download file from release
