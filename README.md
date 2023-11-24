@@ -19,8 +19,11 @@ Source code tree of the program:\
    |── __init__.py\
    \\── push.py
 
-## Intallation
-Currently there are 4 ways to use rekdoc
+## Installation
+Requirement: `libc` version 2.28
+Download file from release
+## Build
+Currently there are 4 ways to build rekdoc
 ### Using pip:
 ```bash
 pip install .
