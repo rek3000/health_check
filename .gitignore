@@ -6,8 +6,6 @@ __pycache__
 __pycache__/*
 *.docx
 *.json
-*.png
-*.jpg
 testbox
 venv
 dist
