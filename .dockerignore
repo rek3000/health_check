@@ -1,6 +1,6 @@
 .git
 .dockerignore
-.env.example
+.env
 docker-compose*
 docker.sh
 input*

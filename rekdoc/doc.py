@@ -8,10 +8,10 @@ import docx
 
 ###
 import click
-from docx.enum.style import WD_STYLE_TYPE, WD_STYLE
+# from docx.enum.style import WD_STYLE_TYPE, WD_STYLE
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
-from docx.shared import RGBColor
+# from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
@@ -25,6 +25,8 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
+    score = 0
+    comment =[]
     if data["fault"] == "No faults found":
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
@@ -49,7 +51,7 @@ def assert_temp(data):
             "Nhiệt độ bên trong: " + str(inlet_temp),
             "Đánh giá: " + ASSERTION[score],
         ]
-    elif inlet_temp > 23 and inlet_temp <= 26:
+    elif 23 < inlet_temp <= 26:
         score = 3
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),

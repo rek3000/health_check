@@ -6,22 +6,21 @@
 __version__ = "1.0"
 __author__ = "Rek"
 
+import glob
+import io
+import json
+import logging
 # Standard Library
 import os
-import io
-import sys
 import shutil
-import glob
-import json
-import zipfile
+import sys
 import tarfile
-import logging
+import zipfile
 
 # Third party library
 import click
 
 # Local library
-from rekdoc import doc
 from rekdoc import tools
 from rekdoc.const import *
 

@@ -14,7 +14,6 @@ NETWORK = "/sysconfig/ifconfig-a.out"
 CPU_ULTILIZATION = ""
 CPU_LOAD_LINUX = ""
 MEM_LINUX = ""
-SWAP_SOL = ""
 EXTRACT_LOCATION = "./temp/"
 # HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
 ##
