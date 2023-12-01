@@ -1,6 +1,5 @@
 from datetime import datetime
 import mysql.connector
-# import mysql.connector.locales.eng.client_error
 import os
 from rekdoc import tools
 
@@ -19,7 +18,11 @@ def create_connection():
     database = os.environ.get("DB_DATABASE", default_database)
     try:
         conn = mysql.connector.connect(
-            host=host, port=port, user=username, password=password, database=database
+            host=host,
+            port=port,
+            user=username,
+            password=password,
+            database=database
         )
 
         if conn.is_connected():
@@ -54,10 +57,16 @@ def insert_data(data, cursor):
         mem_util = info.get("mem_util", None)
         swap_util = info.get("swap_util", None)
 
-        # cursor.execute("INSERT INTO Clusters (idCluster) VALUES (%s)", (idMachine,))
+        # cursor.execute("INSERT INTO Clusters (idCluster)
+        # VALUES (%s)", (idMachine,))
 
         cursor.execute(
-            "INSERT INTO Details (idMachine, initTime, fault, inlet, exhaust, firmware, image, vol_avail, raid_stat, bonding, cpu_util, load_avg, load_vcpu, load_avg_per, mem_util, swap_util) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)",
+            """
+            INSERT INTO Details (idMachine, initTime, fault, inlet, exhaust,
+            firmware, image, vol_avail, raid_stat, bonding, cpu_util, load_avg,
+            load_vcpu, load_avg_per, mem_util, swap_util)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s,%s)
+            """,
             (
                 idMachine,
                 initTime,
