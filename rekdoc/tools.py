@@ -134,7 +134,7 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file, stdout=False):
+def cat(file):
     try:
         command = ["cat", file]
         stdout = run(command, False)[0]
@@ -155,7 +155,8 @@ def grep(path, regex, single_match, next=0):
         command.extend(["-A", str(next)])
     command.extend([path])
 
-    stdout = run(command, False)[0]
+    tokenize = not single_match
+    stdout = run(command, tokenize)[0]
 
     logging.debug(stdout)
     return stdout

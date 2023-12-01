@@ -25,7 +25,7 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
-    if data["fault"] == "No faults found":
+    if (data["fault"] == "No faults found") or (data["fault"] == ""):
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     else:
