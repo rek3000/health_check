@@ -1,6 +1,6 @@
 from datetime import datetime
 import mysql.connector
-import mysql.connector.locales.eng.client_error
+# import mysql.connector.locales.eng.client_error
 import os
 from rekdoc import tools
 
@@ -25,9 +25,9 @@ def create_connection():
         if conn.is_connected():
             db_Info = conn.get_server_info()
             print("Connected to MySQL Server version ", db_Info)
+        return conn
     except Exception as e:
         print("Error while connecting to MySQL", e)
-    return conn
 
 
 def insert_data(data, cursor):
