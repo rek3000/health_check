@@ -1,18 +1,18 @@
-import os, sys
+import os
+import sys
 import logging
 import click
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
-from rekdoc import tools
 from rekdoc import push as rekpush
-from rekdoc.const import *
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
 ##### CORE #####
 @click.version_option(
-    version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
+    version="1.0.0", prog_name="rekdoc",
+    message="Version %(version)s \nCrafted by Rek."
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -25,9 +25,11 @@ def cli():
     generate images from them, analyze them pump to a document docx file.
     Moreover, the data fetched could be pushed to a SQL server.
 
-    There are 3 subcommands also known as modules (fetch, push, doc) for user to interact with the toolset.
+    There are 3 subcommands also known as modules (fetch, push, doc) for user
+    to interact with the toolset.
 
-    Use 'rekdoc rule' to show the rules that need to comply to interact successfully with the toolset.
+    Use 'rekdoc rule' to show the rules that need to comply
+    to interact successfully with the toolset.
     """
     pass
 
@@ -41,7 +43,8 @@ def cli():
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
-    "--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run"
+    "--dryrun", default=False, is_flag=True,
+    help="purge the temp folder fetch run"
 )
 @click.option(
     "-s",
@@ -65,17 +68,21 @@ def fetch(input, output, sample, node, log, force, dryrun):
     This command examine the 'sample/' folder for logs
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.WARNING)
     nodes = []
     try:
         for line in input:
             nodes.append(line.strip())
-    except:
-        pass
+    except Exception as err:
+        print(err)
+
     if node:
         nodes.extend(node)
     print(nodes)
@@ -88,12 +95,10 @@ def fetch(input, output, sample, node, log, force, dryrun):
             force=True,
         )
 
-    root = os.path.split(output)[0]
+    # root = os.path.split(output)[0]
     try:
         rekfetch.run(nodes, sample, output, force)
     except RuntimeError:
-        # click.echo()
-        # click.echo(err)
         rekfetch.clean_up_force("./temp/")
         # rekfetch.clean_up_force("./temp/")
         click.secho("Error found!", bg="red", fg="black")
@@ -112,8 +117,9 @@ def fetch(input, output, sample, node, log, force, dryrun):
     "-i",
     "--input",
     help="summary file.",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
-)
+    type=click.Path(exists=True, file_okay=True,
+                    dir_okay=False, readable=True),
+    )
 @click.option(
     "-m",
     "--image",
@@ -141,22 +147,27 @@ def doc(input, output, sample, image, log, force):
     """
     \b
     Generate report from JSON file
-    Require to have a sample docx file with defined styling rules to generate the document
+    Require to have a sample docx file with defined styling rules
+    to generate the document
 
-    If there is not sample docx specified, 'sample.docx' will be used as the argument
+    If there is not sample docx specified, 'sample.docx'
+    will be used as the argument
     If there is not image root directory, the root of the input file is used.
 
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.WARNING)
 
-    if output == None:
+    if output is None:
         output = input
-    if image == None:
+    if image is None:
         images_root = os.path.split(input)[0]
     else:
         images_root = image
@@ -181,7 +192,8 @@ def push(input):
     \b
     Environment Variables
     ---------------------
-    This module works by specifying Environment Variables to connect to SQL server
+    This module works by specifying Environment Variables
+    to connect to SQL server
     and insert data to database.
         - DB_HOST: specify host of the SQL server
         - DB_PORT: specify port which the SQL server is listening to
@@ -211,23 +223,23 @@ def rule():
             |a. Header 1: 'baocao1'|
             |b. Header 2: 'baocao2'|
             |c. Header 3: 'baocao3'|
-            \d. Header 4: 'baocao4'/
+            \\d. Header 4: 'baocao4'/
         2. List
             Bullet-list('-' symbol): 'Dash List'
-        Note: Failing to define styles with this specific name leads to 
+        Note: Failing to define styles with this specific name leads to
               docx file generated having no style at all!
     \b
-    REQUIREMENT: 
+    REQUIREMENT:
         - logs
         - a sample docx file to use 'doc' module
 
     CODING CONVENTION:
-        1. Naming style: 
+        1. Naming style:
             /   type         |    rule           \\
             |constant        : must be UPPPERCASE|
             |normal variable : snake_case        |
             |function name   : snake_case        |
-            \comment         : use '#'           /
+            \\comment         : use '#'           /
     For more information, visit: https://peps.python.org/pep-0008
     """
     )

@@ -21,9 +21,9 @@ import logging
 import click
 
 # Local library
-from rekdoc import doc
+# from rekdoc import doc
 from rekdoc import tools
-from rekdoc.const import *
+from rekdoc.const import * 
 
 
 ##### DECORATORS #####
@@ -51,7 +51,8 @@ def clean_files(dir):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            click.secho("Failed to delete %s. Reason: %s" % (file_path, e), fg=ERROR)
+            click.secho("Failed to delete %s. Reason: %s" % (file_path, e),
+                        fg=ERROR)
             return -1
 
 
@@ -59,7 +60,8 @@ def clean_up(path, prompt="Remove files?", force=False):
     if force:
         clean_files(path)
     else:
-        choice = click.confirm(click.style(prompt, fg=ERROR), default=True)
+        choice = click.confirm(click.style(prompt, fg=ERROR),
+                               default=True)
         if choice:
             clean_files(path)
         return
@@ -336,7 +338,8 @@ def get_ilom(path):
 ##### FETCH OS ######
 def get_image(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True)
+        stdout = tools.grep(os.path.normpath(path + IMAGE_SOL),
+                            "Solaris", True)
         image = str(stdout).strip().split()
         image = image[2]
         return image
@@ -347,7 +350,8 @@ def get_image(path):
 
 def get_vol(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/$", True)
+        stdout = tools.grep(os.path.normpath(path + PARTITION_SOL),
+                            "\\B/$", True)
         vol = str(stdout).strip().split()
         vol = vol[-2]
         return vol
@@ -372,8 +376,10 @@ def get_raid(path):
 
 def get_bonding(path):
     try:
-        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
-        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
+        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL),
+                              "ipmp", True)
+        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL),
+                              "aggr", True)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -402,7 +408,8 @@ def get_cpu_util(path):
 
 def get_load_avg(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
+        stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL),
+                            "load average", True)
         load = str(stdout).strip().split(", ")
         load_avg = " ".join(load).split()[-3:]
         load_avg = float((max(load_avg)))
@@ -414,7 +421,8 @@ def get_load_avg(path):
 
 def get_vcpu(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
+        stdout = tools.grep(os.path.normpath(path + VCPU_SOL),
+                            "Status", False)
         vcpu = str(stdout[-1]).split()[4]
         vcpu = int(vcpu) + 1
         return vcpu
@@ -437,7 +445,8 @@ def get_load(path):
 
 def get_mem_util(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+        stdout = tools.grep(os.path.normpath(path + MEM_SOL),
+                            "^Free", False)
         mem = str(stdout[-1]).split()
         mem_free = mem[-1]
         logging.debug(mem_free)
@@ -506,12 +515,14 @@ def get_os(path, os_name="SOL"):
 
 ##### FETCH OVERVIEW #####
 def get_product(path):
-    product = tools.grep(os.path.normpath(path + PRODUCT), "product_name", True)
+    product = tools.grep(os.path.normpath(path + PRODUCT),
+                         "product_name", True)
     return product
 
 
 def get_serial(path):
-    serial = tools.grep(os.path.normpath(path + SERIAL), "serial_number", True)
+    serial = tools.grep(os.path.normpath(path + SERIAL),
+                        "serial_number", True)
     return serial
 
 
@@ -562,7 +573,8 @@ def get_detail(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content, indent=2, ensure_ascii=False))
+    logging.info("JSON file: " + json.dumps(content,
+                                            indent=2, ensure_ascii=False))
     return content
 
 
@@ -575,7 +587,7 @@ def unzip(file, force):
         with zipfile.ZipFile(file, "r") as zip:
             try:
                 zip.extractall(path="temp/")
-            except IOError as err:
+            except IOError:
                 clean_up(
                     os.path.normpath(
                         "temp/" + os.path.split(tools.rm_ext(file, "zip"))[1]
@@ -660,13 +672,14 @@ def compile(nodes, sample, root, force):
 
         try:
             content = get_detail(node, path)
-        except RuntimeError as err:
+        except RuntimeError:
             raise
         progress_bar.update(20)
 
         # DRAW IMAGES FOR CONTENT
         try:
-            images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
+            images = drw_content(path, os.path.normpath(root + "/" +
+                                                        node + "/"))
         except RuntimeError as err:
             raise err
         progress_bar.update(20)
@@ -678,8 +691,9 @@ def compile(nodes, sample, root, force):
             )
             # SAVE INFORMATION
             tools.save_json(
-                os.path.normpath(root + "/" + node + "/" + node + ".json"), content
-            )
+                os.path.normpath(root + "/" + node + "/" +
+                                 node + ".json"), content
+                )
         except RuntimeError as err:
             raise err
 
@@ -727,7 +741,7 @@ def run(nodes, sample, output, force):
     create_dir(os.path.normpath(out_dir), force)
     try:
         os.mkdir(os.path.normpath("temp"))
-    except FileExistsError as err:
+    except FileExistsError:
         pass
 
     # Fetch and cook images from logs

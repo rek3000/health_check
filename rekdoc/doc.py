@@ -8,17 +8,15 @@ import docx
 
 ###
 import click
-from docx.enum.style import WD_STYLE_TYPE, WD_STYLE
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
-from docx.shared import RGBColor
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
 
 ###
 from rekdoc import tools
-from rekdoc.const import *
+from rekdoc.const import SECTION, SUCCESS
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
@@ -73,7 +71,8 @@ def assert_firmware(data):
         try:
             sys.stdout.write("\033[?25h")
             latest = (
-                input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                input("\nEnter latest ILOM version\n [" +
+                      data["firmware"] + "] ")
                 or data["firmware"]
             )
         except KeyboardInterrupt:
@@ -154,7 +153,7 @@ def assert_image(data):
 
 def assert_vol(data):
     score = 0
-    if data["vol_avail"] > 30 and data["raid_stat"] == True:
+    if data["vol_avail"] > 30 and data["raid_stat"] is True:
         score = 5
         comment = [
             "Phân vùng OS được cấu hình RAID",
@@ -170,21 +169,21 @@ def assert_vol(data):
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
             "Đánh giá: " + ASSERTION[score],
         ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] == False:
+    elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
         score = 1
         comment = [
             "Phân vùng OS không được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
             "Đánh giá: " + ASSERTION[score],
         ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] == True:
+    elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
         score = 1
         comment = [
             "Phân vùng OS được cấu hình RAID",
             "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
             "Đánh giá: " + ASSERTION[score],
         ]
-    elif data["vol_avail"] > 30 and data["raid_stat"] == False:
+    elif data["vol_avail"] > 30 and data["raid_stat"] is False:
         score = 3
         comment = [
             "Phân vùng OS không được cấu hình RAID",
@@ -233,7 +232,7 @@ def assert_cpu_util(data):
 def assert_load(data):
     if data["load"]["load_avg_per"] <= 2:
         score = 5
-    elif data["load"]["load_avg_per"] > 2 and data["load_avg"]["load_avg_per"] <= 5:
+    elif 2 < data["load"]["load_avg_per"] <= 5:
         score = 3
     else:
         score = 1
@@ -361,7 +360,7 @@ def get_score(asserted):
         comment = asserted[keys[i - 1]][1]
         try:
             score = ASSERTION[asserted_score]
-        except:
+        except Exception:
             score = asserted_score
         checklist[i][2][0] = score
         logging.info(checklist[i][1] + ":" + score)
@@ -422,7 +421,8 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
                 path = os.path.normpath(images_root + "/" + node + "/" + image)
             doc.add_picture(path, width=Inches(6.73))
         else:
-            path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
+            path = os.path.normpath(images_root + "/" +
+                                    node + "/" + images_name[i - 1])
             doc.add_picture(
                 path,
                 width=Inches(6.73),
@@ -435,7 +435,7 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
 def define_doc(sample):
     try:
         doc = docx.Document(os.path.normpath(sample))
-    except Exception as err:
+    except Exception:
         click.echo("Sample docx not found!")
         sys.exit()
     return doc
@@ -482,7 +482,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
                 empty_char=" ",
                 show_eta=False,
             )
-        image_json = os.path.normpath(images_root + "/" + node + "/images.json")
+        image_json = os.path.normpath(images_root + "/" +
+                                      node + "/images.json")
         images_name = tools.read_json(image_json)
         progress_bar.update(10)
 
@@ -493,7 +494,7 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
 
         file_dump[node] = asserted
 
-        keys = list(asserted)
+        # keys = list(asserted)
         checklist = get_score(asserted)
         progress_bar.update(10)
         doc.add_paragraph("Máy chủ " + node, style="baocao2")
@@ -520,7 +521,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         asserted_list += [asserted_file]
 
         tools.save_json(
-            os.path.normpath(input_root + "/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(input_root + "/" +
+                             node + "/" + asserted_file + ".json"),
             file_dump,
         )
         progress_bar.update(10)
@@ -530,7 +532,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         else:
             click.echo(" ", nl=False)
             click.secho("DONE", bg=SUCCESS, fg="black")
-    file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
+    file_name = os.path.normpath(tools.rm_ext(input_file, "json") +
+                                 "_asserted.json")
     tools.join_json(asserted_list, file_name)
     return doc
 

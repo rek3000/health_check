@@ -41,7 +41,8 @@ def join_json(content_files, output):
             x = {}
             for i in content_files:
                 path = "./output/" + i.split(".")[0]
-                path = os.path.normpath("".join(path).split("_")[0] + "/" + i + ".json")
+                path = os.path.normpath("".join(path).split("_")[0] + "/" +
+                                        i + ".json")
                 buffer = read_json(path)
                 key = list(buffer)[0]
                 x[key] = buffer[key]
