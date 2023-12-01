@@ -81,7 +81,7 @@ def drw_text_image(text, file):
         font = ImageFont.load_default()
     with Image.new("RGB", (2000, 2000)) as img:
         d1 = ImageDraw.Draw(img)
-        d1.fontmode= "RGB"
+        d1.fontmode = "RGB"
         box = d1.textbbox((10, 10), text.getvalue(), font=font)
         right, bottom = box[-2], box[-1]
         w = int(right * 1.1) + 10
@@ -90,7 +90,7 @@ def drw_text_image(text, file):
 
         # img_resize = img.crop((0, 0, w, h))
         d2 = ImageDraw.Draw(img_resize)
-        d1.fontmode= "RGB"
+        d1.fontmode = "RGB"
         x = 10
         y = 10
         box = font.getbbox(text.getvalue())
@@ -109,10 +109,10 @@ def drw_text_image(text, file):
 def run(command, tokenize):
     try:
         process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                )
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     except FileNotFoundError as err:
         click.echo()
         click.echo("Command not found: " + command[0])

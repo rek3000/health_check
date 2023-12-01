@@ -2,11 +2,11 @@ import mysql.connector
 
 try:
     connection = mysql.connector.connect(
-        host='127.0.0.1',
+        host="127.0.0.1",
         port=3306,
-        user='rek',
-        password='thuanlp123',
-        database='log_mps'
+        user="rek",
+        password="thuanlp123",
+        database="log_mps",
     )
 
     if connection.is_connected():

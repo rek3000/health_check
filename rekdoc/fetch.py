@@ -263,11 +263,11 @@ def get_fault(path):
     try:
         # stdout = tools.cat(os.path.normpath(path + FAULT))
         stdout = tools.grep(os.path.normpath(path + FAULT), "*", True, 9)
-        fault = str(stdout).strip() 
+        fault = str(stdout).strip()
         return fault
     except RuntimeError:
         click.echo("Failed to fetch fault data")
-        raise 
+        raise
 
 
 def get_temp(path):
@@ -275,8 +275,9 @@ def get_temp(path):
         # inlet_temp = (
         #         tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True)
         #         )
-        temps = (
-                tools.grep(os.path.normpath(path + TEMP), "^ /System/Cooling$", False, 9))
+        temps = tools.grep(
+            os.path.normpath(path + TEMP), "^ /System/Cooling$", False, 9
+        )
         inlet_temp = ""
         exhaust_temp = ""
         for line in temps:
@@ -297,10 +298,11 @@ def get_temp(path):
         click.echo("Failed to fetch temperature")
         raise
 
+
 def get_firmware(path):
     try:
         stdout = tools.grep(os.path.normpath(path + FIRMWARE), "Version", True)
-        firmware = " ".join(str(stdout).strip('\r\n').split()[1:])
+        firmware = " ".join(str(stdout).strip("\r\n").split()[1:])
         return firmware
     except RuntimeError:
         click.echo("Failed to fetch firmware")
@@ -346,7 +348,7 @@ def get_image(path):
 def get_vol(path):
     try:
         stdout = tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B\/$", True)
-        vol =  str(stdout).strip() .split()
+        vol = str(stdout).strip().split()
         vol = vol[-2]
         return vol
     except RuntimeError:
@@ -356,7 +358,7 @@ def get_vol(path):
 
 def get_raid(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True) 
+        stdout = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True)
         raid = str(stdout).strip().split()
         if "ONLINE" in raid:
             raid_stat = True
@@ -413,12 +415,13 @@ def get_load_avg(path):
 def get_vcpu(path):
     try:
         stdout = tools.grep(os.path.normpath(path + VCPU_SOL), "Status", False)
-        vcpu =  str(stdout[-1]).split()[4]
+        vcpu = str(stdout[-1]).split()[4]
         vcpu = int(vcpu) + 1
         return vcpu
     except RuntimeError:
         click.echo("Failed to fetch VCPU")
         raise
+
 
 def get_load(path):
     try:
@@ -430,7 +433,6 @@ def get_load(path):
     except RuntimeError:
         click.echo("Failed to fetch load")
         raise
-        
 
 
 def get_mem_util(path):
@@ -542,7 +544,7 @@ def get_detail(node, path):
         ilom = get_ilom(path[0])
         os_info = get_os(path[1], "SOL")
     except RuntimeError:
-        raise 
+        raise
     name = node
 
     content = {}
@@ -733,7 +735,7 @@ def run(nodes, sample, output, force):
         content_files = compile(nodes, sample, out_dir, force)
     except RuntimeError:
         click.echo("Aborted")
-        raise 
+        raise
 
     if content_files == -1:
         click.secho("Error: ", fg=ERROR, nl=False)
