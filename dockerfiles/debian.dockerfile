@@ -1,6 +1,7 @@
 FROM python:slim-buster as base
 RUN apt update -y
-RUN apt install libc-bin python3-lxml libxslt-dev zlib1g-dev -y
+RUN apt install libc-dev -y
+RUN apt install python3-lxml libxslt-dev zlib1g-dev -y
 RUN apt install binutils -y
 RUN pip install --no-cache pyinstaller pillow python-docx mysql-connector-python click
 # RUN useradd py

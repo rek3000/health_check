@@ -236,7 +236,7 @@ def get_file(regex, root="./sample/"):
         return files[0]
     else:
         for i in range(len(files)):
-            click.echo("[", i, "] ", files[i], sep="")
+            print("[", i, "] ", files[i], sep="")
         c = ""
         while True:
             try:
