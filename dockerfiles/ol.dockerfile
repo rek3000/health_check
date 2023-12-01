@@ -1,6 +1,6 @@
 FROM oraclelinux:7-slim as base
 ENV PYI_STATIC_ZLIB=1
-RUN yum update
+RUN yum update -y
 RUN yum install gcc -y
 RUN yum install python3 python3-pip python3-lxml libxslt-dev zlib1g-dev freetype-devel \
     python3-devel zlib-devel libjpeg-devel libraqm-devel -y

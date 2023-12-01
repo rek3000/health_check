@@ -1,18 +1,11 @@
 import json
 import logging
 import click
-import sys, re, io, os, subprocess
-from textwrap import wrap
-# try:
+import os
+import subprocess
 from PIL import Image
-from PIL import ImageColor
 from PIL import ImageDraw
 from PIL import ImageFont
-# # except:
-#     from pil import Image
-#     from pil import ImageColor
-#     from pil import ImageDraw
-# from pil import ImageFont
 
 
 ##### JSON #####
@@ -77,29 +70,34 @@ def rm_ext(file, ext):
 ##### IMAGE GENERATE METHOD #####
 # transform text to a png image file
 def drw_text_image(text, file):
-    size = 14
+    size = 16
     try:
         font = ImageFont.truetype(
-            "DejaVuSansMono", size=size, layour_engine=ImageFont.Layout.BASIC
+            "Serif", size=size, layout_engine=ImageFont.Layout.BASIC
         )
     except OSError:
         font = ImageFont.load_default(size)
     except:
         font = ImageFont.load_default()
-    with Image.new("RGB", (1000, 1000)) as img:
+    with Image.new("RGB", (2000, 2000)) as img:
         d1 = ImageDraw.Draw(img)
-        # left, top, right, bottom = 1
-        left, top, right, bottom = d1.textbbox((10, 10), text.getvalue(), font=font)
+        d1.fontmode= "RGB"
+        box = d1.textbbox((10, 10), text.getvalue(), font=font)
+        right, bottom = box[-2], box[-1]
         w = int(right * 1.1) + 10
         h = int(bottom * 1.1) + 10
-        img_resize = img.crop((0, 0, w, h))
+        img_resize = img.resize((w, h), resample=Image.LANCZOS)
+
+        # img_resize = img.crop((0, 0, w, h))
         d2 = ImageDraw.Draw(img_resize)
+        d1.fontmode= "RGB"
         x = 10
         y = 10
-        left, top, right, bottom = font.getbbox(text.getvalue())
+        box = font.getbbox(text.getvalue())
+        bottom = box[-1]
         attSpacing = bottom
         for line in text.getvalue().split("\n"):
-            d2.text((x, y), line.strip("\r"), font=font)
+            d2.text((x, y), line.lstrip("\r").rstrip(" \r"), font=font)
             y = y + attSpacing
         img_resize.save(file, format="PNG")
 
@@ -123,10 +121,9 @@ def run(command, tokenize):
     returncode = process.wait()
 
     if not isinstance(stdout_stream, str):
-        stdout_stream = stdout_stream.decode("utf-8")
+        stdout_stream = str(stdout_stream, "utf-8")
     if not isinstance(stderr_stream, str):
-        stderr_stream = stderr_stream.decode("utf-8")
-
+        stderr_stream = str(stderr_stream, "utf-8")
     if tokenize:
         stdout = stdout_stream.splitlines()
         stderr = stderr_stream.splitlines()
@@ -137,15 +134,13 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file, stdout=False):
+def cat(file):
     try:
         command = ["cat", file]
-        stdout, stderr, code = run(command, False)
+        stdout = run(command, False)[0]
     except RuntimeError:
         click.echo("Cannot cat file: " + file)
         raise
-    # except Exception as err:
-    #     raise RuntimeError("Cat command failed.")
     logging.debug(stdout)
     return stdout
 
@@ -160,7 +155,8 @@ def grep(path, regex, single_match, next=0):
         command.extend(["-A", str(next)])
     command.extend([path])
 
-    stdout, stderr, code = run(command, False)
+    tokenize = not single_match
+    stdout = run(command, tokenize)[0]
 
     logging.debug(stdout)
     return stdout
