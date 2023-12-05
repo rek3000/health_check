@@ -125,13 +125,15 @@ def run(command, tokenize):
         stdout_stream = str(stdout_stream, "utf-8")
     if not isinstance(stderr_stream, str):
         stderr_stream = str(stderr_stream, "utf-8")
+
+    stdout = None
+    stderr = None
     if tokenize:
         stdout = stdout_stream.splitlines()
         stderr = stderr_stream.splitlines()
     else:
         stdout = stdout_stream
         stderr = stderr_stream
-
     return stdout, stderr, returncode
 
 
@@ -156,7 +158,7 @@ def grep(path, regex, single_match, next=0):
         command.extend(["-A", str(next)])
     command.extend([path])
 
-    tokenize = not single_match
+    tokenize = bool(1-single_match)
     stdout = run(command, tokenize)[0]
 
     logging.debug(stdout)

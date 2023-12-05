@@ -21,9 +21,8 @@ import logging
 import click
 
 # Local library
-# from rekdoc import doc
 from rekdoc import tools
-from rekdoc.const import * 
+from rekdoc.const import *
 
 
 ##### DECORATORS #####
@@ -250,7 +249,7 @@ def get_file(regex, root="./sample/"):
                 if c < 0 and c > len(files):
                     continue
             except KeyboardInterrupt:
-                click.echo()
+                print()
                 sys.exit()
             except ValueError:
                 continue
@@ -263,51 +262,41 @@ def get_file(regex, root="./sample/"):
 # Not good.
 def get_fault(path):
     try:
-        # stdout = tools.cat(os.path.normpath(path + FAULT))
         stdout = tools.grep(os.path.normpath(path + FAULT), "*", True, 9)
-        fault = str(stdout).strip()
+        fault = stdout.strip()
         return fault
     except RuntimeError:
-        click.echo("Failed to fetch fault data")
+        print("Failed to fetch fault data")
         raise
 
 
 def get_temp(path):
     try:
-        # inlet_temp = (
-        #         tools.grep(os.path.normpath(path + TEMP), "inlet_temp", True)
-        #         )
         temps = tools.grep(
             os.path.normpath(path + TEMP), "^ /System/Cooling$", False, 9
         )
         inlet_temp = ""
         exhaust_temp = ""
         for line in temps:
-            if "inlet_temp" in str(line):
-                inlet_temp = " ".join(str(line).split()[2:5])
+            if "inlet_temp" in line:
+                inlet_temp = " ".join(line.split()[2:5])
                 continue
-            elif "exhaust_temp" in str(line):
-                exhaust_temp = " ".join(str(line).split()[2:5])
+            elif "exhaust_temp" in line:
+                exhaust_temp = " ".join(line.split()[2:5])
                 continue
-        # inlet_temp = " ".join(inlet_temp[2:5])
-        #
-        # exhaust_temp = (
-        #     tools.grep(os.path.normpath(path + TEMP), "exhaust_temp", True)
-        #     )
-        # exhaust_temp = " ".join(exhaust_temp[2:5])
         return inlet_temp, exhaust_temp
     except RuntimeError:
-        click.echo("Failed to fetch temperature")
+        print("Failed to fetch temperature")
         raise
 
 
 def get_firmware(path):
     try:
         stdout = tools.grep(os.path.normpath(path + FIRMWARE), "Version", True)
-        firmware = " ".join(str(stdout).strip("\r\n").split()[1:])
+        firmware = " ".join(stdout.strip("\r\n").split()[1:])
         return firmware
     except RuntimeError:
-        click.echo("Failed to fetch firmware")
+        print("Failed to fetch firmware")
         raise
 
 
@@ -317,7 +306,7 @@ def get_ilom(path):
         inlet_temp, exhaust_temp = get_temp(path)
         firmware = get_firmware(path)
     except RuntimeError:
-        click.echo("Fetching ILOM is interrupted because of error")
+        print("Fetching ILOM is interrupted because of error")
         raise
 
     ilom = {
@@ -340,11 +329,11 @@ def get_image(path):
     try:
         stdout = tools.grep(os.path.normpath(path + IMAGE_SOL),
                             "Solaris", True)
-        image = str(stdout).strip().split()
+        image = stdout.strip().split()
         image = image[2]
         return image
     except RuntimeError:
-        click.echo("Failed to fetch image")
+        print("Failed to fetch image")
         raise
 
 
@@ -352,25 +341,25 @@ def get_vol(path):
     try:
         stdout = tools.grep(os.path.normpath(path + PARTITION_SOL),
                             "\\B/$", True)
-        vol = str(stdout).strip().split()
+        vol = stdout.strip().split()
         vol = vol[-2]
         return vol
     except RuntimeError:
-        click.echo("Failed to fetch volume")
+        print("Failed to fetch volume")
         raise
 
 
 def get_raid(path):
     try:
         stdout = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True)
-        raid = str(stdout).strip().split()
+        raid = stdout.strip().split()
         if "ONLINE" in raid:
             raid_stat = True
         else:
             raid_stat = False
         return raid_stat
     except RuntimeError:
-        click.echo("Failed to fetch raid")
+        print("Failed to fetch raid")
         raise
 
 
@@ -390,44 +379,45 @@ def get_bonding(path):
             bonding = "both"
         return bonding
     except RuntimeError:
-        click.echo("Failed to fetch bonding status")
+        print("Failed to fetch bonding status")
         raise
 
 
 def get_cpu_util(path):
     try:
         stdout = tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL))
-        cpu_idle = str(stdout).strip().split("\n")
+        cpu_idle = stdout.strip().split("\n")
         cpu_idle = cpu_idle[2]
         cpu_idle = cpu_idle.split()[21]
         cpu_util = 100 - int(cpu_idle)
         return [cpu_idle, cpu_util]
     except RuntimeError:
-        click.echo("Failed to feth cpu util")
+        print("Failed to feth cpu util")
+        raise
 
 
 def get_load_avg(path):
     try:
         stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL),
                             "load average", True)
-        load = str(stdout).strip().split(", ")
+        load = stdout.strip().split(", ")
         load_avg = " ".join(load).split()[-3:]
-        load_avg = float((max(load_avg)))
+        load_avg = float(max(load_avg))
         return load_avg
     except RuntimeError:
-        click.echo("Failed to get load average")
+        print("Failed to get load average")
         raise
 
 
 def get_vcpu(path):
     try:
         stdout = tools.grep(os.path.normpath(path + VCPU_SOL),
-                            "Status", False)
-        vcpu = str(stdout[-1]).split()[4]
+                            "Status", single_match=False)
+        vcpu = stdout[-1].split()[4]
         vcpu = int(vcpu) + 1
         return vcpu
     except RuntimeError:
-        click.echo("Failed to fetch VCPU")
+        print("Failed to fetch VCPU")
         raise
 
 
@@ -439,7 +429,7 @@ def get_load(path):
         load_avg_per = float(f"{load_avg_per:.3f}")
         return load_avg, vcpu, load_avg_per
     except RuntimeError:
-        click.echo("Failed to fetch load")
+        print("Failed to fetch load")
         raise
 
 
@@ -447,20 +437,20 @@ def get_mem_util(path):
     try:
         stdout = tools.grep(os.path.normpath(path + MEM_SOL),
                             "^Free", False)
-        mem = str(stdout[-1]).split()
+        mem = stdout[-1].split()
         mem_free = mem[-1]
         logging.debug(mem_free)
         mem_util = 100 - float(mem_free[:-1])
         return mem_free, mem_util
     except RuntimeError:
-        click.echo("Failed to fetch memory util")
+        print("Failed to fetch memory util")
         raise
 
 
 def get_swap_util(path):
     try:
         stdout = tools.cat(os.path.normpath(path + SWAP_SOL))
-        swap_free = str(stdout).strip().split()
+        swap_free = stdout.strip().split()
         swap_free = [swap_free[8], swap_free[10]]
         swap_free[0] = float(swap_free[0][:-2])
         swap_free[1] = float(swap_free[1][:-2])
@@ -469,7 +459,7 @@ def get_swap_util(path):
 
         return swap_free, swap_util
     except RuntimeError:
-        click.echo("Failed to get swap util")
+        print("Failed to get swap util")
         raise
 
 
@@ -505,7 +495,7 @@ def get_os(path, os_name="SOL"):
             swap_util = get_swap_util(path)[1]
             x["swap_util"] = swap_util
         except RuntimeError:
-            click.echo("Failed to fetch OS information")
+            print("Failed to fetch OS information")
             raise
     return x
 
@@ -626,7 +616,7 @@ def compile(nodes, sample, root, force):
     for node in nodes:
         create_dir(root + "/" + node, force=force)
 
-    click.echo()
+    print()
     for node in nodes:
         level = logging.root.level
         if (logging.DEBUG == level) or (logging.INFO == level):
@@ -700,9 +690,9 @@ def compile(nodes, sample, root, force):
         progress_bar.update(20)
         if (logging.DEBUG == level) or (logging.INFO == level):
             click.secho(node + " DONE", bg=SUCCESS, fg="black")
-            click.echo()
+            print()
         else:
-            click.echo(" ", nl=False)
+            print(" ", end="")
             click.secho("DONE", bg=SUCCESS, fg="black")
 
         progress_bar.finish()
@@ -748,25 +738,39 @@ def run(nodes, sample, output, force):
     try:
         content_files = compile(nodes, sample, out_dir, force)
     except RuntimeError:
-        click.echo("Aborted")
+        print("Aborted")
         raise
 
     if content_files == -1:
         click.secho("Error: ", fg=ERROR, nl=False)
-        click.echo("No files to join!")
+        print("No files to join!")
         return -1
 
     # Union all jsons to one file
     tools.join_json(content_files, output)
 
 
-##### END_IMPLEMENTATION #####
+# END_IMPLEMENTATION
 
 
-##### MAIN #####
-@click.group()
+# ********
+# MAIN
+# ********
+
 def main():
-    click.echo("duh")
+    print("------------------------------")
+    print("RUNNING AS A STANDALONE MODULE")
+    print("------------------------------")
+    data_object = {
+            "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
+            "logs_dir": './sample/',
+            "output_file": "output/solaris.json",
+            "force_mode": False
+            }
+    run(nodes=data_object["nodes_name"],
+        sample=data_object["logs_dir"],
+        output=data_object["output_file"],
+        force=data_object["force_mode"])
     pass
 
 
