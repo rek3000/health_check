@@ -12,7 +12,7 @@ def create_connection():
     # default_password = "welcome1"
     # default_port = 3306
     # dotenv_path = os.path.join(, '.env')
-    load_dotenv('.env')
+    load_dotenv(".env")
 
     host = os.environ.get("DB_HOST")
     port = os.environ.get("DB_PORT")
@@ -27,11 +27,7 @@ def create_connection():
     # database = os.environ.get("DB_DATABASE", default_database)
     try:
         conn = mysql.connector.connect(
-            host=host,
-            port=port,
-            user=username,
-            password=password,
-            database=database
+            host=host, port=port, user=username, password=password, database=database
         )
 
         if conn.is_connected():

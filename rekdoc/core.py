@@ -11,8 +11,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 ##### CORE #####
 @click.version_option(
-    version="1.0.0", prog_name="rekdoc",
-    message="Version %(version)s \nCrafted by Rek."
+    version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -43,8 +42,7 @@ def cli():
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
-    "--dryrun", default=False, is_flag=True,
-    help="purge the temp folder fetch run"
+    "--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run"
 )
 @click.option(
     "-s",
@@ -68,14 +66,11 @@ def fetch(input, output, sample, node, log, force, dryrun):
     This command examine the 'sample/' folder for logs
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
     nodes = []
     try:
         for line in input:
@@ -117,9 +112,8 @@ def fetch(input, output, sample, node, log, force, dryrun):
     "-i",
     "--input",
     help="summary file.",
-    type=click.Path(exists=True, file_okay=True,
-                    dir_okay=False, readable=True),
-    )
+    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+)
 @click.option(
     "-m",
     "--image",
@@ -156,14 +150,11 @@ def doc(input, output, sample, image, log, force):
 
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
 
     if output is None:
         output = input

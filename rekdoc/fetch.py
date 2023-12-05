@@ -55,7 +55,7 @@ def clean_up(path, prompt="Remove files?", force=False):
     if force:
         clean_files(path)
     else:
-        print(prompt + "[y/n]", end='')
+        print(prompt + "[y/n]", end="")
         choice = input() or "\n"
 
         if choice in ["\n", "y", "yes"]:
@@ -322,8 +322,7 @@ def get_ilom(path):
 ##### FETCH OS ######
 def get_image(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + IMAGE_SOL),
-                            "Solaris", True)
+        stdout = tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True)
         image = stdout.strip().split()
         image = image[2]
         return image
@@ -334,8 +333,7 @@ def get_image(path):
 
 def get_vol(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + PARTITION_SOL),
-                            "\\B/$", True)
+        stdout = tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B/$", True)
         vol = stdout.strip().split()
         vol = vol[-2]
         return vol
@@ -360,10 +358,8 @@ def get_raid(path):
 
 def get_bonding(path):
     try:
-        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL),
-                              "ipmp", True)
-        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL),
-                              "aggr", True)
+        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
+        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -393,8 +389,7 @@ def get_cpu_util(path):
 
 def get_load_avg(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL),
-                            "load average", True)
+        stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
         load = stdout.strip().split(", ")
         load_avg = " ".join(load).split()[-3:]
         load_avg = float(max(load_avg))
@@ -406,8 +401,9 @@ def get_load_avg(path):
 
 def get_vcpu(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + VCPU_SOL),
-                            "Status", single_match=False)
+        stdout = tools.grep(
+            os.path.normpath(path + VCPU_SOL), "Status", single_match=False
+        )
         vcpu = stdout[-1].split()[4]
         vcpu = int(vcpu) + 1
         return vcpu
@@ -430,8 +426,7 @@ def get_load(path):
 
 def get_mem_util(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + MEM_SOL),
-                            "^Free", False)
+        stdout = tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
         mem = stdout[-1].split()
         mem_free = mem[-1]
         logging.debug(mem_free)
@@ -500,14 +495,12 @@ def get_os(path, os_name="SOL"):
 
 ##### FETCH OVERVIEW #####
 def get_product(path):
-    product = tools.grep(os.path.normpath(path + PRODUCT),
-                         "product_name", True)
+    product = tools.grep(os.path.normpath(path + PRODUCT), "product_name", True)
     return product
 
 
 def get_serial(path):
-    serial = tools.grep(os.path.normpath(path + SERIAL),
-                        "serial_number", True)
+    serial = tools.grep(os.path.normpath(path + SERIAL), "serial_number", True)
     return serial
 
 
@@ -558,8 +551,7 @@ def get_detail(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content,
-                                            indent=2, ensure_ascii=False))
+    logging.info("JSON file: " + json.dumps(content, indent=2, ensure_ascii=False))
     return content
 
 
@@ -637,8 +629,7 @@ def compile(nodes, sample, root, force):
         # DRAW IMAGES FOR CONTENT
         print("RUNNING:DRAW IMAGES")
         try:
-            images = drw_content(path, os.path.normpath(root + "/" +
-                                                        node + "/"))
+            images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
         except RuntimeError as err:
             raise err
         # END DRAWING
@@ -650,9 +641,8 @@ def compile(nodes, sample, root, force):
             )
             # SAVE INFORMATION
             tools.save_json(
-                os.path.normpath(root + "/" + node + "/" +
-                                 node + ".json"), content
-                )
+                os.path.normpath(root + "/" + node + "/" + node + ".json"), content
+            )
         except RuntimeError as err:
             raise err
 
@@ -686,8 +676,8 @@ def create_dir(path, force=False):
 
 
 # Flow of program
-def run(nodes, sample, output, force):
-    out_dir = os.path.split(output)[0]
+def run(nodes_name, logs_dir, output_file, force):
+    out_dir = os.path.split(output_file)[0]
 
     # Create output and temp directory
     create_dir(os.path.normpath(out_dir), force)
@@ -698,18 +688,18 @@ def run(nodes, sample, output, force):
 
     # Fetch and cook images from logs
     try:
-        content_files = compile(nodes, sample, out_dir, force)
+        content_files = compile(nodes_name, logs_dir, out_dir, force)
     except RuntimeError:
         print("Aborted")
         raise
 
     if content_files == -1:
-        print("Error: ", end='')
+        print("Error: ", end="")
         print("No files to join!")
         return -1
 
     # Union all jsons to one file
-    tools.join_json(content_files, output)
+    tools.join_json(content_files, output_file)
 
 
 # END_IMPLEMENTATION
@@ -723,17 +713,19 @@ def main():
     print("RUNNING AS A STANDALONE MODULE")
     print("------------------------------")
     data_object = {
-            "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
-            "logs_dir": './sample/',
-            "output_file": "output/solaris.json",
-            "force_mode": False,
-            "type": "Standalone",
-            "platform": "Linux"
-            }
-    run(nodes=data_object["nodes_name"],
+        "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
+        "logs_dir": "./sample/",
+        "output_file": "output/solaris.json",
+        "force_mode": False,
+        "type": "Standalone",
+        "platform": "Linux",
+    }
+    run(
+        nodes=data_object["nodes_name"],
         sample=data_object["logs_dir"],
         output=data_object["output_file"],
-        force=data_object["force_mode"])
+        force=data_object["force_mode"],
+    )
     pass
 
 
