@@ -22,7 +22,9 @@ from rekdoc import tools
 from rekdoc.const import *
 
 
-##### DECORATORS #####
+# ------------------------------
+# DECORATORS
+# ------------------------------
 def debug(func):
     def _debug(*args, **kwargs):
         result = func(*args, **kwargs)
@@ -30,12 +32,11 @@ def debug(func):
         return result
 
     return _debug
+# ------------------------------
+# END DECORATORS
+# ------------------------------
 
 
-##### END OF DECORATORS #####
-
-
-##### IMPLEMETATION #####
 # TODO: REWRITE for Windows compatibility
 def clean_files(dir):
     for filename in os.listdir(dir):
@@ -209,7 +210,8 @@ def drw_content(path, output):
 
 def extract_file(serial, root, compress, force):
     compress = compress.lower()
-    regex = "*" + serial + "*." + compress
+    # regex = "*" + serial + "*." + compress
+    regex = "*." + compress
     file = get_file(regex, root=root)
     if file == -1:
         return -1
@@ -599,21 +601,29 @@ def untar(file, force):
 
 def compile(nodes, sample, root, force):
     content_files = []
+    paths = []
     for node in nodes:
         create_dir(root + "/" + node, force=force)
+        try:
+            path = ["", ""]
+            print("CHOOSE FILE TO EXTRACT")
+            print(node)
+            print("ILOM SNAPSHOT")
+            path[0] = str(extract_file(node, sample, "zip", force))
+            print("EXPLORER")
+            path[1] = str(extract_file(node, sample, "tar.gz", force))
+            paths.append(path)
+        except RuntimeError as err:
+            err.add_note("Data files must be exist!")
+            raise err
 
     print()
     for node in nodes:
         print(node)
         # if (logging.DEBUG == level) or (logging.INFO == level):
         print("RUNNING:EXTRACT FILES")
-        path = ["", ""]
-        try:
-            path[0] = str(extract_file(node, sample, "zip", force))
-            path[1] = str(extract_file(node, sample, "tar.gz", force))
-        except RuntimeError as err:
-            err.add_note("Data files must be exist!")
-            raise err
+        # path = ["", ""]
+        path = paths[nodes.index(node)]
 
         content_files += [node]
 
@@ -712,19 +722,27 @@ def main():
     print("------------------------------")
     print("RUNNING AS A STANDALONE MODULE")
     print("------------------------------")
+
+    TYPES = ["Baremetal", "VM"]
+    SYSTEM = ["Standalone", "Exa"]
+    PLATFORM = ["Linux", "Sparc"]
+
     data_object = {
         "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
         "logs_dir": "./sample/",
         "output_file": "output/solaris.json",
-        "force_mode": False,
-        "type": "Standalone",
         "platform": "Linux",
+        "system": "Standalone",
+        "type": "VM",
+        "force": False,
     }
+    # file = get_file("*.tar.gz", data_object["logs_dir"])
+
     run(
-        nodes=data_object["nodes_name"],
-        sample=data_object["logs_dir"],
-        output=data_object["output_file"],
-        force=data_object["force_mode"],
+        nodes_name=data_object["nodes_name"],
+        logs_dir=data_object["logs_dir"],
+        output_file=data_object["output_file"],
+        force=data_object["force"],
     )
     pass
 
