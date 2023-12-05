@@ -17,9 +17,6 @@ import zipfile
 import tarfile
 import logging
 
-# Third party library
-import click
-
 # Local library
 from rekdoc import tools
 from rekdoc.const import *
@@ -50,8 +47,7 @@ def clean_files(dir):
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
         except Exception as e:
-            click.secho("Failed to delete %s. Reason: %s" % (file_path, e),
-                        fg=ERROR)
+            print("Failed to delete %s. Reason: %s" % (file_path, e))
             return -1
 
 
@@ -59,15 +55,16 @@ def clean_up(path, prompt="Remove files?", force=False):
     if force:
         clean_files(path)
     else:
-        choice = click.confirm(click.style(prompt, fg=ERROR),
-                               default=True)
-        if choice:
+        print(prompt + "[y/n]", end='')
+        choice = input() or "\n"
+
+        if choice in ["\n", "y", "yes"]:
             clean_files(path)
         return
 
 
 def clean_up_force(path):
-    click.secho("FORCE CLEAN UP DUE TO ERROR!", fg=ERROR)
+    print("FORCE CLEAN UP DUE TO ERROR!")
     clean_files(path)
     return -1
 
@@ -258,8 +255,6 @@ def get_file(regex, root="./sample/"):
 
 
 ##### FETCH ILOM ######
-# TODO - ☠️ if the file is large, this will get all of its content.
-# Not good.
 def get_fault(path):
     try:
         stdout = tools.grep(os.path.normpath(path + FAULT), "*", True, 9)
@@ -611,34 +606,15 @@ def untar(file, force):
 
 
 def compile(nodes, sample, root, force):
-    n = len(nodes)
     content_files = []
     for node in nodes:
         create_dir(root + "/" + node, force=force)
 
     print()
     for node in nodes:
-        level = logging.root.level
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node, bg="cyan", fg="black")
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node, fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-                bar_template="",
-            )
-            progress_bar.finish()
-        else:
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node, fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-            )
-
+        print(node)
+        # if (logging.DEBUG == level) or (logging.INFO == level):
+        print("RUNNING:EXTRACT FILES")
         path = ["", ""]
         try:
             path[0] = str(extract_file(node, sample, "zip", force))
@@ -646,34 +622,27 @@ def compile(nodes, sample, root, force):
         except RuntimeError as err:
             err.add_note("Data files must be exist!")
             raise err
-        progress_bar.update(20)
-
-        # if path == [-1, -1]:
-        #     logging.error("Error: file not exist!")
-        #     return -1
-        # logging.info("EXTRACTED FILES: " + json.dumps(path).strip())
 
         content_files += [node]
-        progress_bar.update(20)
 
-        # file_name = node
         for i in range(0, len(path)):
             path[i] = os.path.normpath("temp/" + str(path[i]))
 
+        print("RUNNING:GET DETAILS")
         try:
             content = get_detail(node, path)
         except RuntimeError:
             raise
-        progress_bar.update(20)
 
         # DRAW IMAGES FOR CONTENT
+        print("RUNNING:DRAW IMAGES")
         try:
             images = drw_content(path, os.path.normpath(root + "/" +
                                                         node + "/"))
         except RuntimeError as err:
             raise err
-        progress_bar.update(20)
         # END DRAWING
+        print("RUNNING:SAVE IMAGES")
         try:
             # SAVE IMAGE NAME
             tools.save_json(
@@ -687,15 +656,8 @@ def compile(nodes, sample, root, force):
         except RuntimeError as err:
             raise err
 
-        progress_bar.update(20)
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node + " DONE", bg=SUCCESS, fg="black")
-            print()
-        else:
-            print(" ", end="")
-            click.secho("DONE", bg=SUCCESS, fg="black")
-
-        progress_bar.finish()
+        print("DONE")
+        print()
 
     sys.stdout.write("\033[?25h")
     return content_files
@@ -715,7 +677,7 @@ def create_dir(path, force=False):
                 force=force,
             )
         else:
-            click.secho(click.style(path, fg=SECTION) + " folder exist!")
+            print(path + " folder exist!")
             clean_up(
                 path=os.path.normpath(path),
                 prompt="Do you want to replace it?",
@@ -742,7 +704,7 @@ def run(nodes, sample, output, force):
         raise
 
     if content_files == -1:
-        click.secho("Error: ", fg=ERROR, nl=False)
+        print("Error: ", end='')
         print("No files to join!")
         return -1
 
@@ -753,10 +715,9 @@ def run(nodes, sample, output, force):
 # END_IMPLEMENTATION
 
 
-# ********
+# ****************************************
 # MAIN
-# ********
-
+# ****************************************
 def main():
     print("------------------------------")
     print("RUNNING AS A STANDALONE MODULE")
@@ -765,7 +726,9 @@ def main():
             "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
             "logs_dir": './sample/',
             "output_file": "output/solaris.json",
-            "force_mode": False
+            "force_mode": False,
+            "type": "Standalone",
+            "platform": "Linux"
             }
     run(nodes=data_object["nodes_name"],
         sample=data_object["logs_dir"],
@@ -776,4 +739,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-##### END_MAIN #####
+# ****************************************
+# END MAIN
+# ****************************************
