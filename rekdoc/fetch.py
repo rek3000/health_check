@@ -208,11 +208,12 @@ def drw_content(path, output):
     return images
 
 
-def extract_file(serial, root, compress, force):
+def extract_file(file, compress, force):
+# def extract_file(serial, root, compress, force):
     compress = compress.lower()
     # regex = "*" + serial + "*." + compress
-    regex = "*." + compress
-    file = get_file(regex, root=root)
+    # regex = "*." + compress
+    # file = get_file(regex, root=root)
     if file == -1:
         return -1
 
@@ -601,18 +602,18 @@ def untar(file, force):
 
 def compile(nodes, sample, root, force):
     content_files = []
-    paths = []
+    list_file_logs = []
     for node in nodes:
         create_dir(root + "/" + node, force=force)
         try:
-            path = ["", ""]
+            file_logs = ["", ""]
             print("CHOOSE FILE TO EXTRACT")
             print(node)
             print("ILOM SNAPSHOT")
-            path[0] = str(extract_file(node, sample, "zip", force))
+            file_logs[0] = get_file("*.zip", sample)
             print("EXPLORER")
-            path[1] = str(extract_file(node, sample, "tar.gz", force))
-            paths.append(path)
+            file_logs[1] = get_file("*.tar.gz", sample)
+            list_file_logs.append(file_logs)
         except RuntimeError as err:
             err.add_note("Data files must be exist!")
             raise err
@@ -621,25 +622,32 @@ def compile(nodes, sample, root, force):
     for node in nodes:
         print(node)
         # if (logging.DEBUG == level) or (logging.INFO == level):
+        list_logs_dir = ["", ""]
+        file_logs = []
         print("RUNNING:EXTRACT FILES")
-        # path = ["", ""]
-        path = paths[nodes.index(node)]
+        file_logs = list_file_logs[nodes.index(node)]
+        print("RUNNING:EXTRACT ILOM SNAPSHOT")
+        list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
+        print("RUNNING:EXTRACT EXPLORER")
+        list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
 
         content_files += [node]
 
-        for i in range(0, len(path)):
-            path[i] = os.path.normpath("temp/" + str(path[i]))
+        for i in range(0, len(list_logs_dir)):
+            list_logs_dir[i] = os.path.normpath("temp/" +
+                                                str(list_logs_dir[i]))
 
         print("RUNNING:GET DETAILS")
         try:
-            content = get_detail(node, path)
+            content = get_detail(node, list_logs_dir)
         except RuntimeError:
             raise
 
         # DRAW IMAGES FOR CONTENT
         print("RUNNING:DRAW IMAGES")
         try:
-            images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
+            images = drw_content(list_logs_dir, 
+                                 os.path.normpath(root + "/" + node + "/"))
         except RuntimeError as err:
             raise err
         # END DRAWING
