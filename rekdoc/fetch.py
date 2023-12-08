@@ -1,7 +1,6 @@
-##!/bin/env python
-#
-# DOCUMENT FILE FROM LOG FILES GENERATOR
-#
+# -------------------
+# SYSTEM DATA FETCHER
+# -------------------
 
 __version__ = "1.0"
 __author__ = "Rek"
@@ -37,7 +36,96 @@ def debug(func):
 # ------------------------------
 
 
-# TODO: REWRITE for Windows compatibility
+# ------------------------------
+# HELPER
+# ------------------------------
+def extract_file(file, compress, force):
+    compress = compress.lower()
+    # regex = "*" + serial + "*." + compress
+    # regex = "*." + compress
+    # file = get_file(regex, root=root)
+    if compress == "zip":
+        unzip(file, force)
+        dir = tools.rm_ext(file, compress)
+        path = os.path.split(dir)[1]
+        return path
+    elif compress == "tar.gz":
+        untar(file, force)
+        dir = tools.rm_ext(file, compress)
+        path = os.path.split(dir)[1]
+        return path
+    else:
+        raise RuntimeError("Cannot extract file")
+
+
+def unzip(file, force):
+    if not zipfile.is_zipfile(file):
+        logging.error("Error: Not a zip file")
+        return -1
+    logging.info("Extracting: " + file)
+    try:
+        with zipfile.ZipFile(file, "r") as zip:
+            try:
+                zip.extractall(path="temp/")
+            except IOError:
+                clean_up(
+                    os.path.normpath(
+                        "temp/" + os.path.split(tools.rm_ext(file, "zip"))[1]
+                    ),
+                    force=force,
+                )
+                zip.extractall(path="temp/")
+    except IOError as err:
+        logging.error(err)
+        return -1
+
+
+def untar(file, force):
+    if not tarfile.is_tarfile(file):
+        logging.error("Error: Not a tar file")
+        return -1
+    logging.info("Extracting: " + file)
+    try:
+        with tarfile.open(file, "r") as tar:
+            for f in tar.getmembers():
+                try:
+                    tar.extract(f, set_attrs=False, path="temp/")
+                except IOError:
+                    continue
+                except Exception as err:
+                    logging.error(err)
+                    return -1
+    except IOError as err:
+        logging.error(err)
+        return -1
+
+
+# Find the file matched with keyword(regular expression)
+def get_file(regex, logs_dir):
+    path = logs_dir + regex
+    files = glob.glob(path, recursive=True)
+    if len(files) == 0:
+        raise RuntimeError("No file found matched!")
+    elif len(files) == 1:
+        return files[0]
+    else:
+        for i in range(len(files)):
+            print("[", i, "] ", files[i], sep="")
+        c = ""
+        while True:
+            try:
+                c = int(input("Which file?\n [0] ") or "0")
+                if c < 0 and c > len(files):
+                    continue
+            except KeyboardInterrupt:
+                print()
+                sys.exit()
+            except ValueError:
+                continue
+            break
+        return files[c]
+
+
 def clean_files(dir):
     for filename in os.listdir(dir):
         file_path = os.path.join(dir, filename)
@@ -72,6 +160,9 @@ def clean_up_force(path):
 
 def check_valid(path):
     return os.path.isdir(path)
+# ------------------------------
+# END HELPER
+# ------------------------------
 
 
 ##### IMAGE PROCESSING #####
@@ -208,55 +299,11 @@ def drw_content(path, output):
     return images
 
 
-def extract_file(serial, root, compress, force):
-    compress = compress.lower()
-    # regex = "*" + serial + "*." + compress
-    regex = "*." + compress
-    file = get_file(regex, root=root)
-    if file == -1:
-        return -1
+# def extract_file(serial, root, compress, force):
 
-    if compress == "zip":
-        unzip(file, force)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
-    elif compress == "tar.gz":
-        untar(file, force)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
-    else:
-        return -1
-
-
-# Find return the file with serial number
-def get_file(regex, root="./sample/"):
-    path = root + regex
-    files = glob.glob(path, recursive=True)
-    if len(files) == 0:
-        raise RuntimeError("No file found matched!")
-    elif len(files) == 1:
-        return files[0]
-    else:
-        for i in range(len(files)):
-            print("[", i, "] ", files[i], sep="")
-        c = ""
-        while True:
-            try:
-                c = int(input("Which file?\n [0] ") or "0")
-                if c < 0 and c > len(files):
-                    continue
-            except KeyboardInterrupt:
-                print()
-                sys.exit()
-            except ValueError:
-                continue
-            break
-        return files[c]
-
-
-##### FETCH ILOM ######
+# ------------------------------
+# FETCH ILOM
+# ------------------------------
 def get_fault(path):
     try:
         stdout = tools.grep(os.path.normpath(path + FAULT), "*", True, 9)
@@ -316,12 +363,14 @@ def get_ilom(path):
     logging.debug(json.dumps(ilom, ensure_ascii=False))
 
     return ilom
+# ------------------------------
+# END FETCH ILOM
+# ------------------------------
 
 
-#####
-
-
-##### FETCH OS ######
+# ------------------------------
+# FETCH OS
+# ------------------------------
 def get_image(path):
     try:
         stdout = tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True)
@@ -490,47 +539,12 @@ def get_os(path, os_name="SOL"):
             print("Failed to fetch OS information")
             raise
     return x
-
-
-##### END FETCH OS ######
-
-
-##### FETCH OVERVIEW #####
-def get_product(path):
-    product = tools.grep(os.path.normpath(path + PRODUCT), "product_name", True)
-    return product
-
-
-def get_serial(path):
-    serial = tools.grep(os.path.normpath(path + SERIAL), "serial_number", True)
-    return serial
-
-
-def get_ip(path):
-    # ip = grep(os.path.normpath(path + NETWORK_SOL), "serial_number", True)
-    pass
-
-
-##### END OVERVIEW #####
-def get_overview(node, path):
-    pass
-    name = node
-    product_name = get_product(path[0])
-    serial = get_serial(path[0])
-    ip = get_ip(path[1])
-    content = {}
-    content[name] = {
-        "host_name": name,
-        "product_name": product_name,
-        "serial": serial,
-        "ip": ip,
-    }
-
-    return content
+# ------------------------------
+# END FETCH OS
+# ------------------------------
 
 
 def get_detail(node, path):
-    # @@
     try:
         ilom = get_ilom(path[0])
         os_info = get_os(path[1], "SOL")
@@ -553,93 +567,94 @@ def get_detail(node, path):
         "mem_util": os_info["mem_util"],
         "swap_util": os_info["swap_util"],
     }
-    logging.info("JSON file: " + json.dumps(content, indent=2, ensure_ascii=False))
+    logging.info("JSON file: " +
+                json.dumps(content, indent=2, ensure_ascii=False))
     return content
 
 
-def unzip(file, force):
-    if not zipfile.is_zipfile(file):
-        logging.error("Error: Not a zip file")
-        return -1
-    logging.info("Extracting: " + file)
-    try:
-        with zipfile.ZipFile(file, "r") as zip:
-            try:
-                zip.extractall(path="temp/")
-            except IOError:
-                clean_up(
-                    os.path.normpath(
-                        "temp/" + os.path.split(tools.rm_ext(file, "zip"))[1]
-                    ),
-                    force=force,
-                )
-                zip.extractall(path="temp/")
-    except IOError as err:
-        logging.error(err)
-        return -1
+##### FETCH OVERVIEW #####
+def get_product(path):
+    product = tools.grep(os.path.normpath(path + PRODUCT), "product_name", True)
+    return product
 
 
-def untar(file, force):
-    if not tarfile.is_tarfile(file):
-        logging.error("Error: Not a tar file")
-        return -1
-    logging.info("Extracting: " + file)
-    try:
-        with tarfile.open(file, "r") as tar:
-            for f in tar.getmembers():
-                try:
-                    tar.extract(f, set_attrs=False, path="temp/")
-                except IOError:
-                    continue
-                except Exception as err:
-                    logging.error(err)
-                    return -1
-    except IOError as err:
-        logging.error(err)
-        return -1
+def get_serial(path):
+    serial = tools.grep(os.path.normpath(path + SERIAL), "serial_number", True)
+    return serial
 
 
-def compile(nodes, sample, root, force):
+def get_ip(path):
+    # ip = grep(os.path.normpath(path + NETWORK_SOL), "serial_number", True)
+    pass
+
+
+def get_overview(node, path):
+    pass
+    name = node
+    product_name = get_product(path[0])
+    serial = get_serial(path[0])
+    ip = get_ip(path[1])
+    content = {}
+    content[name] = {
+        "host_name": name,
+        "product_name": product_name,
+        "serial": serial,
+        "ip": ip,
+    }
+
+    return content
+##### END OVERVIEW #####
+
+
+def compile(nodes_name, logs_dir, out_dir, force):
     content_files = []
-    paths = []
-    for node in nodes:
-        create_dir(root + "/" + node, force=force)
+    list_file_logs = []
+    print("CHOOSE FILE TO EXTRACT")
+    for node in nodes_name:
+        create_dir(out_dir + "/" + node, force=force)
         try:
-            path = ["", ""]
-            print("CHOOSE FILE TO EXTRACT")
+            file_logs = ["", ""]
             print(node)
             print("ILOM SNAPSHOT")
-            path[0] = str(extract_file(node, sample, "zip", force))
+            file_logs[0] = get_file("*.zip", logs_dir)
             print("EXPLORER")
-            path[1] = str(extract_file(node, sample, "tar.gz", force))
-            paths.append(path)
+            file_logs[1] = get_file("*.tar.gz", logs_dir)
+            list_file_logs.append(file_logs)
+            print()
         except RuntimeError as err:
             err.add_note("Data files must be exist!")
             raise err
 
-    print()
-    for node in nodes:
+    print("-----------------------------")
+    for node in nodes_name:
         print(node)
         # if (logging.DEBUG == level) or (logging.INFO == level):
+        list_logs_dir = ["", ""]
+        file_logs = []
         print("RUNNING:EXTRACT FILES")
-        # path = ["", ""]
-        path = paths[nodes.index(node)]
+        file_logs = list_file_logs[nodes_name.index(node)]
+        print("RUNNING:EXTRACT ILOM SNAPSHOT")
+        list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
+        print("RUNNING:EXTRACT EXPLORER")
+        list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
 
         content_files += [node]
 
-        for i in range(0, len(path)):
-            path[i] = os.path.normpath("temp/" + str(path[i]))
+        for i in range(0, len(list_logs_dir)):
+            list_logs_dir[i] = os.path.normpath("temp/" +
+                                                str(list_logs_dir[i]))
 
         print("RUNNING:GET DETAILS")
         try:
-            content = get_detail(node, path)
+            content = get_detail(node, list_logs_dir)
         except RuntimeError:
             raise
 
         # DRAW IMAGES FOR CONTENT
         print("RUNNING:DRAW IMAGES")
         try:
-            images = drw_content(path, os.path.normpath(root + "/" + node + "/"))
+            images = drw_content(list_logs_dir, 
+                                 os.path.normpath(out_dir + "/" + node + "/"))
         except RuntimeError as err:
             raise err
         # END DRAWING
@@ -647,11 +662,11 @@ def compile(nodes, sample, root, force):
         try:
             # SAVE IMAGE NAME
             tools.save_json(
-                os.path.normpath(root + "/" + node + "/images.json"), images
+                os.path.normpath(out_dir + "/" + node + "/images.json"), images
             )
             # SAVE INFORMATION
             tools.save_json(
-                os.path.normpath(root + "/" + node + "/" + node + ".json"), content
+                os.path.normpath(out_dir + "/" + node + "/" + node + ".json"), content
             )
         except RuntimeError as err:
             raise err
