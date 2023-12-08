@@ -9,6 +9,7 @@ __author__ = "Rek"
 import os
 import io
 import sys
+import datetime
 import shutil
 import glob
 import json
@@ -293,8 +294,8 @@ def drw_os(path, out_dir):
 
 def drw_content(path, output):
     ilom = drw_ilom(path[0], output)
-    os_info = drw_os(path[1], output)
-    images = ilom + os_info
+    system_status = drw_os(path[1], output)
+    images = ilom + system_status
     logging.info(images)
     return images
 
@@ -504,9 +505,9 @@ def get_swap_util(path):
         raise
 
 
-def get_os(path, os_name="SOL"):
+def get_system_status(path, platform):
     x = {}
-    if os_name == "SOL":
+    if platform == "solaris":
         try:
             image = get_image(path)
 
@@ -520,7 +521,16 @@ def get_os(path, os_name="SOL"):
 
             bonding = get_bonding(path)
             x["bonding"] = bonding
+        except RuntimeError:
+            print("Failed to fetch OS information")
+            raise
+    return x
 
+
+def get_system_perform(path, platform):
+    x = {}
+    if platform == "solaris":
+        try:
             cpu_util = get_cpu_util(path)[1]
             x["cpu_util"] = cpu_util
 
@@ -547,7 +557,8 @@ def get_os(path, os_name="SOL"):
 def get_detail(node, path):
     try:
         ilom = get_ilom(path[0])
-        os_info = get_os(path[1], "SOL")
+        system_status = get_system_status(path[1], system_info["platform"])
+        system_perform = get_system_perform(path[1], system_info["platform"])
     except RuntimeError:
         raise
     name = node
@@ -558,28 +569,30 @@ def get_detail(node, path):
         "inlet": ilom["inlet"],
         "exhaust": ilom["exhaust"],
         "firmware": ilom["firmware"],
-        "image": os_info["image"],
-        "vol_avail": os_info["vol_avail"],
-        "raid_stat": os_info["raid_stat"],
-        "bonding": os_info["bonding"],
-        "cpu_util": os_info["cpu_util"],
-        "load": os_info["load"],
-        "mem_util": os_info["mem_util"],
-        "swap_util": os_info["swap_util"],
+        "image": system_status["image"],
+        "vol_avail": system_status["vol_avail"],
+        "raid_stat": system_status["raid_stat"],
+        "bonding": system_status["bonding"],
+        "cpu_util": system_perform["cpu_util"],
+        "load": system_perform["load"],
+        "mem_util": system_perform["mem_util"],
+        "swap_util": system_perform["swap_util"],
     }
     logging.info("JSON file: " +
-                json.dumps(content, indent=2, ensure_ascii=False))
+                 json.dumps(content, indent=2, ensure_ascii=False))
     return content
 
 
 ##### FETCH OVERVIEW #####
 def get_product(path):
-    product = tools.grep(os.path.normpath(path + PRODUCT), "product_name", True)
+    product = tools.grep(os.path.normpath(path + PRODUCT),
+                         "product_name", True)
     return product
 
 
 def get_serial(path):
-    serial = tools.grep(os.path.normpath(path + SERIAL), "serial_number", True)
+    serial = tools.grep(os.path.normpath(path + SERIAL),
+                        "serial_number", True)
     return serial
 
 
@@ -638,7 +651,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
         print("RUNNING:EXTRACT EXPLORER")
         list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
 
-        content_files += [node]
+        content_files.append(os.path.normpath(out_dir + "/" + node + "/" + node + ".json"))
 
         for i in range(0, len(list_logs_dir)):
             list_logs_dir[i] = os.path.normpath("temp/" +
@@ -700,20 +713,75 @@ def create_dir(path, force=False):
             )
 
 
-# Flow of program
-def run(nodes_name, logs_dir, output_file, force):
-    out_dir = os.path.split(output_file)[0]
+TYPES = ["baremetal", "vm"]
+SYSTEM = ["standalone", "exa"]
+PLATFORM = ["linux", "solaris"]
 
+system_info = {
+        "system_type": "",
+        "platform": "",
+        "type": "",
+        }
+
+
+def set_system_info():
+    while True:
+        try:
+            c = str(input("System Type [standalone|exa]?\n [standalone] ")
+                    or "standalone")
+            if (c != "standalone") and (c != "exa"):
+                continue
+            system_info["system_type"] = c
+        except KeyboardInterrupt:
+            print()
+            sys.exit()
+        break
+
+    while True:
+        try:
+            c = str(input("Platform [linux|solaris]?\n [solaris] ")
+                    or "solaris")
+            if (c != "linux") and (c != "solaris"):
+                continue
+            system_info["platform"] = c
+        except KeyboardInterrupt:
+            print()
+            sys.exit()
+        break
+
+    while True:
+        try:
+            c = str(input("Type [baremetal|vm]?\n [baremetal] ")
+                    or "baremetal")
+            if (c != "baremetal") and (c != "vm"):
+                continue
+            system_info["type"] = c
+        except KeyboardInterrupt:
+            print()
+            sys.exit()
+        break
+    print(json.dumps(system_info, indent=2))
+
+
+# Flow of program
+def run(nodes_name, logs_dir, out_dir, force):
+    set_system_info()
+    # out_dir = os.path.split(output_file)[0]
     # Create output and temp directory
-    create_dir(os.path.normpath(out_dir), force)
     try:
         os.mkdir(os.path.normpath("temp"))
+        os.mkdir(os.path.normpath(out_dir))
     except FileExistsError:
         pass
+    # create_dir(os.path.normpath(out_dir), force)
+    root_dir = out_dir + "/" + str(datetime.datetime.now())
+    create_dir(os.path.normpath(root_dir))
+    # create root folder
 
     # Fetch and cook images from logs
     try:
-        content_files = compile(nodes_name, logs_dir, out_dir, force)
+        content_files = compile(nodes_name, logs_dir, root_dir, force)
+        logging.info(content_files)
     except RuntimeError:
         print("Aborted")
         raise
@@ -724,31 +792,29 @@ def run(nodes_name, logs_dir, output_file, force):
         return -1
 
     # Union all jsons to one file
-    tools.join_json(content_files, output_file)
+    out_file = os.path.normpath(root_dir + "/" + "summary.json")
+    tools.join_json(content_files, out_file)
+    return out_file
+    # tools.join_json(content_files, output_file)
 
 
 # END_IMPLEMENTATION
 
 
-# ****************************************
+# ------------------------------
 # MAIN
-# ****************************************
+# ------------------------------
+
+
 def main():
     print("------------------------------")
     print("RUNNING AS A STANDALONE MODULE")
     print("------------------------------")
 
-    TYPES = ["Baremetal", "VM"]
-    SYSTEM = ["Standalone", "Exa"]
-    PLATFORM = ["Linux", "Sparc"]
-
     data_object = {
         "nodes_name": ["DBMC01", "DBMC02", "DBMC-DR"],
         "logs_dir": "./sample/",
         "output_file": "output/solaris.json",
-        "platform": "Linux",
-        "system": "Standalone",
-        "type": "VM",
         "force": False,
     }
     # file = get_file("*.tar.gz", data_object["logs_dir"])
