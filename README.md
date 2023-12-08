@@ -92,9 +92,9 @@ cd ./test_env
 ## TODO
 - [x] Basic usage.
 - [x] Build and test with docker (sql container + `rekdoc` container)
-- [x] Enhance better log message.
-- [ ] Fix bug handling system. (critical)
+- [x] Fix bug handling system. (critical)
 - [ ] Enhance program flow.
+- [ ] Rewrite system layout
 - [ ] Expand the document generate to adapt to more type of report. (TODO: to be determined)
 
 Crafted with passion.
