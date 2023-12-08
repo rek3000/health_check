@@ -19,7 +19,8 @@ import logging
 
 # Local library
 from rekdoc import tools
-from rekdoc.const import *
+from rekdoc import const
+# from rekdoc.const import *
 
 
 # ------------------------------
@@ -170,17 +171,17 @@ def check_valid(path):
 ## DRAW ILOM ##
 def drw_fault(path, out_dir):
     fault = io.StringIO()
-    fault.write(path + FAULT + "\n")
-    stdout = tools.cat(os.path.normpath(path + FAULT))
+    fault.write(path + const.FAULT + "\n")
+    stdout = tools.cat(os.path.normpath(path + const.FAULT))
     fault.write(str(stdout))
     tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
 
 
 def drw_temp(path, out_dir):
     temp = io.StringIO()
-    temp.write(path + TEMP + "\n")
+    temp.write(path + const.TEMP + "\n")
     reg = "^ /System/Cooling$"
-    stdout = tools.grep(os.path.normpath(path + TEMP), reg, False, 9)
+    stdout = tools.grep(os.path.normpath(path + const.TEMP), reg, False, 9)
     for line in stdout:
         temp.write(str(line) + "\n")
     tools.drw_text_image(temp, os.path.normpath(out_dir + "/temp.png"))
@@ -188,9 +189,9 @@ def drw_temp(path, out_dir):
 
 def drw_firmware(path, out_dir):
     firmware = io.StringIO()
-    firmware.write(path + FIRMWARE + "\n")
+    firmware.write(path + const.FIRMWARE + "\n")
     reg = "^Oracle"
-    stdout = tools.grep(os.path.normpath(path + FIRMWARE), reg, True, 5)
+    stdout = tools.grep(os.path.normpath(path + const.FIRMWARE), reg, True, 5)
     firmware.write(str(stdout))
     tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
 
@@ -209,64 +210,65 @@ def drw_ilom(path, out_dir):
 ## DRAW OF ##
 def drw_image(path, out_dir):
     image = io.StringIO()
-    image.write(path + IMAGE_SOL + "\n")
-    image.write(tools.cat(os.path.normpath(path + IMAGE_SOL)))
+    image.write(path + const.IMAGE_SOL + "\n")
+    image.write(tools.cat(os.path.normpath(path + const.IMAGE_SOL)))
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
     return image
 
 
 def drw_vol(path, out_dir):
     vol = io.StringIO()
-    vol.write(path + PARTITION_SOL + "\n")
-    vol.write(tools.cat(os.path.normpath(path + PARTITION_SOL)))
+    vol.write(path + const.PARTITION_SOL + "\n")
+    vol.write(tools.cat(os.path.normpath(path + const.PARTITION_SOL)))
     tools.drw_text_image(vol, os.path.normpath(out_dir + "/vol.png"))
     return vol
 
 
 def drw_raid(path, out_dir):
     raid = io.StringIO()
-    raid.write(path + RAID_SOL + "\n")
-    raid.write(tools.cat(os.path.normpath(path + RAID_SOL)))
+    raid.write(path + const.RAID_SOL + "\n")
+    raid.write(tools.cat(os.path.normpath(path + const.RAID_SOL)))
     tools.drw_text_image(raid, os.path.normpath(out_dir + "/raid.png"))
     return raid
 
 
 def drw_net(path, out_dir):
     net = io.StringIO()
-    net.write(path + NETWORK_SOL + "\n")
-    net.write(tools.cat(os.path.normpath(path + NETWORK_SOL)))
+    net.write(path + const.NETWORK_SOL + "\n")
+    net.write(tools.cat(os.path.normpath(path + const.NETWORK_SOL)))
     tools.drw_text_image(net, os.path.normpath(out_dir + "/net.png"))
     return net
 
 
 def drw_cpu(path, out_dir):
     cpu_idle = io.StringIO()
-    cpu_idle.write(path + CPU_ULTILIZATION_SOL + "\n")
-    cpu_idle.write(tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL)))
+    cpu_idle.write(path + const.CPU_ULTILIZATION_SOL + "\n")
+    cpu_idle.write(tools.cat(os.path.normpath(path +
+                                              const.CPU_ULTILIZATION_SOL)))
     tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + "/cpu_idle.png"))
     return cpu_idle
 
 
 def drw_load(path, out_dir):
     load = io.StringIO()
-    load.write(path + CPU_LOAD_SOL + "\n")
-    load.write(tools.cat(os.path.normpath(path + CPU_LOAD_SOL)))
+    load.write(path + const.CPU_LOAD_SOL + "\n")
+    load.write(tools.cat(os.path.normpath(path + const.CPU_LOAD_SOL)))
     tools.drw_text_image(load, os.path.normpath(out_dir + "/load.png"))
     return load
 
 
 def drw_mem(path, out_dir):
     mem = io.StringIO()
-    mem.write(path + MEM_SOL + "\n")
-    mem.write(tools.cat(os.path.normpath(path + MEM_SOL)))
+    mem.write(path + const.MEM_SOL + "\n")
+    mem.write(tools.cat(os.path.normpath(path + const.MEM_SOL)))
     tools.drw_text_image(mem, os.path.normpath(out_dir + "/mem.png"))
     return mem
 
 
 def drw_swap(path, out_dir):
     swap = io.StringIO()
-    swap.write(path + SWAP_SOL + "\n")
-    swap.write(tools.cat(os.path.normpath(path + SWAP_SOL)))
+    swap.write(path + const.SWAP_SOL + "\n")
+    swap.write(tools.cat(os.path.normpath(path + const.SWAP_SOL)))
     tools.drw_text_image(swap, os.path.normpath(out_dir + "/swap.png"))
     return swap
 
@@ -307,7 +309,7 @@ def drw_content(path, output):
 # ------------------------------
 def get_fault(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + FAULT), "*", True, 9)
+        stdout = tools.grep(os.path.normpath(path + const.FAULT), "*", True, 9)
         fault = stdout.strip()
         return fault
     except RuntimeError:
@@ -318,7 +320,7 @@ def get_fault(path):
 def get_temp(path):
     try:
         temps = tools.grep(
-            os.path.normpath(path + TEMP), "^ /System/Cooling$", False, 9
+            os.path.normpath(path + const.TEMP), "^ /System/Cooling$", False, 9
         )
         inlet_temp = ""
         exhaust_temp = ""
@@ -337,7 +339,8 @@ def get_temp(path):
 
 def get_firmware(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + FIRMWARE), "Version", True)
+        stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
+                            "Version", True)
         firmware = " ".join(stdout.strip("\r\n").split()[1:])
         return firmware
     except RuntimeError:
@@ -374,7 +377,8 @@ def get_ilom(path):
 # ------------------------------
 def get_image(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + IMAGE_SOL), "Solaris", True)
+        stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
+                            "Solaris", True)
         image = stdout.strip().split()
         image = image[2]
         return image
@@ -385,7 +389,8 @@ def get_image(path):
 
 def get_vol(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + PARTITION_SOL), "\\B/$", True)
+        stdout = tools.grep(os.path.normpath(path + const.PARTITION_SOL),
+                            "\\B/$", True)
         vol = stdout.strip().split()
         vol = vol[-2]
         return vol
@@ -396,7 +401,8 @@ def get_vol(path):
 
 def get_raid(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + RAID_SOL), "mirror", True)
+        stdout = tools.grep(os.path.normpath(path + const.RAID_SOL),
+                            "mirror", True)
         raid = stdout.strip().split()
         if "ONLINE" in raid:
             raid_stat = True
@@ -410,8 +416,10 @@ def get_raid(path):
 
 def get_bonding(path):
     try:
-        net_ipmp = tools.grep(os.path.normpath(path + NETWORK_SOL), "ipmp", True)
-        net_aggr = tools.grep(os.path.normpath(path + NETWORK_SOL), "aggr", True)
+        net_ipmp = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
+                              "ipmp", True)
+        net_aggr = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
+                              "aggr", True)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -428,7 +436,7 @@ def get_bonding(path):
 
 def get_cpu_util(path):
     try:
-        stdout = tools.cat(os.path.normpath(path + CPU_ULTILIZATION_SOL))
+        stdout = tools.cat(os.path.normpath(path + const.CPU_ULTILIZATION_SOL))
         cpu_idle = stdout.strip().split("\n")
         cpu_idle = cpu_idle[2]
         cpu_idle = cpu_idle.split()[21]
@@ -441,7 +449,8 @@ def get_cpu_util(path):
 
 def get_load_avg(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + CPU_LOAD_SOL), "load average", True)
+        stdout = tools.grep(os.path.normpath(path + const.CPU_LOAD_SOL),
+                            "load average", True)
         load = stdout.strip().split(", ")
         load_avg = " ".join(load).split()[-3:]
         load_avg = float(max(load_avg))
@@ -454,7 +463,8 @@ def get_load_avg(path):
 def get_vcpu(path):
     try:
         stdout = tools.grep(
-            os.path.normpath(path + VCPU_SOL), "Status", single_match=False
+            os.path.normpath(path + const.VCPU_SOL),
+            "Status", single_match=False
         )
         vcpu = stdout[-1].split()[4]
         vcpu = int(vcpu) + 1
@@ -478,7 +488,8 @@ def get_load(path):
 
 def get_mem_util(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + MEM_SOL), "^Free", False)
+        stdout = tools.grep(os.path.normpath(path + const.MEM_SOL),
+                            "^Free", False)
         mem = stdout[-1].split()
         mem_free = mem[-1]
         logging.debug(mem_free)
@@ -491,7 +502,7 @@ def get_mem_util(path):
 
 def get_swap_util(path):
     try:
-        stdout = tools.cat(os.path.normpath(path + SWAP_SOL))
+        stdout = tools.cat(os.path.normpath(path + const.SWAP_SOL))
         swap_free = stdout.strip().split()
         swap_free = [swap_free[8], swap_free[10]]
         swap_free[0] = float(swap_free[0][:-2])
@@ -585,13 +596,13 @@ def get_detail(node, path):
 
 ##### FETCH OVERVIEW #####
 def get_product(path):
-    product = tools.grep(os.path.normpath(path + PRODUCT),
+    product = tools.grep(os.path.normpath(path + const.PRODUCT),
                          "product_name", True)
     return product
 
 
 def get_serial(path):
-    serial = tools.grep(os.path.normpath(path + SERIAL),
+    serial = tools.grep(os.path.normpath(path + const.SERIAL),
                         "serial_number", True)
     return serial
 
@@ -651,7 +662,8 @@ def compile(nodes_name, logs_dir, out_dir, force):
         print("RUNNING:EXTRACT EXPLORER")
         list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
 
-        content_files.append(os.path.normpath(out_dir + "/" + node + "/" + node + ".json"))
+        content_files.append(os.path.normpath(out_dir + "/" +
+                                              node + "/" + node + ".json"))
 
         for i in range(0, len(list_logs_dir)):
             list_logs_dir[i] = os.path.normpath("temp/" +
@@ -679,7 +691,8 @@ def compile(nodes_name, logs_dir, out_dir, force):
             )
             # SAVE INFORMATION
             tools.save_json(
-                os.path.normpath(out_dir + "/" + node + "/" + node + ".json"), content
+                os.path.normpath(out_dir + "/" + node +
+                                 "/" + node + ".json"), content
             )
         except RuntimeError as err:
             raise err
@@ -817,7 +830,6 @@ def main():
         "output_file": "output/solaris.json",
         "force": False,
     }
-    # file = get_file("*.tar.gz", data_object["logs_dir"])
 
     run(
         nodes_name=data_object["nodes_name"],
