@@ -77,7 +77,7 @@ def drw_text_image(text, file):
         )
     except OSError:
         font = ImageFont.load_default(size)
-    except:
+    except Exception:
         font = ImageFont.load_default()
     with Image.new("RGB", (2000, 2000)) as img:
         d1 = ImageDraw.Draw(img)

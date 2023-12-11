@@ -20,7 +20,6 @@ import logging
 # Local library
 from rekdoc import tools
 from rekdoc import const
-# from rekdoc.const import *
 
 
 # ------------------------------
@@ -43,9 +42,6 @@ def debug(func):
 # ------------------------------
 def extract_file(file, compress, force):
     compress = compress.lower()
-    # regex = "*" + serial + "*." + compress
-    # regex = "*." + compress
-    # file = get_file(regex, root=root)
     if compress == "zip":
         unzip(file, force)
         dir = tools.rm_ext(file, compress)
@@ -56,8 +52,13 @@ def extract_file(file, compress, force):
         dir = tools.rm_ext(file, compress)
         path = os.path.split(dir)[1]
         return path
-    else:
-        raise RuntimeError("Cannot extract file")
+    elif compress == "gz":
+        untar(file, force)
+        dir = tools.rm_ext(file, compress)
+        path = os.path.split(dir)[1]
+        return path
+    # else:
+    #     raise RuntimeError("Cannot extract file")
 
 
 def unzip(file, force):
@@ -167,8 +168,10 @@ def check_valid(path):
 # ------------------------------
 
 
-##### IMAGE PROCESSING #####
-## DRAW ILOM ##
+# ------------------------------
+# IMAGE PROCESSING
+# ------------------------------
+# DRAW ILOM
 def drw_fault(path, out_dir):
     fault = io.StringIO()
     fault.write(path + const.FAULT + "\n")
@@ -301,8 +304,6 @@ def drw_content(path, output):
     logging.info(images)
     return images
 
-
-# def extract_file(serial, root, compress, force):
 
 # ------------------------------
 # FETCH ILOM
@@ -516,10 +517,10 @@ def get_swap_util(path):
         raise
 
 
-def get_system_status(path, platform):
+def get_system_status(path, platform, server_type):
     x = {}
-    if platform == "solaris":
-        try:
+    try:
+        if platform == "solaris":
             image = get_image(path)
 
             vol = get_vol(path)
@@ -532,33 +533,45 @@ def get_system_status(path, platform):
 
             bonding = get_bonding(path)
             x["bonding"] = bonding
-        except RuntimeError:
+        elif platform == "linux":
+            pass
+        elif platform == "exa":
+            pass
+        else:
             print("Failed to fetch OS information")
-            raise
+            raise RuntimeError()
+    except RuntimeError:
+        print("Failed to fetch OS information")
+        raise
     return x
 
 
-def get_system_perform(path, platform):
+def get_system_perform(path, system_type, platform):
     x = {}
-    if platform == "solaris":
-        try:
-            cpu_util = get_cpu_util(path)[1]
-            x["cpu_util"] = cpu_util
+    try:
+        if system_type == "standalone":
+            if platform == "solaris":
+                cpu_util = get_cpu_util(path)[1]
+                x["cpu_util"] = cpu_util
 
-            load = get_load(path)
-            x["load"] = {}
-            x["load"]["load_avg"] = load[0]
-            x["load"]["vcpu"] = load[1]
-            x["load"]["load_avg_per"] = load[2]
+                load = get_load(path)
+                x["load"] = {}
+                x["load"]["load_avg"] = load[0]
+                x["load"]["vcpu"] = load[1]
+                x["load"]["load_avg_per"] = load[2]
 
-            mem_util = get_mem_util(path)[1]
-            x["mem_util"] = mem_util
+                mem_util = get_mem_util(path)[1]
+                x["mem_util"] = mem_util
 
-            swap_util = get_swap_util(path)[1]
-            x["swap_util"] = swap_util
-        except RuntimeError:
-            print("Failed to fetch OS information")
-            raise
+                swap_util = get_swap_util(path)[1]
+                x["swap_util"] = swap_util
+            elif platform == "linux":
+                pass
+        elif system_type == "exa":
+            pass
+    except RuntimeError:
+        print("Failed to fetch OS information")
+        raise
     return x
 # ------------------------------
 # END FETCH OS
@@ -566,29 +579,54 @@ def get_system_perform(path, platform):
 
 
 def get_detail(node, path):
+    ilom = {}
+    system_status = {}
+    system_perform = {}
     try:
         ilom = get_ilom(path[0])
-        system_status = get_system_status(path[1], system_info["platform"])
-        system_perform = get_system_perform(path[1], system_info["platform"])
+        # OSWatcher
+        if system_info["system_type"] == "standalone":
+            system_status = get_system_status(path[1],
+                                              system_info["platform"],
+                                              system_info["type"])
+            system_perform = get_system_perform(path[1],
+                                                system_info["system_type"],
+                                                system_info["platform"])
+        # ExaWatcher
+        elif system_info["system_type"] == "exa":
+            system_status = get_system_status(path[1],
+                                              system_info["system_type"],
+                                              system_info["type"])
+
+            system_perform = get_system_perform(path[1],
+                                                system_info["system_type"],
+                                                system_info["platform"])
+        else:
+            raise RuntimeError
     except RuntimeError:
         raise
     name = node
 
     content = {}
-    content[name] = {
-        "fault": ilom["fault"],
-        "inlet": ilom["inlet"],
-        "exhaust": ilom["exhaust"],
-        "firmware": ilom["firmware"],
-        "image": system_status["image"],
-        "vol_avail": system_status["vol_avail"],
-        "raid_stat": system_status["raid_stat"],
-        "bonding": system_status["bonding"],
-        "cpu_util": system_perform["cpu_util"],
-        "load": system_perform["load"],
-        "mem_util": system_perform["mem_util"],
-        "swap_util": system_perform["swap_util"],
-    }
+    content[name] = {**ilom,
+                     **system_status,
+                     **system_perform}
+    # content[name] = {
+    #     "fault": ilom["fault"],
+    #     "inlet": ilom["inlet"],
+    #     "exhaust": ilom["exhaust"],
+    #     "firmware": ilom["firmware"],
+    #
+    #     "image": system_status["image"],
+    #     "vol_avail": system_status["vol_avail"],
+    #     "raid_stat": system_status["raid_stat"],
+    #     "bonding": system_status["bonding"],
+    #
+    #     "cpu_util": system_perform["cpu_util"],
+    #     "load": system_perform["load"],
+    #     "mem_util": system_perform["mem_util"],
+    #     "swap_util": system_perform["swap_util"],
+    # }
     logging.info("JSON file: " +
                  json.dumps(content, indent=2, ensure_ascii=False))
     return content
@@ -638,7 +676,9 @@ def compile(nodes_name, logs_dir, out_dir, force):
         create_dir(out_dir + "/" + node, force=force)
         try:
             file_logs = ["", ""]
-            print(node)
+            print("NODE:" + node)
+            print("-----------------------------")
+
             print("ILOM SNAPSHOT")
             file_logs[0] = get_file("*.zip", logs_dir)
             print("EXPLORER")
@@ -652,7 +692,6 @@ def compile(nodes_name, logs_dir, out_dir, force):
     print("-----------------------------")
     for node in nodes_name:
         print(node)
-        # if (logging.DEBUG == level) or (logging.INFO == level):
         list_logs_dir = ["", ""]
         file_logs = []
         print("RUNNING:EXTRACT FILES")
@@ -678,7 +717,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
         # DRAW IMAGES FOR CONTENT
         print("RUNNING:DRAW IMAGES")
         try:
-            images = drw_content(list_logs_dir, 
+            images = drw_content(list_logs_dir,
                                  os.path.normpath(out_dir + "/" + node + "/"))
         except RuntimeError as err:
             raise err
@@ -731,10 +770,10 @@ SYSTEM = ["standalone", "exa"]
 PLATFORM = ["linux", "solaris"]
 
 system_info = {
-        "system_type": "",
-        "platform": "",
-        "type": "",
-        }
+    "system_type": "",
+    "platform": "",
+    "type": "",
+}
 
 
 def set_system_info():
@@ -779,7 +818,6 @@ def set_system_info():
 # Flow of program
 def run(nodes_name, logs_dir, out_dir, force):
     set_system_info()
-    # out_dir = os.path.split(output_file)[0]
     # Create output and temp directory
     try:
         os.mkdir(os.path.normpath("temp"))
@@ -808,7 +846,6 @@ def run(nodes_name, logs_dir, out_dir, force):
     out_file = os.path.normpath(root_dir + "/" + "summary.json")
     tools.join_json(content_files, out_file)
     return out_file
-    # tools.join_json(content_files, output_file)
 
 
 # END_IMPLEMENTATION
