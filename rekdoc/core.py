@@ -9,9 +9,12 @@ from rekdoc import push as rekpush
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-##### CORE #####
+# ------------------------------
+# CORE
+# ------------------------------
 @click.version_option(
-    version="1.0.0", prog_name="rekdoc", message="Version %(version)s \nCrafted by Rek."
+    version="1.0.0", prog_name="rekdoc",
+    message="Version %(version)s \nCrafted by Rek."
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -38,11 +41,12 @@ def cli():
     short_help="get information",
 )
 @click.option("-i", "--input", help="node names file.", type=click.File("r"))
-@click.option("-o", "--output", required=True, help="output file.")
+@click.option("-o", "--output", required=True, help="output folder.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
-    "--dryrun", default=False, is_flag=True, help="purge the temp folder fetch run"
+    "--dryrun", default=False,
+    is_flag=True, help="purge the temp folder fetch run"
 )
 @click.option(
     "-s",
@@ -66,11 +70,14 @@ def fetch(input, output, sample, node, log, force, dryrun):
     This command examine the 'sample/' folder for logs
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.WARNING)
     nodes = []
     try:
         for line in input:
@@ -92,7 +99,7 @@ def fetch(input, output, sample, node, log, force, dryrun):
 
     # root = os.path.split(output)[0]
     try:
-        rekfetch.run(nodes, sample, output, force)
+        out_file = rekfetch.run(nodes, sample, output, force)
     except RuntimeError:
         rekfetch.clean_up_force("./temp/")
         # rekfetch.clean_up_force("./temp/")
@@ -100,7 +107,7 @@ def fetch(input, output, sample, node, log, force, dryrun):
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("Summary file created after fetch: " + output, fg="cyan")
+    click.secho("Summary file created after fetch: " + out_file, fg="cyan")
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")
@@ -112,7 +119,8 @@ def fetch(input, output, sample, node, log, force, dryrun):
     "-i",
     "--input",
     help="summary file.",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True),
+    type=click.Path(exists=True, file_okay=True,
+                    dir_okay=False, readable=True),
 )
 @click.option(
     "-m",
@@ -150,11 +158,14 @@ def doc(input, output, sample, image, log, force):
 
     """
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.INFO)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.WARNING)
+        logging.basicConfig(format="%(levelname)s:%(message)s",
+                            level=logging.WARNING)
 
     if output is None:
         output = input
@@ -203,7 +214,6 @@ def push(input):
     rekpush.run(input)
 
 
-# @click.command(no_args_is_help=True, short_help="show rules")
 @click.command(short_help="show rules")
 def rule():
     click.echo(
@@ -243,4 +253,6 @@ cli.add_command(rule)
 
 if __name__ == "__main__":
     cli()
-##### END CORE #####
+# ------------------------------
+# END CORE
+# ------------------------------
