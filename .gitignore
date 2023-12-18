@@ -17,4 +17,6 @@ build
 test_env/sample/*
 test_env/temp/*
 test_env/output/*
+test_env/gif/
+test_env/*.jar
 target/*

@@ -177,6 +177,7 @@ def doc(input, output, sample, image, log, force):
     file_name = rekdoc.run(input, output, sample, images_root, force)
     if file_name == -1:
         click.secho("Error found!", bg="red", fg="black")
+        sys.stdout.write("\033[?25h")
         return -1
 
     click.secho("Created document file: " + click.style(file_name, fg="cyan"))

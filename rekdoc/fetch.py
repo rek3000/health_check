@@ -703,7 +703,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
             print("EXPLORER")
             file_logs[1] = get_file("*.tar.gz", logs_dir)
             print("OSWATCHER")
-            file_logs[2] = get_file("*.gz", logs_dir)
+            file_logs[2] = get_file("archive*.gz", logs_dir)
             list_file_logs.append(file_logs)
             print()
         except RuntimeError as err:
@@ -727,9 +727,9 @@ def compile(nodes_name, logs_dir, out_dir, force):
         content_files.append(os.path.normpath(out_dir + "/" +
                                               node + "/" + node + ".json"))
 
-        for i in range(0, len(list_logs_dir)):
-            list_logs_dir[i] = os.path.normpath("temp/" +
-                                                str(list_logs_dir[i]))
+        list_logs_dir = [os.path.normpath(
+            "temp/" + logs_dir) for logs_dir in list_logs_dir]
+        logging.info(json.dumps(list_logs_dir, indent=2))
 
         print("RUNNING:GET DETAILS")
         try:

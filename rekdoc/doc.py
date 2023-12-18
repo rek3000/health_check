@@ -71,7 +71,8 @@ def assert_firmware(data):
         try:
             sys.stdout.write("\033[?25h")
             latest = (
-                input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                input(
+                    "\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
                 or data["firmware"]
             )
         except KeyboardInterrupt:
@@ -420,7 +421,8 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
                 path = os.path.normpath(images_root + "/" + node + "/" + image)
             doc.add_picture(path, width=Inches(6.73))
         else:
-            path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
+            path = os.path.normpath(
+                images_root + "/" + node + "/" + images_name[i - 1])
             doc.add_picture(
                 path,
                 width=Inches(6.73),
@@ -480,7 +482,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
                 empty_char=" ",
                 show_eta=False,
             )
-        image_json = os.path.normpath(images_root + "/" + node + "/images.json")
+        image_json = os.path.normpath(
+            images_root + "/" + node + "/images.json")
         images_name = tools.read_json(image_json)
         progress_bar.update(10)
 
@@ -518,7 +521,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         asserted_list += [asserted_file]
 
         tools.save_json(
-            os.path.normpath(input_root + "/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(input_root + "/" + node +
+                             "/" + asserted_file + ".json"),
             file_dump,
         )
         progress_bar.update(10)
@@ -528,7 +532,8 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         else:
             click.echo(" ", nl=False)
             click.secho("DONE", bg=SUCCESS, fg="black")
-    file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
+    file_name = os.path.normpath(tools.rm_ext(
+        input_file, "json") + "_asserted.json")
     tools.join_json(asserted_list, file_name)
     return doc
 
