@@ -461,21 +461,18 @@ def get_cpu_util(path):
         files = glob.glob(cpu_util_path, recursive=True)
         cpu_idle_alltime = []
         for file in files:
-            logging.info(file)
             stdout_lines = tools.grep(
                 file, "CPU states:", False)
-            tools.cat(file)
-            # logging.info(out)
             cpu_idle_perfile_list = [float(stdout.split()[2][:-1])
                                      for stdout in stdout_lines]
             cpu_idle_perfile = sum(cpu_idle_perfile_list) / \
                 len(cpu_idle_perfile_list)
             cpu_idle_alltime.append(cpu_idle_perfile)
-        cpu_idle = sum(cpu_idle_alltime) / len(cpu_idle_alltime)
-        # cpu_idle = stdout.strip().split("\n")
-        # cpu_idle = cpu_idle[2]
-        # cpu_idle = cpu_idle.split()[21]
-        cpu_util = 100 - cpu_idle
+            logging.debug("CPU IDLE")
+            logging.debug(cpu_idle_perfile_list)
+        cpu_idle = float("{:.2f}".format(
+            sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
+        cpu_util = float("{:.2f}".format(100 - cpu_idle))
         logging.info(cpu_idle)
         logging.info(cpu_util)
         return [cpu_idle, cpu_util]
