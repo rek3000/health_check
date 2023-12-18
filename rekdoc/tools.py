@@ -136,14 +136,14 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file):
+def cat(file, tokenize=False):
     try:
         command = ["cat", file]
-        stdout = run(command, False)[0]
+        stdout = run(command, tokenize)[0]
     except RuntimeError:
         click.echo("Cannot cat file: " + file)
         raise
-    logging.debug(stdout)
+    logging.debug(json.dumps(stdout, indent=2))
     return stdout
 
 

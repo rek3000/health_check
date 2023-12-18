@@ -522,8 +522,6 @@ def get_load(path):
 
 def get_mem_free(path):
     try:
-        # stdout = tools.grep(os.path.normpath(path + const.MEM_SOL),
-        #                     "Memory", False)
         mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
         files = glob.glob(mem_free_path, recursive=True)
         mem_free_alltime = []
@@ -541,17 +539,51 @@ def get_mem_free(path):
             logging.debug(mem_free_perfile_list)
         mem_free = float("{:.0f}".format(
             sum(mem_free_alltime) / len(mem_free_alltime)))
-        mem_util = float("{:.0f}".format(total_mem - mem_free))
-
-        # mem = stdout[-1].split()
-        # mem_free = mem[-1]
-        # logging.debug(mem_free)
-        # mem_util = 100 - float(mem_free[:-1])
-        logging.info("MEM_FREE:" + str(mem_free))
-        logging.info("MEM_UTIL:" + str(mem_util))
-        return mem_free, mem_util
+        # mem_util = float("{:.0f}".format(total_mem - mem_free))
+        mem_free_percent = float("{:.2f}".format((mem_free / total_mem) * 100))
+        mem_util_percent = 100 - mem_free_percent
+        logging.info("MEM_FREE:" + str(mem_free_percent))
+        logging.info("MEM_UTIL:" + str(mem_util_percent))
+        return mem_free_percent, mem_util_percent
     except RuntimeError:
         print("Failed to fetch memory util")
+        raise
+
+
+def get_io_busy(path):
+    try:
+        io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
+        files = glob.glob(io_busy_path, recursive=True)
+        io_busy_alltime = []
+        for file in files:
+            # check_times = len(tools.grep(file, "zzz", False))
+            stdout = tools.cat(file, True)
+            io_busy_perfile_list = []
+            io_busy_persection_list = []
+            io_busy_persection = []
+            for i in range(1, len(stdout)):
+                if "zzz" in stdout[i]:
+                    if i == len(stdout) - 1:
+                        break
+                    i = i + 2
+                    logging.debug(json.dumps(io_busy_persection_list, indent=2))
+                    io_busy_persection = sum(
+                        io_busy_persection_list) / len(io_busy_persection_list)
+                    io_busy_perfile_list.append(io_busy_persection)
+                    io_busy_persection_list = []
+                    io_busy_persection = []
+                    continue
+                io_busy_persection_list.append(float(stdout[i].split()[-2]))
+            io_busy_perfile = sum(io_busy_perfile_list) / \
+                len(io_busy_perfile_list)
+            io_busy_alltime.append(io_busy_perfile)
+        io_busy = float("{:.0f}".format(
+            sum(io_busy_alltime) / len(io_busy_alltime)))
+        return io_busy
+
+
+    except RuntimeError:
+        print("Failed to fetch io busy")
         raise
 
 
@@ -617,6 +649,9 @@ def get_system_perform(path, system_type, platform):
                 # x["mem_util"] = mem_util
                 mem_free = get_mem_free(path)[0]
                 x["mem_free"] = mem_free
+                
+                # io_busy = get_io_busy(path)[0]
+                # x["io_busy"] = io_busy
 
                 # swap_util = get_swap_util(path)[1]
                 # x["swap_util"] = swap_util
@@ -663,25 +698,12 @@ def get_detail(node, path):
     name = node
 
     content = {}
+    # logging.info(json.dumps(ilom, indent=2))
+    # logging.info(json.dumps(system_status, indent=2))
+    # logging.info(json.dumps(system_perform, indent=2))
     content[name] = {**ilom,
                      **system_status,
                      **system_perform}
-    # content[name] = {
-    #     "fault": ilom["fault"],
-    #     "inlet": ilom["inlet"],
-    #     "exhaust": ilom["exhaust"],
-    #     "firmware": ilom["firmware"],
-    #
-    #     "image": system_status["image"],
-    #     "vol_avail": system_status["vol_avail"],
-    #     "raid_stat": system_status["raid_stat"],
-    #     "bonding": system_status["bonding"],
-    #
-    #     "cpu_util": system_perform["cpu_util"],
-    #     "load": system_perform["load"],
-    #     "mem_util": system_perform["mem_util"],
-    #     "swap_util": system_perform["swap_util"],
-    # }
     logging.info("JSON file: " +
                  json.dumps(content, indent=2, ensure_ascii=False))
     return content
