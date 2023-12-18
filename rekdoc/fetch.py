@@ -473,9 +473,9 @@ def get_cpu_util(path):
         cpu_idle = float("{:.2f}".format(
             sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
         cpu_util = float("{:.2f}".format(100 - cpu_idle))
-        logging.info(cpu_idle)
-        logging.info(cpu_util)
-        return [cpu_idle, cpu_util]
+        logging.info("CPU_IDLE:" + str(cpu_idle))
+        logging.info("CPU_UTIL:" + str(cpu_util))
+        return [cpu_util, cpu_idle]
     except RuntimeError:
         print("Failed to feth cpu util")
         raise
@@ -520,14 +520,35 @@ def get_load(path):
         raise
 
 
-def get_mem_util(path):
+def get_mem_free(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + const.MEM_SOL),
-                            "^Free", False)
-        mem = stdout[-1].split()
-        mem_free = mem[-1]
-        logging.debug(mem_free)
-        mem_util = 100 - float(mem_free[:-1])
+        # stdout = tools.grep(os.path.normpath(path + const.MEM_SOL),
+        #                     "Memory", False)
+        mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
+        files = glob.glob(mem_free_path, recursive=True)
+        mem_free_alltime = []
+        total_mem = float(tools.grep(
+            files[-1], "Memory", True).split()[1][:-1])
+        for file in files:
+            stdout_lines = tools.grep(
+                file, "Memory", False)
+            mem_free_perfile_list = [float(stdout.split()[4][:-1])
+                                     for stdout in stdout_lines]
+            mem_free_perfile = sum(mem_free_perfile_list) / \
+                len(mem_free_perfile_list)
+            mem_free_alltime.append(mem_free_perfile)
+            logging.debug("MEM FREE")
+            logging.debug(mem_free_perfile_list)
+        mem_free = float("{:.0f}".format(
+            sum(mem_free_alltime) / len(mem_free_alltime)))
+        mem_util = float("{:.0f}".format(total_mem - mem_free))
+
+        # mem = stdout[-1].split()
+        # mem_free = mem[-1]
+        # logging.debug(mem_free)
+        # mem_util = 100 - float(mem_free[:-1])
+        logging.info("MEM_FREE:" + str(mem_free))
+        logging.info("MEM_UTIL:" + str(mem_util))
         return mem_free, mem_util
     except RuntimeError:
         print("Failed to fetch memory util")
@@ -584,20 +605,21 @@ def get_system_perform(path, system_type, platform):
     try:
         if system_type == "standalone":
             if platform == "solaris":
-                cpu_util = get_cpu_util(path)[1]
+                cpu_util = get_cpu_util(path)[0]
                 x["cpu_util"] = cpu_util
 
-                load = get_load(path)
-                x["load"] = {}
-                x["load"]["load_avg"] = load[0]
-                x["load"]["vcpu"] = load[1]
-                x["load"]["load_avg_per"] = load[2]
+                # load = get_load(path)
+                # x["load"] = {}
+                # x["load"]["load_avg"] = load[0]
+                # x["load"]["vcpu"] = load[1]
+                # x["load"]["load_avg_per"] = load[2]
+                # mem_util = get_mem_util(path)[1]
+                # x["mem_util"] = mem_util
+                mem_free = get_mem_free(path)[0]
+                x["mem_free"] = mem_free
 
-                mem_util = get_mem_util(path)[1]
-                x["mem_util"] = mem_util
-
-                swap_util = get_swap_util(path)[1]
-                x["swap_util"] = swap_util
+                # swap_util = get_swap_util(path)[1]
+                # x["swap_util"] = swap_util
             elif platform == "linux":
                 pass
         elif system_type == "exa":
