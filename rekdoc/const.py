@@ -48,10 +48,13 @@ MEM_LINUX = ""
 SWAP_SOL = ""
 EXTRACT_LOCATION = "./temp/"
 # SOLARIS
-CPU_ULTILIZATION_SOL = "/sysconfig/vmstat_3_3.out"
+# CPU_ULTILIZATION_SOL = "/sysconfig/vmstat_3_3.out"
+CPU_ULTILIZATION_SOL = "/oswtop/"
 CPU_LOAD_SOL = "/sysconfig/prstat-L.out"
 VCPU_SOL = "/sysconfig/psrinfo-v.out"
-MEM_SOL = "/disks/zfs/mdb/mdb-memstat.out"
+# MEM_SOL = "/disks/zfs/mdb/mdb-memstat.out"
+MEM_SOL = "/oswtop/"
+IO_SOL = "/oswiostat/"
 SWAP_SOL = "/disks/swap-s.out"
 
 # EXADATA/SUPPER CLUSTER (Exawatcher)

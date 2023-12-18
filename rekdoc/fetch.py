@@ -456,11 +456,28 @@ def get_bonding(path):
 
 def get_cpu_util(path):
     try:
-        stdout = tools.cat(os.path.normpath(path + const.CPU_ULTILIZATION_SOL))
-        cpu_idle = stdout.strip().split("\n")
-        cpu_idle = cpu_idle[2]
-        cpu_idle = cpu_idle.split()[21]
-        cpu_util = 100 - int(cpu_idle)
+        cpu_util_path = os.path.normpath(
+            path + const.CPU_ULTILIZATION_SOL + '*.dat')
+        files = glob.glob(cpu_util_path, recursive=True)
+        cpu_idle_alltime = []
+        for file in files:
+            logging.info(file)
+            stdout_lines = tools.grep(
+                file, "CPU states:", False)
+            tools.cat(file)
+            # logging.info(out)
+            cpu_idle_perfile_list = [float(stdout.split()[2][:-1])
+                                     for stdout in stdout_lines]
+            cpu_idle_perfile = sum(cpu_idle_perfile_list) / \
+                len(cpu_idle_perfile_list)
+            cpu_idle_alltime.append(cpu_idle_perfile)
+        cpu_idle = sum(cpu_idle_alltime) / len(cpu_idle_alltime)
+        # cpu_idle = stdout.strip().split("\n")
+        # cpu_idle = cpu_idle[2]
+        # cpu_idle = cpu_idle.split()[21]
+        cpu_util = 100 - cpu_idle
+        logging.info(cpu_idle)
+        logging.info(cpu_util)
         return [cpu_idle, cpu_util]
     except RuntimeError:
         print("Failed to feth cpu util")
@@ -608,7 +625,7 @@ def get_detail(node, path):
             system_status = get_system_status(path[1],
                                               system_info["platform"],
                                               system_info["type"])
-            system_perform = get_system_perform(path[1],
+            system_perform = get_system_perform(path[2],
                                                 system_info["system_type"],
                                                 system_info["platform"])
         # ExaWatcher

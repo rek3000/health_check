@@ -148,7 +148,7 @@ def cat(file):
 
 
 def grep(path, regex, single_match, next=0):
-    command = ["grep", "-e", regex]
+    command = ["grep", "-e", regex, "--no-group-separator"]
 
     if single_match:
         command.extend(["-m1"])
@@ -160,7 +160,7 @@ def grep(path, regex, single_match, next=0):
     tokenize = bool(1 - single_match)
     stdout = run(command, tokenize)[0]
 
-    logging.debug(stdout)
+    logging.debug(json.dumps(stdout, indent=2))
     return stdout
 
 
