@@ -296,30 +296,36 @@ def drw_swap(path, out_dir):
 
 
 # SUCKS, rewrite later
-def drw_os(path, out_dir):
+def drw_system_status(path, out_dir):
     drw_image(path, out_dir)
     drw_vol(path, out_dir)
     drw_raid(path, out_dir)
     drw_net(path, out_dir)
+    return [
+            "image.png",
+            ["vol.png", "raid.png"],
+            "net.png",
+            ]
+
+
+def drw_system_performance(path, out_dir):
     drw_cpu(path, out_dir)
     drw_load(path, out_dir)
     drw_mem(path, out_dir)
     drw_swap(path, out_dir)
     return [
-        "image.png",
-        ["vol.png", "raid.png"],
-        "net.png",
-        "cpu_idle.png",
-        "load.png",
-        "mem.png",
-        "swap.png",
-    ]
+            "cpu_idle.png",
+            "load.png",
+            "mem.png",
+            "swap.png",
+            ]
 
 
-def drw_content(path, output):
-    ilom = drw_ilom(path[0], output)
-    system_status = drw_os(path[1], output)
-    images = ilom + system_status
+def drw_content(path, out_dir):
+    ilom = drw_ilom(path[0], out_dir)
+    system_status = drw_system_status(path[1], out_dir)
+    system_performance = drw_system_performance(path[2], out_dir)
+    images = ilom + system_status + system_performance
     logging.info(images)
     return images
 
@@ -566,7 +572,8 @@ def get_io_busy(path):
                     if i == len(stdout) - 1:
                         break
                     i = i + 2
-                    logging.debug(json.dumps(io_busy_persection_list, indent=2))
+                    logging.debug(json.dumps(
+                        io_busy_persection_list, indent=2))
                     io_busy_persection = sum(
                         io_busy_persection_list) / len(io_busy_persection_list)
                     io_busy_perfile_list.append(io_busy_persection)
@@ -580,7 +587,6 @@ def get_io_busy(path):
         io_busy = float("{:.0f}".format(
             sum(io_busy_alltime) / len(io_busy_alltime)))
         return io_busy
-
 
     except RuntimeError:
         print("Failed to fetch io busy")
@@ -645,11 +651,9 @@ def get_system_perform(path, system_type, platform):
                 # x["load"]["load_avg"] = load[0]
                 # x["load"]["vcpu"] = load[1]
                 # x["load"]["load_avg_per"] = load[2]
-                # mem_util = get_mem_util(path)[1]
-                # x["mem_util"] = mem_util
                 mem_free = get_mem_free(path)[0]
                 x["mem_free"] = mem_free
-                
+
                 # io_busy = get_io_busy(path)[0]
                 # x["io_busy"] = io_busy
 
