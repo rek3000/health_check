@@ -42,6 +42,8 @@ def debug(func):
 # ------------------------------
 def extract_file(file, compress, force):
     compress = compress.lower()
+    if file == "":
+        return ""
     if compress == "zip":
         unzip(file, force)
         dir = tools.rm_ext(file, compress)
@@ -133,6 +135,7 @@ def get_file(regex, logs_dir):
     else:
         for i in range(len(files)):
             print("[", i, "] ", files[i], sep="")
+        print("[-1]. Skip")
         c = ""
         while True:
             try:
@@ -145,7 +148,10 @@ def get_file(regex, logs_dir):
             except ValueError:
                 continue
             break
-        return files[c]
+        if c == -1:
+            return ""
+        else:
+            return files[c]
 
 
 def clean_files(dir):
@@ -677,24 +683,59 @@ def get_detail(node, path):
     system_status = {}
     system_perform = {}
     try:
-        ilom = get_ilom(path[0])
+        if path[0] == "":
+            ilom = {
+                    "fault": "",
+                    "inlet": "",
+                    "exhaust": "",
+                    "firmware": "",
+                    }
+        else:
+            ilom = get_ilom(path[0])
         # OSWatcher
         if system_info["system_type"] == "standalone":
-            system_status = get_system_status(path[1],
-                                              system_info["platform"],
-                                              system_info["type"])
-            system_perform = get_system_perform(path[2],
-                                                system_info["system_type"],
-                                                system_info["platform"])
+            if path[1] == "":
+                system_status = {
+                        "image": "",
+                        "vol_avail": "",
+                        "raid_stat": "",
+                        "bonding": ""
+                        }
+            else:
+                system_status = get_system_status(path[1],
+                                                  system_info["platform"],
+                                                  system_info["type"])
+            if path[2] == "":
+                system_perform = {
+                        "cpu_util": "",
+                        "mem_free": "",
+                        }
+            else:
+                system_perform = get_system_perform(path[2],
+                                                    system_info["system_type"],
+                                                    system_info["platform"])
         # ExaWatcher
         elif system_info["system_type"] == "exa":
-            system_status = get_system_status(path[1],
-                                              system_info["system_type"],
-                                              system_info["type"])
-
-            system_perform = get_system_perform(path[1],
-                                                system_info["system_type"],
-                                                system_info["platform"])
+            if path[1] == "":
+                system_status = {
+                        "image": "",
+                        "vol_avail": "",
+                        "raid_stat": "",
+                        "bonding": ""
+                        }
+            else:
+                system_status = get_system_status(path[1],
+                                                  system_info["system_type"],
+                                                  system_info["type"])
+            if path[2] == "":
+                system_perform = {
+                        "cpu_util": "",
+                        "mem_free": "",
+                        }
+            else:
+                system_perform = get_system_perform(path[2],
+                                                    system_info["system_type"],
+                                                    system_info["platform"])
         else:
             raise RuntimeError
     except RuntimeError:
@@ -780,17 +821,23 @@ def compile(nodes_name, logs_dir, out_dir, force):
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
         print("RUNNING:EXTRACT ILOM SNAPSHOT")
-        list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
-        print("RUNNING:EXTRACT EXPLORER")
-        list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
-        print("RUNNING:EXTRACT OSWATCHER")
-        list_logs_dir[2] = extract_file(file_logs[2], "gz", force)
+        try:
+            list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
+            print("RUNNING:EXTRACT EXPLORER")
+            list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
+            print("RUNNING:EXTRACT OSWATCHER")
+            list_logs_dir[2] = extract_file(file_logs[2], "gz", force)
+        except ValueError:
+            pass
 
         content_files.append(os.path.normpath(out_dir + "/" +
                                               node + "/" + node + ".json"))
 
         list_logs_dir = [os.path.normpath(
             "temp/" + logs_dir) for logs_dir in list_logs_dir]
+        for i in range(0, len(list_logs_dir)):
+            if list_logs_dir[i] == "temp":
+                list_logs_dir[i] = ""
         logging.info(json.dumps(list_logs_dir, indent=2))
 
         print("RUNNING:GET DETAILS")
