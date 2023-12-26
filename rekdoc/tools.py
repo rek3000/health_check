@@ -15,7 +15,7 @@ def save_json(file, content):
         click.echo("No content from input to save!")
         return -1
     try:
-        with open(file, "w") as f:
+        with open(file, "w+") as f:
             json.dump(content, f, indent=2, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
@@ -24,7 +24,7 @@ def save_json(file, content):
 
 def read_json(file):
     try:
-        with open(file, "r") as f:
+        with open(file, "r+") as f:
             content = json.load(f)
         return content
     except FileNotFoundError as err:
@@ -35,17 +35,18 @@ def read_json(file):
         raise RuntimeError("Cannot read JSON file") from err
 
 
-def join_json(content_files, output):
+def join_json(out_file, content_files):
     try:
-        with open(output, "w+") as file:
+        file_data = read_json(out_file)
+        with open(out_file, "w+") as file:
             x = {}
             for i in content_files:
-                # path = "./output/" + i.split(".")[0]
-                # path = os.path.normpath("".join(path).split("_")[0] + "/" + i + ".json")
                 buffer = read_json(i)
                 key = list(buffer)[0]
-                x[key] = buffer[key]
-            json.dump(x, file, indent=4, ensure_ascii=False)
+                # x[key] = buffer[key]
+                # file_data.update(x[key])
+                file_data[key] = buffer[key]
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
         raise RuntimeError("Cannot write contents to JSON file") from err

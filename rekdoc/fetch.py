@@ -308,10 +308,10 @@ def drw_system_status(path, out_dir):
     drw_raid(path, out_dir)
     drw_net(path, out_dir)
     return [
-            "image.png",
-            ["vol.png", "raid.png"],
-            "net.png",
-            ]
+        "image.png",
+        ["vol.png", "raid.png"],
+        "net.png",
+    ]
 
 
 def drw_system_performance(path, out_dir):
@@ -320,11 +320,11 @@ def drw_system_performance(path, out_dir):
     drw_mem(path, out_dir)
     drw_swap(path, out_dir)
     return [
-            "cpu_idle.png",
-            "load.png",
-            "mem.png",
-            "swap.png",
-            ]
+        "cpu_idle.png",
+        "load.png",
+        "mem.png",
+        "swap.png",
+    ]
 
 
 def drw_content(path, out_dir):
@@ -660,8 +660,11 @@ def get_system_perform(path, system_type, platform):
                 mem_free = get_mem_free(path)[0]
                 x["mem_free"] = mem_free
 
+                # TODO
                 # io_busy = get_io_busy(path)[0]
                 # x["io_busy"] = io_busy
+                # filler
+                x["io_busy"] = ""
 
                 # swap_util = get_swap_util(path)[1]
                 # x["swap_util"] = swap_util
@@ -685,31 +688,31 @@ def get_detail(node, path):
     try:
         if path[0] == "":
             ilom = {
-                    "fault": "",
-                    "inlet": "",
-                    "exhaust": "",
-                    "firmware": "",
-                    }
+                "fault": "",
+                "inlet": "",
+                "exhaust": "",
+                "firmware": "",
+            }
         else:
             ilom = get_ilom(path[0])
         # OSWatcher
         if system_info["system_type"] == "standalone":
             if path[1] == "":
                 system_status = {
-                        "image": "",
-                        "vol_avail": "",
-                        "raid_stat": "",
-                        "bonding": ""
-                        }
+                    "image": "",
+                    "vol_avail": "",
+                    "raid_stat": "",
+                    "bonding": ""
+                }
             else:
                 system_status = get_system_status(path[1],
                                                   system_info["platform"],
                                                   system_info["type"])
             if path[2] == "":
                 system_perform = {
-                        "cpu_util": "",
-                        "mem_free": "",
-                        }
+                    "cpu_util": "",
+                    "mem_free": "",
+                }
             else:
                 system_perform = get_system_perform(path[2],
                                                     system_info["system_type"],
@@ -718,20 +721,20 @@ def get_detail(node, path):
         elif system_info["system_type"] == "exa":
             if path[1] == "":
                 system_status = {
-                        "image": "",
-                        "vol_avail": "",
-                        "raid_stat": "",
-                        "bonding": ""
-                        }
+                    "image": "",
+                    "vol_avail": "",
+                    "raid_stat": "",
+                    "bonding": ""
+                }
             else:
                 system_status = get_system_status(path[1],
                                                   system_info["system_type"],
                                                   system_info["type"])
             if path[2] == "":
                 system_perform = {
-                        "cpu_util": "",
-                        "mem_free": "",
-                        }
+                    "cpu_util": "",
+                    "mem_free": "",
+                }
             else:
                 system_perform = get_system_perform(path[2],
                                                     system_info["system_type"],
@@ -840,22 +843,15 @@ def compile(nodes_name, logs_dir, out_dir, force):
                 list_logs_dir[i] = ""
         logging.info(json.dumps(list_logs_dir, indent=2))
 
-        print("RUNNING:GET DETAILS")
         try:
+            print("RUNNING:GET DETAILS")
             content = get_detail(node, list_logs_dir)
-        except RuntimeError:
-            raise
-
         # DRAW IMAGES FOR CONTENT
-        print("RUNNING:DRAW IMAGES")
-        try:
+            print("RUNNING:DRAW IMAGES")
             images = drw_content(list_logs_dir,
                                  os.path.normpath(out_dir + "/" + node + "/"))
-        except RuntimeError as err:
-            raise err
         # END DRAWING
-        print("RUNNING:SAVE IMAGES")
-        try:
+            print("RUNNING:SAVE IMAGES")
             # SAVE IMAGE NAME
             tools.save_json(
                 os.path.normpath(out_dir + "/" + node + "/images.json"), images
@@ -865,12 +861,10 @@ def compile(nodes_name, logs_dir, out_dir, force):
                 os.path.normpath(out_dir + "/" + node +
                                  "/" + node + ".json"), content
             )
-        except RuntimeError as err:
-            raise err
-
-        print("DONE")
-        print()
-
+            print("DONE")
+            print()
+        except RuntimeError:
+            raise
     sys.stdout.write("\033[?25h")
     return content_files
 
@@ -976,7 +970,8 @@ def run(nodes_name, logs_dir, out_dir, force):
 
     # Union all jsons to one file
     out_file = os.path.normpath(root_dir + "/" + "summary.json")
-    tools.join_json(content_files, out_file)
+    tools.save_json(out_file, system_info)
+    tools.join_json(out_file, content_files)
     return out_file
 
 
