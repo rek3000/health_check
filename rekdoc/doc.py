@@ -78,7 +78,8 @@ def assert_firmware(data):
             sys.stdout.write("\033[?25h")
             latest = (
                 input(
-                    "\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                    "Enter latest ILOM version\n[" + data["firmware"] + "] "
+                    )
                 or data["firmware"]
             )
         except KeyboardInterrupt:
@@ -106,8 +107,8 @@ def assert_firmware(data):
             break
 
     comment = [
-        "Phiên bản Ilom hiện tại: " + data["firmware"],
-        "Phiên bản Ilom mới nhất: " + latest,
+        "Phiên bản ILOM hiện tại: " + data["firmware"],
+        "Phiên bản ILOM mới nhất: " + latest,
     ]
     firmware = [score, comment]
     logging.debug(json.dumps(firmware, ensure_ascii=False))
@@ -120,7 +121,7 @@ def assert_image(data):
         try:
             sys.stdout.write("\033[?25h")
             latest = (
-                input("\nEnter latest OS version\n [" + data["image"] + "] ")
+                input("Enter latest OS version\n[" + data["image"] + "] ")
                 or data["image"]
             )
         except KeyboardInterrupt:
@@ -168,7 +169,7 @@ def assert_vol(data):
         ]
     elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
         "raid_stat"
-    ] == True:
+    ] is True:
         score = 3
         comment = [
             "Phân vùng OS được cấu hình RAID",
@@ -227,7 +228,7 @@ def assert_cpu_util(data):
         score = 3
     else:
         score = 1
-    comment = ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
+    comment = ["CPU Utilization khoảng " + str(data["cpu_util"]) + "%"]
 
     cpu_util = [score, comment]
     logging.debug(json.dumps(cpu_util, ensure_ascii=False))
@@ -546,81 +547,44 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
     # drw_menu(doc, nodes)
     input_root = os.path.split(input_file)[0]
     for node in nodes:
-        level = logging.root.level
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node, bg="cyan", fg="black")
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node["node_name"], fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-                bar_template="",
-            )
-            progress_bar.finish()
-        else:
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node["node_name"], fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-            )
+        print("NODE:" + node["node_name"])
+        print("RUNNING:GETTING SAVED IMAGES")
         image_json = os.path.normpath(
             images_root + "/" + node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
-        progress_bar.update(10)
 
-        progress_bar.update(1)
+        print("RUNNING:ASSERTING DATA")
         asserted = assert_data(node)
-        progress_bar.update(10)
 
-        print("RUNNING: SAVING ASSERTED DATA")
+        print("RUNNING:SAVING ASSERTED DATA")
         file_dump = asserted
         asserted_file = input_root + "/" + \
             node["node_name"] + "/" + node["node_name"] + "_asserted.json"
         asserted_list += [asserted_file]
-        # tools.save_json(
-        #     os.path.normpath(input_root + "/" + node["node_name"] +
-        #                      "/" + asserted_file),
-        #     file_dump,
-        # )
         tools.save_json(
             os.path.normpath(asserted_file),
             file_dump,
         )
-        print("RUNNING: CHECKLIST")
-
-        # keys = list(asserted)
+        print("RUNNING:CREATING CHECKLIST")
         checklist = get_score(asserted)
-        progress_bar.update(10)
+        print("RUNNING:DRAWING OVERVIEW TABLE")
         doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
         doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-        progress_bar.update(10)
         overview = [
             ["Hostname", "Product Name", "Serial Number", "IP Address"],
             [node["node_name"], "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
-        progress_bar.update(10)
         doc.add_paragraph("Đánh giá", style="baocao3")
-        progress_bar.update(10)
-        drw_table(doc, checklist, 11, 3, True)
-        progress_bar.update(10)
+        print("RUNNING:DRAWING SUMMARY TABLE")
+        drw_table(doc, checklist, len(checklist), 3, True)
 
+        print("RUNNING:DRAWING DETAILS")
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-        progress_bar.update(10)
-
         drw_info(doc, node["node_name"], checklist, images_root, images_name)
-        progress_bar.update(10)
 
-        progress_bar.update(10)
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node["node_name"] + " DONE", bg=SUCCESS, fg="black")
-            click.echo()
-        else:
-            click.echo(" ", nl=False)
-            click.secho("DONE", bg=SUCCESS, fg="black")
+        print("DONE")
+        print()
     logging.debug(json.dumps(asserted_list))
     print("RUNNING:SAVING ASSERTED SUMMARY FILE")
     file_name = os.path.normpath(tools.rm_ext(

@@ -638,11 +638,11 @@ def get_system_status(path, platform, server_type):
             x["image"] = image
             x["vol_avail"] = vol_avail
 
-            raid_stat = get_raid(path)
-            x["raid_stat"] = raid_stat
-
-            bonding = get_bonding(path)
-            x["bonding"] = bonding
+            if server_type == "baremetal":
+                raid_stat = get_raid(path)
+                x["raid_stat"] = raid_stat
+                bonding = get_bonding(path)
+                x["bonding"] = bonding
         elif platform == "linux":
             pass
         elif platform == "exa":
