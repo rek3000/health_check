@@ -40,12 +40,11 @@ def join_json(out_file, content_files):
         file_data = read_json(out_file)
         with open(out_file, "w+") as file:
             x = {}
-            for i in content_files:
-                buffer = read_json(i)
+            file_data["nodes"] = []
+            for content in content_files:
+                buffer = read_json(content)
                 key = list(buffer)[0]
-                # x[key] = buffer[key]
-                # file_data.update(x[key])
-                file_data[key] = buffer[key]
+                file_data["nodes"].extend([{key: buffer[key]}])
             json.dump(file_data, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)

@@ -951,7 +951,7 @@ def run(nodes_name, logs_dir, out_dir, force):
     except FileExistsError:
         pass
     # create_dir(os.path.normpath(out_dir), force)
-    root_dir = out_dir + "/" + str(datetime.datetime.now())
+    root_dir = out_dir + "/" + str(datetime.datetime.now().isoformat())
     create_dir(os.path.normpath(root_dir))
     # create root folder
 

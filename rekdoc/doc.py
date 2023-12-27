@@ -453,8 +453,17 @@ def drw_menu(doc, nodes):
     doc.add_page_break()
 
 
+system_info = {"system_type": "",
+               "platform": "",
+               "type": ""}
+
+
 def drw_doc(doc, input_file, out_dir, images_root, force):
-    nodes = tools.read_json(input_file)
+    input_file_data = tools.read_json(input_file)
+    system_info["system_type"] = input_file_data["system_type"]
+    system_info["platform"] = input_file_data["platform"]
+    system_info["type"] = input_file_data["type"]
+    nodes = input_file_data["nodes"]
     if nodes == -1:
         return -1
     asserted_list = []
