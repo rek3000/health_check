@@ -26,6 +26,12 @@ def assert_fault(data):
     if (data["fault"] == "No faults found") or (data["fault"] == ""):
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
+    elif data["fault"] == "warning":
+        score = 3
+        comment = [
+            "Lỗi không ảnh hưởng tới hiệu năng của hệ thống",
+            "Đánh giá: " + ASSERTION[score],
+        ]
     else:
         score = 1
         comment = [

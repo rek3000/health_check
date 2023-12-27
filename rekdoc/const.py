@@ -25,7 +25,7 @@ NETWORK = "/sysconfig/ifconfig-a.out"
 # HugePages = HugePages_Total * 2 /1024 = ~ 67.8% physical Memory
 
 # ORACLE SOLARIS (EXPLORER)
-IMAGE_SOL = "/etc/release"
+IMAGE_SOL = "/patch+pkg/pkg_info-l.out"
 PARTITION_SOL = "/disks/df-kl.out"
 # RAID is NOT require for VMs or Physical Server Boot from SAN
 RAID_SOL = "/disks/zfs/zpool_status_-v.out"

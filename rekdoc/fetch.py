@@ -239,7 +239,8 @@ def drw_ilom(path, out_dir):
 def drw_image(path, out_dir):
     image = io.StringIO()
     image.write(path + const.IMAGE_SOL + "\n")
-    image.write(tools.cat(os.path.normpath(path + const.IMAGE_SOL)))
+    image.write(tools.grep(os.path.normpath(
+        path + const.IMAGE_SOL), "Name: entire", True, 18))
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
     return image
 
@@ -341,8 +342,14 @@ def drw_content(path, out_dir):
 # ------------------------------
 def get_fault(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + const.FAULT), "*", True, 9)
-        fault = stdout.strip()
+        if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
+            fault = "critical"
+        elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
+            fault = "warning"
+        else:
+            stdout = tools.grep(os.path.normpath(
+                path + const.FAULT), "*", True, 9)
+            fault = stdout.strip()
         return fault
     except RuntimeError:
         print("Failed to fetch fault data")
@@ -410,9 +417,9 @@ def get_ilom(path):
 def get_image(path):
     try:
         stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
-                            "Solaris", True)
-        image = stdout.strip().split()
-        image = image[2]
+                            "Name: entire", True, 18)
+        image_lines = stdout.split('\n')
+        image = image_lines[11].split()[4][:-1]
         return image
     except RuntimeError:
         print("Failed to fetch image")
@@ -455,9 +462,14 @@ def get_bonding(path):
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
-            bonding = "ipmp"
+            # bonding = "ipmp"
+            state = net_ipmp.split()[2]
+            if state == "ok":
+                bonding = "ipmp"
         elif net_aggr and not net_ipmp:
-            bonding = "aggr"
+            state = net_ipmp.split()[2]
+            if state == "ok":
+                bonding = "aggr"
         else:
             bonding = "both"
         return bonding
