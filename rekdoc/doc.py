@@ -250,7 +250,8 @@ def assert_load(data):
 
 
 def assert_mem_free(data):
-    mem_free = 100 - data["mem_util"]
+    # mem_free = 100 - data["mem_util"]
+    mem_free = data["mem_free"]
     if mem_free >= 20:
         score = 5
     elif mem_free > 10 and mem_free < 20:
@@ -263,6 +264,13 @@ def assert_mem_free(data):
     logging.debug(json.dumps(mem_free, ensure_ascii=False))
 
     return mem_free
+
+
+def assert_io_busy(data):
+    score = 5
+    comment = [""]
+    io_busy = [score, comment]
+    return io_busy
 
 
 def assert_swap_util(data):
@@ -280,58 +288,119 @@ def assert_swap_util(data):
     return swap_util
 
 
+def assert_ilom(data):
+    x = {}
+    try:
+        fault = assert_fault(data)
+        temp = assert_temp(data)
+        firmware = assert_firmware(data)
+        x = {"fault": fault,
+             "temp": temp,
+             "firmware": firmware}
+    except RuntimeError:
+        print("Failed to assert ILOM")
+        raise
+    return x
+
+
+def assert_system_status(data, server_type):
+    x = {}
+    try:
+        image = assert_image(data)
+        # asserted["image"][0] = image[0]
+        # asserted["image"][1].extend(image[1])
+        vol = assert_vol(data)
+        # asserted["vol_avail"][0] = vol[0]
+        # asserted["vol_avail"][1].extend(vol[1])
+        bonding = assert_bonding(data)
+        # asserted["bonding"][0] = bonding[0]
+        # asserted["bonding"][1].extend(bonding[1])
+        x = {"image": image,
+             "vol": vol,
+             "bonding": bonding}
+    except RuntimeError:
+        print("Failed to assert system status")
+        raise
+    return x
+
+
+def assert_system_perform(data, platform, system_type):
+    x = {}
+    try:
+        if system_type == "standalone":
+            if platform == "solaris":
+                cpu_util = assert_cpu_util(data)
+                # asserted["cpu_util"][0] = cpu_util[0]
+                # asserted["cpu_util"][1].extend(cpu_util[1])
+                mem_free = assert_mem_free(data)
+                # asserted["mem_free"][0] = mem_free[0]
+                # asserted["mem_free"][1].extend(mem_free[1])
+                io_busy = assert_io_busy(data)
+
+                x = {"cpu_util": cpu_util,
+                     "mem_free": mem_free,
+                     "io_busy": io_busy}
+            elif platform == "linux":
+                pass
+        elif system_type == "exa":
+            pass
+    except RuntimeError:
+        print("Failed to assert system performance")
+        raise
+    logging.debug(json.dumps(x))
+    return x
+
+
 def assert_data(data):
     asserted = {}
-    for i in data:
-        if i == "inlet":
-            i = "temp"
-        if i == "exhaust":
-            continue
-        if i == "raid_stat":
-            continue
-        if i == "mem_util":
-            i = "mem_free"
-        asserted[i] = ["", []]
+    # for i in data:
+    #     if i == "inlet":
+    #         i = "temp"
+    #     if i == "exhaust":
+    #         continue
+    #     if i == "raid_stat":
+    #         continue
+    #     # if i == "mem_util":
+    #     #     i = "mem_free"
+    #     asserted[i] = ["", []]
 
-    fault = assert_fault(data)
-    asserted["fault"][0] = fault[0]
-    asserted["fault"][1].extend(fault[1])
+    ilom = assert_ilom(data)
+    system_status = None
+    system_perform = None
+    if system_info["system_type"] == "standalone":
+        system_status = assert_system_status(data,
+                                             # system_info["platform"],
+                                             system_info["type"])
+        system_perform = assert_system_perform(data,
+                                               system_info["platform"],
+                                               system_info["system_type"])
+    elif system_info["system_type"] == "exa":
+        system_status = assert_system_status(data,
+                                             # system_info["system_type"],
+                                             system_info["type"])
+        system_perform = assert_system_perform(data,
+                                               system_info["platform"],
+                                               system_info["system_type"])
+    asserted = {"node_name": data["node_name"],
+                **ilom,
+                **system_status,
+                **system_perform}
 
-    temp = assert_temp(data)
-    asserted["temp"][0] = temp[0]
-    asserted["temp"][1].extend(temp[1])
-
-    firmware = assert_firmware(data)
-    asserted["firmware"][0] = firmware[0]
-    asserted["firmware"][1].extend(firmware[1])
-
-    image = assert_image(data)
-    asserted["image"][0] = image[0]
-    asserted["image"][1].extend(image[1])
-
-    vol = assert_vol(data)
-    asserted["vol_avail"][0] = vol[0]
-    asserted["vol_avail"][1].extend(vol[1])
-
-    bonding = assert_bonding(data)
-    asserted["bonding"][0] = bonding[0]
-    asserted["bonding"][1].extend(bonding[1])
-
-    cpu_util = assert_cpu_util(data)
-    asserted["cpu_util"][0] = cpu_util[0]
-    asserted["cpu_util"][1].extend(cpu_util[1])
-
-    load = assert_load(data)
-    asserted["load"][0] = load[0]
-    asserted["load"][1].extend(load[1])
-
-    mem_free = assert_mem_free(data)
-    asserted["mem_free"][0] = mem_free[0]
-    asserted["mem_free"][1].extend(mem_free[1])
-
-    swap_util = assert_swap_util(data)
-    asserted["swap_util"][0] = swap_util[0]
-    asserted["swap_util"][1].extend(swap_util[1])
+    # cpu_util = assert_cpu_util(data)
+    # asserted["cpu_util"][0] = cpu_util[0]
+    # asserted["cpu_util"][1].extend(cpu_util[1])
+    #
+    # mem_free = assert_mem_free(data)
+    # asserted["mem_free"][0] = mem_free[0]
+    # asserted["mem_free"][1].extend(mem_free[1])
+    # load = assert_load(data)
+    # asserted["load"][0] = load[0]
+    # asserted["load"][1].extend(load[1])
+    #
+    #
+    # swap_util = assert_swap_util(data)
+    # asserted["swap_util"][0] = swap_util[0]
+    # asserted["swap_util"][1].extend(swap_util[1])
 
     for field in asserted:
         logging.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
@@ -476,7 +545,7 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
             click.secho(node, bg="cyan", fg="black")
             progress_bar = click.progressbar(
                 range(100),
-                label=click.style(node, fg=SECTION),
+                label=click.style(node["node_name"], fg=SECTION),
                 fill_char="*",
                 empty_char=" ",
                 show_eta=False,
@@ -486,32 +555,40 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         else:
             progress_bar = click.progressbar(
                 range(100),
-                label=click.style(node, fg=SECTION),
+                label=click.style(node["node_name"], fg=SECTION),
                 fill_char="*",
                 empty_char=" ",
                 show_eta=False,
             )
         image_json = os.path.normpath(
-            images_root + "/" + node + "/images.json")
+            images_root + "/" + node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
         progress_bar.update(10)
 
-        file_dump = {}
         progress_bar.update(1)
-        asserted = assert_data(nodes[node])
+        asserted = assert_data(node)
         progress_bar.update(10)
 
-        file_dump[node] = asserted
+        logging.info("RUNNING: SAVING ASSERTED DATA")
+        file_dump = asserted
+        asserted_file = node["node_name"] + "_asserted"
+        asserted_list += [asserted_file]
+        tools.save_json(
+            os.path.normpath(input_root + "/" + node["node_name"] +
+                             "/" + asserted_file + ".json"),
+            file_dump,
+        )
+        logging.info("RUNNING: CHECKLIST")
 
         # keys = list(asserted)
         checklist = get_score(asserted)
         progress_bar.update(10)
-        doc.add_paragraph("Máy chủ " + node, style="baocao2")
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
         doc.add_paragraph("Thông tin tổng quát", style="baocao3")
         progress_bar.update(10)
         overview = [
             ["Hostname", "Product Name", "Serial Number", "IP Address"],
-            [node, "", "", ""],
+            [node["node_name"], "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
         progress_bar.update(10)
@@ -523,20 +600,12 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
         progress_bar.update(10)
 
-        drw_info(doc, node, checklist, images_root, images_name)
+        drw_info(doc, node["node_name"], checklist, images_root, images_name)
         progress_bar.update(10)
 
-        asserted_file = node + "_asserted"
-        asserted_list += [asserted_file]
-
-        tools.save_json(
-            os.path.normpath(input_root + "/" + node +
-                             "/" + asserted_file + ".json"),
-            file_dump,
-        )
         progress_bar.update(10)
         if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node + " DONE", bg=SUCCESS, fg="black")
+            click.secho(node["node_name"] + " DONE", bg=SUCCESS, fg="black")
             click.echo()
         else:
             click.echo(" ", nl=False)

@@ -644,7 +644,7 @@ def get_system_status(path, platform, server_type):
     return x
 
 
-def get_system_perform(path, system_type, platform):
+def get_system_perform(path, platform, system_type):
     x = {}
     try:
         if system_type == "standalone":
@@ -715,8 +715,8 @@ def get_detail(node, path):
                 }
             else:
                 system_perform = get_system_perform(path[2],
-                                                    system_info["system_type"],
-                                                    system_info["platform"])
+                                                    system_info["platform"],
+                                                    system_info["system_type"])
         # ExaWatcher
         elif system_info["system_type"] == "exa":
             if path[1] == "":
@@ -737,21 +737,22 @@ def get_detail(node, path):
                 }
             else:
                 system_perform = get_system_perform(path[2],
-                                                    system_info["system_type"],
-                                                    system_info["platform"])
+                                                    system_info["platform"],
+                                                    system_info["system_type"])
         else:
             raise RuntimeError
     except RuntimeError:
         raise
     name = node
 
-    content = {}
+    # content = {}
     # logging.info(json.dumps(ilom, indent=2))
     # logging.info(json.dumps(system_status, indent=2))
     # logging.info(json.dumps(system_perform, indent=2))
-    content[name] = {**ilom,
-                     **system_status,
-                     **system_perform}
+    content = {"node_name": name,
+               **ilom,
+               **system_status,
+               **system_perform}
     logging.info("JSON file: " +
                  json.dumps(content, indent=2, ensure_ascii=False))
     return content

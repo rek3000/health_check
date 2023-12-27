@@ -43,8 +43,9 @@ def join_json(out_file, content_files):
             file_data["nodes"] = []
             for content in content_files:
                 buffer = read_json(content)
-                key = list(buffer)[0]
-                file_data["nodes"].extend([{key: buffer[key]}])
+                # key = list(buffer)[0]
+                # file_data["nodes"].extend([{key: buffer[key]}])
+                file_data["nodes"].append(buffer)
             json.dump(file_data, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
