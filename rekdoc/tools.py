@@ -37,7 +37,10 @@ def read_json(file):
 
 def join_json(out_file, content_files):
     try:
-        file_data = read_json(out_file)
+        try:
+            file_data = read_json(out_file)
+        except Exception:
+            file_data = {}
         with open(out_file, "w+") as file:
             x = {}
             file_data["nodes"] = []

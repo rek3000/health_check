@@ -417,16 +417,16 @@ def get_score(asserted):
         [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
         [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
         [7, "Kiểm tra CPU Utilization", ["", []]],
-        [8, "Kiểm tra CPU Load Average", ["", []]],
-        [9, "Kiểm tra Memory", ["", []]],
-        [10, "Kiểm tra Swap", ["", []]],
+        # [8, "Kiểm tra CPU Load Average", ["", []]],
+        [8, "Kiểm tra Memory", ["", []]],
+        [9, "Kiểm tra IO Busy", ["", []]],
     ]
 
     keys = list(asserted)
 
     for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i - 1]][0]
-        comment = asserted[keys[i - 1]][1]
+        asserted_score = asserted[keys[i]][0]
+        comment = asserted[keys[i]][1]
         try:
             score = ASSERTION[asserted_score]
         except Exception:
@@ -569,16 +569,21 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         asserted = assert_data(node)
         progress_bar.update(10)
 
-        logging.info("RUNNING: SAVING ASSERTED DATA")
+        print("RUNNING: SAVING ASSERTED DATA")
         file_dump = asserted
-        asserted_file = node["node_name"] + "_asserted"
+        asserted_file = input_root + "/" + \
+            node["node_name"] + "/" + node["node_name"] + "_asserted.json"
         asserted_list += [asserted_file]
+        # tools.save_json(
+        #     os.path.normpath(input_root + "/" + node["node_name"] +
+        #                      "/" + asserted_file),
+        #     file_dump,
+        # )
         tools.save_json(
-            os.path.normpath(input_root + "/" + node["node_name"] +
-                             "/" + asserted_file + ".json"),
+            os.path.normpath(asserted_file),
             file_dump,
         )
-        logging.info("RUNNING: CHECKLIST")
+        print("RUNNING: CHECKLIST")
 
         # keys = list(asserted)
         checklist = get_score(asserted)
@@ -610,9 +615,11 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         else:
             click.echo(" ", nl=False)
             click.secho("DONE", bg=SUCCESS, fg="black")
+    logging.debug(json.dumps(asserted_list))
+    print("RUNNING:SAVING ASSERTED SUMMARY FILE")
     file_name = os.path.normpath(tools.rm_ext(
         input_file, "json") + "_asserted.json")
-    tools.join_json(asserted_list, file_name)
+    tools.join_json(file_name, asserted_list)
     return doc
 
 
