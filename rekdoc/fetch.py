@@ -331,7 +331,8 @@ def drw_system_performance(path, out_dir):
 def drw_content(path, out_dir):
     ilom = drw_ilom(path[0], out_dir)
     system_status = drw_system_status(path[1], out_dir)
-    system_performance = drw_system_performance(path[2], out_dir)
+    # system_performance = drw_system_performance(path[2], out_dir)
+    system_performance = []
     images = ilom + system_status + system_performance
     logging.info(images)
     return images
@@ -341,6 +342,7 @@ def drw_content(path, out_dir):
 # FETCH ILOM
 # ------------------------------
 def get_fault(path):
+    fault = ""
     try:
         if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
             fault = "critical"
@@ -348,21 +350,23 @@ def get_fault(path):
             fault = "warning"
         else:
             stdout = tools.grep(os.path.normpath(
-                path + const.FAULT), "*", True, 9)
+                path + const.FAULT), ".", True, 9)
             fault = stdout.strip()
         return fault
     except RuntimeError:
+        return fault
+    except Exception:
         print("Failed to fetch fault data")
         raise
 
 
 def get_temp(path):
+    inlet_temp = ""
+    exhaust_temp = ""
     try:
         temps = tools.grep(
             os.path.normpath(path + const.TEMP), "^ /System/Cooling$", False, 9
         )
-        inlet_temp = ""
-        exhaust_temp = ""
         for line in temps:
             if "inlet_temp" in line:
                 inlet_temp = " ".join(line.split()[2:5])
@@ -372,17 +376,22 @@ def get_temp(path):
                 continue
         return inlet_temp, exhaust_temp
     except RuntimeError:
+        return inlet_temp, exhaust_temp
+    except Exception:
         print("Failed to fetch temperature")
         raise
 
 
 def get_firmware(path):
+    firmware = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
                             "Version", True)
         firmware = " ".join(stdout.strip("\r\n").split()[1:])
         return firmware
     except RuntimeError:
+        return firmware
+    except Exception:
         print("Failed to fetch firmware")
         raise
 
@@ -415,6 +424,7 @@ def get_ilom(path):
 # FETCH OS
 # ------------------------------
 def get_image(path):
+    image = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
                             "Name: entire", True, 18)
@@ -422,11 +432,14 @@ def get_image(path):
         image = image_lines[11].split()[4][:-1]
         return image
     except RuntimeError:
+        return image
+    except Exception:
         print("Failed to fetch image")
         raise
 
 
 def get_vol(path):
+    vol = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.PARTITION_SOL),
                             "\\B/$", True)
@@ -434,6 +447,8 @@ def get_vol(path):
         vol = vol[-2]
         return vol
     except RuntimeError:
+        return vol
+    except Exception:
         print("Failed to fetch volume")
         raise
 
@@ -454,6 +469,7 @@ def get_raid(path):
 
 
 def get_bonding(path):
+    bonding = ""
     try:
         net_ipmp = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
                               "ipmp", True)
@@ -474,11 +490,15 @@ def get_bonding(path):
             bonding = "both"
         return bonding
     except RuntimeError:
+        return bonding
+    except Exception:
         print("Failed to fetch bonding status")
         raise
 
 
 def get_cpu_util(path):
+    cpu_util = ""
+    cpu_idle = ""
     try:
         cpu_util_path = os.path.normpath(
             path + const.CPU_ULTILIZATION_SOL + '*.dat')
@@ -501,11 +521,14 @@ def get_cpu_util(path):
         logging.info("CPU_UTIL:" + str(cpu_util))
         return [cpu_util, cpu_idle]
     except RuntimeError:
+        return [cpu_util, cpu_idle]
+    except Exception:
         print("Failed to feth cpu util")
         raise
 
 
 def get_load_avg(path):
+    load_avg = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.CPU_LOAD_SOL),
                             "load average", True)
@@ -514,11 +537,14 @@ def get_load_avg(path):
         load_avg = float(max(load_avg))
         return load_avg
     except RuntimeError:
+        return load_avg
+    except Exception:
         print("Failed to get load average")
         raise
 
 
 def get_vcpu(path):
+    vcpu = ""
     try:
         stdout = tools.grep(
             os.path.normpath(path + const.VCPU_SOL),
@@ -528,11 +554,14 @@ def get_vcpu(path):
         vcpu = int(vcpu) + 1
         return vcpu
     except RuntimeError:
+        return vcpu
+    except Exception:
         print("Failed to fetch VCPU")
         raise
 
 
 def get_load(path):
+    load_avg, vcpu, load_avg_per = ""
     try:
         load_avg = get_load_avg(path)
         vcpu = get_vcpu(path)
@@ -540,11 +569,15 @@ def get_load(path):
         load_avg_per = float(f"{load_avg_per:.3f}")
         return load_avg, vcpu, load_avg_per
     except RuntimeError:
+        return load_avg, vcpu, load_avg_per
+    except Exception:
         print("Failed to fetch load")
         raise
 
 
 def get_mem_free(path):
+    mem_free_percent = ""
+    mem_util_percent = ""
     try:
         mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
         files = glob.glob(mem_free_path, recursive=True)
@@ -570,11 +603,15 @@ def get_mem_free(path):
         logging.info("MEM_UTIL:" + str(mem_util_percent))
         return mem_free_percent, mem_util_percent
     except RuntimeError:
+        return mem_free_percent, mem_util_percent
+    except Exception:
         print("Failed to fetch memory util")
         raise
 
 
+# TODO
 def get_io_busy(path):
+    io_busy = ""
     try:
         io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
         files = glob.glob(io_busy_path, recursive=True)
@@ -605,10 +642,10 @@ def get_io_busy(path):
         io_busy = float("{:.0f}".format(
             sum(io_busy_alltime) / len(io_busy_alltime)))
         return io_busy
-
-    except RuntimeError:
-        print("Failed to fetch io busy")
-        raise
+    except Exception as err:
+        print(err)
+        print("FAILED:fetch io busy")
+        return io_busy
 
 
 def get_swap_util(path):
@@ -673,10 +710,10 @@ def get_system_perform(path, platform, system_type):
                 x["mem_free"] = mem_free
 
                 # TODO
-                # io_busy = get_io_busy(path)[0]
-                # x["io_busy"] = io_busy
+                io_busy = get_io_busy(path)
+                x["io_busy"] = io_busy
                 # filler
-                x["io_busy"] = ""
+                # x["io_busy"] = ""
 
                 # swap_util = get_swap_util(path)[1]
                 # x["swap_util"] = swap_util

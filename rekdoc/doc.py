@@ -7,7 +7,6 @@ import json
 import docx
 
 ###
-import click
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import Inches
@@ -16,14 +15,16 @@ from docx.oxml import parse_xml
 
 ###
 from rekdoc import tools
-from rekdoc.const import SECTION, SUCCESS
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
-    if (data["fault"] == "No faults found") or (data["fault"] == ""):
+    if data["fault"] == "":
+        score = ""
+        comment = [""]
+    elif data["fault"] == "No faults found":
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     elif data["fault"] == "warning":
@@ -47,7 +48,10 @@ def assert_fault(data):
 def assert_temp(data):
     inlet_temp = data["inlet"].split()[0]
     inlet_temp = int(inlet_temp)
-    if inlet_temp >= 21 and inlet_temp <= 23:
+    if inlet_temp == "":
+        score = ""
+        comment = [""]
+    elif inlet_temp >= 21 and inlet_temp <= 23:
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
@@ -73,6 +77,10 @@ def assert_temp(data):
 
 def assert_firmware(data):
     latest = ""
+    if data["firmware"] == "":
+        firmware = ["", [""]]
+        logging.debug(json.dumps(firmware, ensure_ascii=False))
+        return firmware
     while True:
         try:
             sys.stdout.write("\033[?25h")
@@ -83,7 +91,7 @@ def assert_firmware(data):
                 or data["firmware"]
             )
         except KeyboardInterrupt:
-            click.echo()
+            print()
             sys.exit()
         except ValueError:
             continue
@@ -94,13 +102,13 @@ def assert_firmware(data):
     else:
         while True:
             try:
-                click.echo("Đánh giá")
-                click.echo("[0] Tốt")
-                click.echo("[1] Cần lưu ý")
-                click.echo("[2] Kém")
+                print("Đánh giá")
+                print("[0] Tốt")
+                print("[1] Cần lưu ý")
+                print("[2] Kém")
                 score = int(input("Chọn đánh giá\n [0] ") or "0")
             except KeyboardInterrupt:
-                click.echo()
+                print()
                 sys.exit()
             except ValueError:
                 continue
@@ -117,6 +125,11 @@ def assert_firmware(data):
 
 def assert_image(data):
     score = 0
+    if data["image"] == "":
+        image = ["", [""]]
+        logging.debug(json.dumps(image, ensure_ascii=False))
+        return image
+
     while True:
         try:
             sys.stdout.write("\033[?25h")
@@ -125,7 +138,7 @@ def assert_image(data):
                 or data["image"]
             )
         except KeyboardInterrupt:
-            click.echo()
+            print()
             sys.exit()
         except ValueError:
             continue
@@ -136,13 +149,13 @@ def assert_image(data):
     else:
         while True:
             try:
-                click.echo("Đánh giá")
-                click.echo("[0] Tốt")
-                click.echo("[1] Cần lưu ý")
-                click.echo("[2] Kém")
+                print("Đánh giá")
+                print("[0] Tốt")
+                print("[1] Cần lưu ý")
+                print("[2] Kém")
                 score = int(input("Chọn đánh giá\n [0] ") or "0")
             except KeyboardInterrupt:
-                click.echo()
+                print()
                 sys.exit()
             except ValueError:
                 continue
@@ -154,13 +167,15 @@ def assert_image(data):
     ]
     image = [score, comment]
     logging.debug(json.dumps(image, ensure_ascii=False))
-
     return image
 
 
 def assert_vol(data):
     score = 0
-    if data["vol_avail"] > 30 and data["raid_stat"] is True:
+    if data["vol_avail"] == "":
+        score = "" 
+        comment = [""]
+    elif data["vol_avail"] > 30 and data["raid_stat"] is True:
         score = 5
         comment = [
             "Phân vùng OS được cấu hình RAID",
@@ -205,7 +220,10 @@ def assert_vol(data):
 
 
 def assert_bonding(data):
-    if data["bonding"] == "none":
+    if data["bonding"] == "":
+        score = ""
+        comment = [""]
+    elif data["bonding"] == "none":
         score = 1
         comment = ["Network không được cấu hình bonding"]
     elif data["bonding"] == "aggr":
@@ -222,7 +240,10 @@ def assert_bonding(data):
 
 
 def assert_cpu_util(data):
-    if data["cpu_util"] <= 30:
+    if data["cpu_util"] == "":
+        score = ""
+        comment = [""]
+    elif data["cpu_util"] <= 30:
         score = 5
     elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
         score = 3
@@ -237,7 +258,10 @@ def assert_cpu_util(data):
 
 
 def assert_load(data):
-    if data["load"]["load_avg_per"] <= 2:
+    if data["load_avg"] == "":
+        score = ""
+        comment = [""]
+    elif data["load"]["load_avg_per"] <= 2:
         score = 5
     elif 2 < data["load"]["load_avg_per"] <= 5:
         score = 3
@@ -259,7 +283,13 @@ def assert_load(data):
 def assert_mem_free(data):
     # mem_free = 100 - data["mem_util"]
     mem_free = data["mem_free"]
-    if mem_free >= 20:
+    if mem_free == "":
+        score = ""
+        comment = [""]
+        mem_free = [score, comment]
+        logging.debug(json.dumps(mem_free, ensure_ascii=False))
+        return mem_free
+    elif mem_free >= 20:
         score = 5
     elif mem_free > 10 and mem_free < 20:
         score = 3
@@ -274,7 +304,7 @@ def assert_mem_free(data):
 
 
 def assert_io_busy(data):
-    score = 5
+    score = ""
     comment = [""]
     io_busy = [score, comment]
     return io_busy
@@ -512,7 +542,7 @@ def define_doc(sample):
     try:
         doc = docx.Document(os.path.normpath(sample))
     except Exception:
-        click.echo("Sample docx not found!")
+        print("Sample docx not found!")
         sys.exit()
     return doc
 
@@ -596,7 +626,7 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
 def print_style(doc):
     styles = doc.styles
     for style in styles:
-        click.echo(style.name)
+        print(style.name)
 
 
 def run(input_file, output_file, sample, images_dir, force=False):
@@ -607,14 +637,14 @@ def run(input_file, output_file, sample, images_dir, force=False):
         if doc == -1:
             return -1
     except Exception as err:
-        click.echo(err)
+        print(err)
         return -1
 
     if logging.root.level == 10:
-        click.echo()
-        click.secho("List of all styles", bg="cyan", fg="black")
+        print()
+        print("List of all styles")
         print_style(doc)
-        click.echo()
+        print()
     file_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
     doc.save(file_name)
     return file_name
