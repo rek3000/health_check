@@ -316,23 +316,40 @@ def drw_system_status(path, out_dir):
 
 
 def drw_system_performance(path, out_dir):
-    drw_cpu(path, out_dir)
-    drw_load(path, out_dir)
-    drw_mem(path, out_dir)
-    drw_swap(path, out_dir)
-    return [
-        "cpu_idle.png",
-        "load.png",
-        "mem.png",
-        "swap.png",
-    ]
+    # drw_cpu(path, out_dir)
+    # drw_load(path, out_dir)
+    # drw_mem(path, out_dir)
+    # drw_swap(path, out_dir)
+    try:
+        command = ["java", "-jar", "oswbba.jar",
+                   "-i", path,
+                   "-GC",
+                   "-GM",
+                   "-GD",
+                   # "-D", out_dir,
+                   "-L", out_dir,
+                   ]
+        tools.run(command, False)
+    except Exception as err:
+        print(err)
+    return ["OSWg_OS_Cpu_Idle.gif",
+            "OSWg_OS_Memory_Free.gif",
+            "OSWg_OS_IO_PB.gif"]
+    # return [
+    #     "cpu_idle.png",
+    #     "load.png",
+    #     "mem.png",
+    #     "swap.png",
+    # ]
 
 
 def drw_content(path, out_dir):
     ilom = drw_ilom(path[0], out_dir)
     system_status = drw_system_status(path[1], out_dir)
-    # system_performance = drw_system_performance(path[2], out_dir)
-    system_performance = []
+    system_performance = drw_system_performance(path[2], out_dir)
+    # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
+    #                       "OSWg_OS_Memory_Free.jpg",
+    #                       "OSWg_OS_IO_PB.jpg"]
     images = ilom + system_status + system_performance
     logging.info(images)
     return images

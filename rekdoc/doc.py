@@ -87,7 +87,7 @@ def assert_firmware(data):
             latest = (
                 input(
                     "Enter latest ILOM version\n[" + data["firmware"] + "] "
-                    )
+                )
                 or data["firmware"]
             )
         except KeyboardInterrupt:
@@ -173,7 +173,7 @@ def assert_image(data):
 def assert_vol(data):
     score = 0
     if data["vol_avail"] == "":
-        score = "" 
+        score = ""
         comment = [""]
     elif data["vol_avail"] > 30 and data["raid_stat"] is True:
         score = 5
@@ -522,17 +522,21 @@ def drw_table(doc, checklist, row, col, info=False):
 def drw_info(doc, node, checklist, images_root, images_name=[]):
     for i in range(1, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
-        if isinstance(images_name[i - 1], list):
-            for image in images_name[i - 1]:
-                path = os.path.normpath(images_root + "/" + node + "/" + image)
-            doc.add_picture(path, width=Inches(6.73))
-        else:
-            path = os.path.normpath(
-                images_root + "/" + node + "/" + images_name[i - 1])
-            doc.add_picture(
-                path,
-                width=Inches(6.73),
-            )
+        try:
+            if isinstance(images_name[i - 1], list):
+                for image in images_name[i - 1]:
+                    path = os.path.normpath(
+                        images_root + "/" + node + "/" + image)
+                doc.add_picture(path, width=Inches(6.73))
+            else:
+                path = os.path.normpath(
+                    images_root + "/" + node + "/" + images_name[i - 1])
+                doc.add_picture(
+                    path,
+                    width=Inches(6.73),
+                )
+        except Exception:
+            pass
         for line in checklist[i][2][1]:
             doc.add_paragraph(line, style="Dash List")
     doc.add_page_break()

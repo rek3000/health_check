@@ -6,6 +6,7 @@ build:
 	mkdir -p target/local > /dev/null 2>&1
 	pip install pyinstaller pillow mysql.connector click python-docx
 	pyinstaller --strip --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
+		--add-binary oswbba.jar:. \
 		-n rekdoc --distpath target/local
 	deactivate
 

@@ -28,10 +28,10 @@ def read_json(file):
             content = json.load(f)
         return content
     except FileNotFoundError as err:
-        logging.error("Input file not found!")
+        # logging.error("Input file not found!")
         raise RuntimeError("JSON file must be exist") from err
     except ValueError as err:
-        logging.error("Invalid JSON file")
+        # logging.error("Invalid JSON file")
         raise RuntimeError("Cannot read JSON file") from err
 
 
