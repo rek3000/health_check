@@ -22,6 +22,17 @@ from rekdoc import tools
 from rekdoc import const
 
 
+TYPES = ["baremetal", "vm"]
+SYSTEM = ["standalone", "exa"]
+PLATFORM = ["linux", "solaris"]
+
+system_info = {
+    "system_type": "",
+    "platform": "",
+    "type": "",
+}
+
+
 # ------------------------------
 # DECORATORS
 # ------------------------------
@@ -109,7 +120,8 @@ def untar(file_path, compress, force):
 
         if compress == "gz":
             archive_folder = os.path.join(extract_folder, 'archive')
-            if os.path.exists(archive_folder) and os.path.isdir(archive_folder):
+            if os.path.exists(archive_folder) \
+                    and os.path.isdir(archive_folder):
                 for item in os.listdir(archive_folder):
                     item_path = os.path.join(archive_folder, item)
                     if os.path.isfile(item_path):
@@ -165,7 +177,6 @@ def clean_files(dir):
                 shutil.rmtree(file_path)
         except Exception as e:
             print("Failed to delete %s. Reason: %s" % (file_path, e))
-            return -1
 
 
 def clean_up(path, prompt="Remove files?", force=False):
@@ -177,7 +188,6 @@ def clean_up(path, prompt="Remove files?", force=False):
 
         if choice in ["\n", "y", "yes"]:
             clean_files(path)
-        return
 
 
 def clean_up_force(path):
@@ -956,17 +966,6 @@ def create_dir(path, force=False):
                 prompt="Do you want to replace it?",
                 force=force,
             )
-
-
-TYPES = ["baremetal", "vm"]
-SYSTEM = ["standalone", "exa"]
-PLATFORM = ["linux", "solaris"]
-
-system_info = {
-    "system_type": "",
-    "platform": "",
-    "type": "",
-}
 
 
 def set_system_info():

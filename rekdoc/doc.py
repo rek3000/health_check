@@ -6,14 +6,14 @@ import logging
 import json
 import docx
 
-###
+#
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
 
-###
+#
 from rekdoc import tools
 
 TABLE_RED = "#C00000"
@@ -117,6 +117,7 @@ def assert_firmware(data):
     comment = [
         "Phiên bản ILOM hiện tại: " + data["firmware"],
         "Phiên bản ILOM mới nhất: " + latest,
+        "Đánh giá: " + ASSERTION[score]
     ]
     firmware = [score, comment]
     logging.debug(json.dumps(firmware, ensure_ascii=False))
@@ -164,6 +165,7 @@ def assert_image(data):
     comment = [
         "Phiên bản OS hiện tại: " + data["image"],
         "Phiên bản OS mới nhất: " + latest,
+        "Đánh giá: " + ASSERTION[score]
     ]
     image = [score, comment]
     logging.debug(json.dumps(image, ensure_ascii=False))
@@ -232,6 +234,7 @@ def assert_bonding(data):
     elif data["bonding"] == "ipmp":
         score = 5
         comment = ["Network được cấu hình bonding IPMP"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     bonding = [score, comment]
     logging.debug(json.dumps(bonding, ensure_ascii=False))
@@ -250,6 +253,7 @@ def assert_cpu_util(data):
     else:
         score = 1
     comment = ["CPU Utilization khoảng " + str(data["cpu_util"]) + "%"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     cpu_util = [score, comment]
     logging.debug(json.dumps(cpu_util, ensure_ascii=False))
@@ -272,6 +276,7 @@ def assert_load(data):
         "Number of Cores: " + str(data["load"]["vcpu"]),
         "CPU Load Average per core = CPU Load Average / Number of Cores = "
         + str(data["load"]["load_avg_per"]),
+        "Đánh giá: " + ASSERTION[score]
     ]
 
     load = [score, comment]
@@ -295,7 +300,8 @@ def assert_mem_free(data):
         score = 3
     else:
         score = 1
-    comment = ["Physical memory free: " + str(mem_free) + "%"]
+    comment = ["Average physical memory free: " + str(mem_free) + "%"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     mem_free = [score, comment]
     logging.debug(json.dumps(mem_free, ensure_ascii=False))
@@ -317,7 +323,7 @@ def assert_swap_util(data):
         score = 3
     else:
         score = 1
-    comment = ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
+    comment = ["SWAP Utilization: " + str(data["swap_util"]) + "%"]
 
     swap_util = [score, comment]
     logging.debug(json.dumps(swap_util, ensure_ascii=False))
@@ -344,14 +350,8 @@ def assert_system_status(data, server_type):
     x = {}
     try:
         image = assert_image(data)
-        # asserted["image"][0] = image[0]
-        # asserted["image"][1].extend(image[1])
         vol = assert_vol(data)
-        # asserted["vol_avail"][0] = vol[0]
-        # asserted["vol_avail"][1].extend(vol[1])
         bonding = assert_bonding(data)
-        # asserted["bonding"][0] = bonding[0]
-        # asserted["bonding"][1].extend(bonding[1])
         x = {"image": image,
              "vol": vol,
              "bonding": bonding}
@@ -367,11 +367,7 @@ def assert_system_perform(data, platform, system_type):
         if system_type == "standalone":
             if platform == "solaris":
                 cpu_util = assert_cpu_util(data)
-                # asserted["cpu_util"][0] = cpu_util[0]
-                # asserted["cpu_util"][1].extend(cpu_util[1])
                 mem_free = assert_mem_free(data)
-                # asserted["mem_free"][0] = mem_free[0]
-                # asserted["mem_free"][1].extend(mem_free[1])
                 io_busy = assert_io_busy(data)
 
                 x = {"cpu_util": cpu_util,
@@ -527,7 +523,7 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
                 for image in images_name[i - 1]:
                     path = os.path.normpath(
                         images_root + "/" + node + "/" + image)
-                doc.add_picture(path, width=Inches(6.73))
+                    doc.add_picture(path, width=Inches(6.73))
             else:
                 path = os.path.normpath(
                     images_root + "/" + node + "/" + images_name[i - 1])
