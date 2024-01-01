@@ -1,6 +1,11 @@
 [build-system]
 requires = ["hatchling"]
-build-backend = "hatching.build"
+build-backend = "hatchling.build"
+
+
+[tool.hatch.version]
+path = "src/rekdoc/__init__.py"
+
 
 [project]
 name = "rekdoc"
@@ -8,7 +13,8 @@ dynamic = ["version"]
 dependencies = ["python-docx",
              "pillow",
              "click",
-             "mysql-connector-python"
+             "mysql-connector-python",
+             "python-dotenv"
 ]
 authors = [
 {name = "rek3000", email = "torek3k@example.com"}
@@ -21,7 +27,8 @@ readme = "README.md"
 rekdoc = "rekdoc.core:cli"
 
 [project.optional-dependencies]
-dev = ["hatchling",
+dev = ["hatch",
+    "hatchling",
     "pyink",
     "pyinstaller",
 
