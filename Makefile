@@ -57,6 +57,7 @@ purge-target:
 purge-all: 
 	rm -rf build dist target
 	rm -rf *.egg-info
+	rm -rf *.spec
 tree:
 	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info -I test_env -I mysql-data 
  PHONY: build

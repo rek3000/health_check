@@ -9,9 +9,9 @@ RUN mkdir package
 # RUN mkdir package
 # USER py
 WORKDIR /package/
-COPY src/ /package/rekdoc/
+COPY rekdoc/ /package/rekdoc
 RUN pyinstaller --strip --clean \
-    -F rekdoc/rekdoc/core.py rekdoc/rekdoc/doc.py rekdoc/rekdoc/fetch.py rekdoc/rekdoc/const.py rekdoc/rekdoc/tools.py \
+    -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
 		--add-binary rekdoc/oswbba.jar:. \
     -n rekdoc
 
