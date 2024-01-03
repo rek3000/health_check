@@ -287,7 +287,7 @@ def assert_load(data):
 
 def assert_mem_free(data):
     # mem_free = 100 - data["mem_util"]
-    mem_free = data["mem_free"]
+    mem_free = data["mem_free"]["mem_free_percent"]
     if mem_free == "":
         score = ""
         comment = [""]
@@ -300,7 +300,9 @@ def assert_mem_free(data):
         score = 3
     else:
         score = 1
-    comment = ["Average physical memory free: " + str(mem_free) + "%"]
+    comment = ["Total Memory: " + str(data["mem_free"]["total_mem"])]
+    comment.append("Memory Free in GB: " + str(data["mem_free"]["mem_free"]))
+    comment.append("Average physical memory free: " + str(mem_free) + "%")
     comment.append("Đánh giá: " + ASSERTION[score])
 
     mem_free = [score, comment]
@@ -310,15 +312,20 @@ def assert_mem_free(data):
 
 
 def assert_io_busy(data):
+    score = 0
+    comment = []
     if data["io_busy"]["busy"] < 50:
         score = 5
+        comment = ["IO Busy: " + "< 50%"]
     elif 50 <= data["io_busy"]["busy"] <= 70:
         score = 3
+        comment = ["IO Busy: " + ">= 50%" + " " + "và" + "<= 70%"]
     else:
         score = 1
+        comment = ["IO Busy: " + "> 70%"]
 
-    comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
-    comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
+    # comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
+    # comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
     comment.append("Đánh giá: " + ASSERTION[score])
     io_busy = [score, comment]
     return io_busy

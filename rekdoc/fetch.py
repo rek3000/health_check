@@ -327,20 +327,30 @@ def drw_system_performance(path, out_dir):
     # drw_mem(path, out_dir)
     # drw_swap(path, out_dir)
     try:
+        log_name = os.path.split(path)[1]
         command = ["java", "-jar", "oswbba.jar",
                    "-i", path,
-                   "-GC",
-                   "-GM",
-                   "-GD",
-                   # "-D", out_dir,
-                   "-L", out_dir,
+                   # "-GC",
+                   # "-GM",
+                   # "-GD",
+                   # "-L", out_dir,
+                   "-D", log_name
                    ]
         tools.run(command, False)
+
+        dashboard_dir = os.path.normpath(
+            "analysis/" + log_name + "/dashboard/generated_files/")
+        shutil.copy(os.path.normpath(dashboard_dir +
+                    "/OSWg_OS_Cpu_Util.jpg"), out_dir)
+        shutil.copy(os.path.normpath(dashboard_dir +
+                    "/OSWg_OS_Memory_Free.jpg"), out_dir)
+        shutil.copy(os.path.normpath(
+            dashboard_dir + "/OSWg_OS_IO_PB.jpg"), out_dir)
     except Exception as err:
         print(err)
-    return ["OSWg_OS_Cpu_Idle.gif",
-            "OSWg_OS_Memory_Free.gif",
-            "OSWg_OS_IO_PB.gif"]
+    return ["OSWg_OS_Cpu_Util.jpg",
+            "OSWg_OS_Memory_Free.jpg",
+            "OSWg_OS_IO_PB.jpg"]
     # return [
     #     "cpu_idle.png",
     #     "load.png",
@@ -601,6 +611,9 @@ def get_load(path):
 def get_mem_free(path):
     mem_free_percent = ""
     mem_util_percent = ""
+    x = {"mem_free_percent": 0,
+         "mem_free": 0,
+         "total_mem": 0}
     try:
         mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
         files = glob.glob(mem_free_path, recursive=True)
@@ -624,9 +637,13 @@ def get_mem_free(path):
         mem_util_percent = 100 - mem_free_percent
         logging.info("MEM_FREE:" + str(mem_free_percent))
         logging.info("MEM_UTIL:" + str(mem_util_percent))
-        return mem_free_percent, mem_util_percent
+        x["mem_free_percent"] = mem_free_percent
+        x["mem_free"] = mem_free
+        x["total_mem"] = total_mem
+        return x
     except RuntimeError:
-        return mem_free_percent, mem_util_percent
+        return x
+        # return mem_free_percent, mem_util_percent
     except Exception:
         print("Failed to fetch memory util")
         raise
@@ -649,15 +666,19 @@ def get_io_busy(path):
                     logging.debug(json.dumps(
                         io_busy_persection_list, indent=2))
                     try:
-                        logging.info(io_busy_persection_list)
-                        maxbusy = max(io_busy_persection_list)
+                        maxbusy = 0
+                        try:
+                            maxbusy = max(io_busy_persection_list)
+                        except Exception:
+                            i += 3
+                            continue
                         index = io_busy_persection_list.index(maxbusy)
                         maxpos = i - (len(io_busy_persection_list) - index)
                         if io_busy["busy"] < maxbusy:
                             io_busy["name"] = stdout[maxpos].split()[-1]
                             io_busy["busy"] = maxbusy
-                        logging.info("CURRENT MAXIO")
-                        logging.info(json.dumps(io_busy, indent=2))
+                        logging.debug("CURRENT MAXIO")
+                        logging.debug(json.dumps(io_busy, indent=2))
                         io_busy_persection_list = []
                     except Exception as err:
                         print(err)
@@ -730,7 +751,7 @@ def get_system_perform(path, platform, system_type):
                 # x["load"]["load_avg"] = load[0]
                 # x["load"]["vcpu"] = load[1]
                 # x["load"]["load_avg_per"] = load[2]
-                mem_free = get_mem_free(path)[0]
+                mem_free = get_mem_free(path)
                 x["mem_free"] = mem_free
 
                 # TODO
