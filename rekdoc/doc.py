@@ -457,7 +457,7 @@ def assert_data(data):
 
 def get_score(asserted):
     checklist = [
-        ["STT", "Hạng mục kiểm tra", "Score"],
+        # ["STT", "Hạng mục kiểm tra", "Score"],
         [1, "Kiểm tra trạng thái phần cứng", ["", []]],
         [2, "Kiểm tra nhiệt độ", ["", []]],
         [3, "Kiểm tra phiên bản ILOM", ["", []]],
@@ -472,9 +472,9 @@ def get_score(asserted):
 
     keys = list(asserted)
 
-    for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i]][0]
-        comment = asserted[keys[i]][1]
+    for i in range(0, len(checklist)):
+        asserted_score = asserted[keys[i+1]][0]
+        comment = asserted[keys[i+1]][1]
         try:
             score = ASSERTION[asserted_score]
         except Exception:
@@ -531,17 +531,17 @@ def drw_table(doc, checklist, row, col, info=False):
 # def drw_image_to_doc(doc, node, images_root, images_name):
 # path?
 def drw_info(doc, node, checklist, images_root, images_name=[]):
-    for i in range(1, len(checklist)):
+    for i in range(0, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
         try:
-            if isinstance(images_name[i - 1], list):
-                for image in images_name[i - 1]:
+            if isinstance(images_name[i], list):
+                for image in images_name[i]:
                     path = os.path.normpath(
                         images_root + "/" + node + "/" + image)
                     doc.add_picture(path, width=Inches(6.73))
             else:
                 path = os.path.normpath(
-                    images_root + "/" + node + "/" + images_name[i - 1])
+                    images_root + "/" + node + "/" + images_name[i])
                 doc.add_picture(
                     path,
                     width=Inches(6.73),
@@ -579,22 +579,77 @@ system_info = {"system_type": "",
                "type": ""}
 
 
-def drw_doc_appendix(doc, checklist, node, images_root, images_name):
-    print("RUNNING:DRAWING OVERVIEW TABLE")
-    doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
-    doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-    overview = [
-        ["Hostname", "Product Name", "Serial Number", "IP Address"],
-        [node["node_name"], "", "", ""],
-    ]
-    drw_table(doc, overview, 2, 4)
-    doc.add_paragraph("Đánh giá", style="baocao3")
-    print("RUNNING:DRAWING SUMMARY TABLE")
-    drw_table(doc, checklist, len(checklist), 3, True)
+def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
+    for node in nodes:
+        print("NODE:" + node["node_name"])
+        print("RUNNING:GETTING SAVED IMAGES")
+        image_json = os.path.normpath(
+            images_root + "/" + node["node_name"] + "/images.json")
+        images_name = tools.read_json(image_json)
+        print("RUNNING:DRAWING OVERVIEW TABLE")
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
+        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        overview = [
+            ["Hostname", "Product Name", "Serial Number", "IP Address"],
+            [node["node_name"], "", "", ""],
+        ]
+        drw_table(doc, overview, 2, 4)
+        doc.add_paragraph("Đánh giá", style="baocao3")
+        print("RUNNING:DRAWING SUMMARY TABLE")
 
-    print("RUNNING:DRAWING DETAILS")
+        check_table = [
+                ["STT", "Hạng mục kiểm tra", "Score"],
+                ]
+        check_table.extend(checklist_list[node["node_name"]])
+        # ["STT", "Hạng mục kiểm tra", "Score"],
+        # drw_table(doc, checklist_list[node["node_name"]], len(
+        #     checklist_list[node["node_name"]]), 3, True)
+        drw_table(doc, check_table, len(check_table), 3, True)
+
+        print("RUNNING:DRAWING DETAILS")
+        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+        drw_info(doc, node["node_name"],
+                 checklist_list[node["node_name"]], images_root, images_name)
+
+        print("DONE")
+        print()
+
+
+def drw_doc(doc, checklist_list, nodes):
+    doc.add_paragraph("Máy chủ ?(S/N): ?", style="baocao2")
+
+    print("RUNNING:DRAWING OVERVIEW TABLE")
+    doc.add_paragraph("Thông tin chung", style="baocao3")
+    overview = [
+        ["ITEM", "VALUE", "VALUE(PREVIOUS REPORT)"],
+    ]
+    for node in nodes:
+        print("NODE:" + node["node_name"])
+        overview.extend([
+            ["", "Máy chủ " + node["node_name"], ""],
+            ["Hostname", node["node_name"], ""],
+            ["Serial Number", "", ""],
+            ["Image Version", "", ""],
+            ["IP Adress", "", ""]
+        ])
+    # print(json.dumps(overview, indent=2))
+    drw_table(doc, overview, len(overview), 3, False)
+
+    print("RUNNING:DRAWING DETAIL TABLES")
     doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-    drw_info(doc, node["node_name"], checklist, images_root, images_name)
+    for node in nodes:
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao4")
+        detail = [
+            ["STT" "Hạng Mục kiểm tra", "Điểm đánh giá",
+                "Điểm đánh giá\n (Trong lần kiểm tra trước đây)"],
+        ]
+        # for check in checklist_list[node["node_name"]]:
+        # detail.append(check.([""]))
+
+        drw_table(doc, detail, len(detail), 4, False)
+
+        # print("DONE")
+        # print()
 
 
 def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
@@ -603,7 +658,8 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     system_info["platform"] = input_file_data["platform"]
     system_info["type"] = input_file_data["type"]
     nodes = input_file_data["nodes"]
-    checklist = []
+    checklist_list = {}
+
     images_name = []
     if nodes == -1:
         return -1
@@ -611,14 +667,9 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     appendix_doc.add_page_break()
     # drw_menu(doc, nodes)
     input_root = os.path.split(input_file)[0]
+    print("RUNNING:ASSERTING DATA")
     for node in nodes:
         print("NODE:" + node["node_name"])
-        print("RUNNING:GETTING SAVED IMAGES")
-        image_json = os.path.normpath(
-            images_root + "/" + node["node_name"] + "/images.json")
-        images_name = tools.read_json(image_json)
-
-        print("RUNNING:ASSERTING DATA")
         asserted = assert_data(node)
 
         print("RUNNING:SAVING ASSERTED DATA")
@@ -632,31 +683,24 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
         )
         print("RUNNING:CREATING CHECKLIST")
         checklist = get_score(asserted)
-        drw_doc_appendix(appendix_doc, checklist, node,
-                         images_root, images_name)
-        # print("RUNNING:DRAWING OVERVIEW TABLE")
-        # doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
-        # doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-        # overview = [
-        #     ["Hostname", "Product Name", "Serial Number", "IP Address"],
-        #     [node["node_name"], "", "", ""],
-        # ]
-        # drw_table(doc, overview, 2, 4)
-        # doc.add_paragraph("Đánh giá", style="baocao3")
-        # print("RUNNING:DRAWING SUMMARY TABLE")
-        # drw_table(doc, checklist, len(checklist), 3, True)
-        #
-        # print("RUNNING:DRAWING DETAILS")
-        # doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-        # drw_info(doc, node["node_name"], checklist, images_root, images_name)
-
+        checklist_list[node["node_name"]] = checklist
         print("DONE")
         print()
     logging.debug(json.dumps(asserted_list))
     print("RUNNING:SAVING ASSERTED SUMMARY FILE")
+    print()
     file_name = os.path.normpath(tools.rm_ext(
         input_file, "json") + "_asserted.json")
     tools.join_json(file_name, asserted_list)
+
+    print(json.dumps(checklist_list, indent=2))
+    print("RUNNING:DRAWING REPORTS")
+    print("RUNNING:DRAWING APPENDIX REPORT")
+    drw_doc_appendix(appendix_doc, checklist_list, nodes,
+                     images_root, images_name)
+    print("RUNNING:DRAWING REPORT")
+    drw_doc(doc, checklist_list, nodes)
+
     return appendix_doc
 
 
