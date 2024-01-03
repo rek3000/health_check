@@ -594,17 +594,19 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
             [node["node_name"], "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
+        doc.add_paragraph("")
         doc.add_paragraph("Đánh giá", style="baocao3")
         print("RUNNING:DRAWING SUMMARY TABLE")
 
         check_table = [
-                ["STT", "Hạng mục kiểm tra", "Score"],
-                ]
+            ["STT", "Hạng mục kiểm tra", "Score"],
+        ]
         check_table.extend(checklist_list[node["node_name"]])
         # ["STT", "Hạng mục kiểm tra", "Score"],
         # drw_table(doc, checklist_list[node["node_name"]], len(
         #     checklist_list[node["node_name"]]), 3, True)
         drw_table(doc, check_table, len(check_table), 3, True)
+        doc.add_paragraph("")
 
         print("RUNNING:DRAWING DETAILS")
         doc.add_paragraph("Thông tin chi tiết", style="baocao3")
@@ -634,22 +636,48 @@ def drw_doc(doc, checklist_list, nodes):
         ])
     # print(json.dumps(overview, indent=2))
     drw_table(doc, overview, len(overview), 3, False)
+    doc.add_paragraph("")
 
     print("RUNNING:DRAWING DETAIL TABLES")
     doc.add_paragraph("Thông tin chi tiết", style="baocao3")
     for node in nodes:
         doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao4")
         detail = [
-            ["STT" "Hạng Mục kiểm tra", "Điểm đánh giá",
+            ["STT", "Hạng Mục kiểm tra", "Điểm đánh giá",
                 "Điểm đánh giá\n (Trong lần kiểm tra trước đây)"],
         ]
-        # for check in checklist_list[node["node_name"]]:
-        # detail.append(check.([""]))
+        for check in checklist_list[node["node_name"]]:
+            detail.append([str(check[0]), str(check[1]), str(check[2][0]), ""])
+        # print(json.dumps(detail))
 
         drw_table(doc, detail, len(detail), 4, False)
-
-        # print("DONE")
-        # print()
+        doc.add_paragraph("")
+    print("RUNNING:DRAWING RECOMMNEDATION TABLE")
+    doc.add_paragraph("Khuyến cáo", style="baocao3")
+    recommend = [
+        ["No", "Khuyến cáo Rủi Ro", "Mức độ", "Note"],
+        ["", "", "", ""]
+    ]
+    drw_table(doc, recommend, len(recommend), 4, False)
+    doc.add_paragraph("")
+    print("RUNNING:DRAWING REFERENCE")
+    doc.add_paragraph(
+        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="baocao3")
+    doc.add_paragraph(
+        "Vui lòng kiểm tra tài liệu Appendix được gửi kèm báo cáo này.")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "Ý KIẾN CÁC BÊN", style="baocao1")
+    ref = [
+            ["KHÁCH HÀNG", "MPS"],
+            [" ", " "],
+            ["Tên: ", "Tên: "],
+            ["Chữ ký: ", "Chữ ký: "],
+            ["Ngày: ", "Ngày: "],
+            ]
+    drw_table(doc, ref, len(ref), 2, False)
+    print("DONE")
+    print()
 
 
 def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
