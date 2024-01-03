@@ -579,7 +579,9 @@ system_info = {"system_type": "",
                "type": ""}
 
 
-def drw_doc(doc, input_file, out_dir, images_root, force):
+def drw_doc_appendix():
+    pass
+def compile(doc, input_file, out_dir, images_root, force):
     input_file_data = tools.read_json(input_file)
     system_info["system_type"] = input_file_data["system_type"]
     system_info["platform"] = input_file_data["platform"]
@@ -648,7 +650,7 @@ def run(input_file, output_file, sample, images_dir, force=False):
     doc = define_doc(sample)
     out_dir = os.path.split(output_file)[0]
     try:
-        doc = drw_doc(doc, input_file, out_dir, images_dir, force)
+        doc = compile(doc, input_file, out_dir, images_dir, force)
         if doc == -1:
             return -1
     except Exception as err:

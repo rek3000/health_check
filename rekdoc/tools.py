@@ -88,11 +88,10 @@ def drw_text_image(text, file):
         d1.fontmode = "RGB"
         box = d1.textbbox((10, 10), text.getvalue(), font=font)
         right, bottom = box[-2], box[-1]
-        w = int(right * 1.1) + 10
-        h = int(bottom * 1.1) + 10
-        img_resize = img.resize((w, h), resample=Image.LANCZOS)
-
-        # img_resize = img.crop((0, 0, w, h))
+        w = int(right * 1.1) + 5
+        h = int(bottom * 1.1) + 5
+        # img_resize = img.resize((w, h), resample=Image.LANCZOS)
+        img_resize = img.crop((0, 0, w, h))
         d2 = ImageDraw.Draw(img_resize)
         d1.fontmode = "RGB"
         x = 10
