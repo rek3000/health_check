@@ -558,7 +558,7 @@ def define_doc(sample):
         doc = docx.Document(os.path.normpath(sample))
     except Exception:
         print("Sample docx not found!")
-        sys.exit()
+        raise
     return doc
 
 
@@ -579,18 +579,36 @@ system_info = {"system_type": "",
                "type": ""}
 
 
-def drw_doc_appendix():
-    pass
-def compile(doc, input_file, out_dir, images_root, force):
+def drw_doc_appendix(doc, checklist, node, images_root, images_name):
+    print("RUNNING:DRAWING OVERVIEW TABLE")
+    doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
+    doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+    overview = [
+        ["Hostname", "Product Name", "Serial Number", "IP Address"],
+        [node["node_name"], "", "", ""],
+    ]
+    drw_table(doc, overview, 2, 4)
+    doc.add_paragraph("Đánh giá", style="baocao3")
+    print("RUNNING:DRAWING SUMMARY TABLE")
+    drw_table(doc, checklist, len(checklist), 3, True)
+
+    print("RUNNING:DRAWING DETAILS")
+    doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+    drw_info(doc, node["node_name"], checklist, images_root, images_name)
+
+
+def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     input_file_data = tools.read_json(input_file)
     system_info["system_type"] = input_file_data["system_type"]
     system_info["platform"] = input_file_data["platform"]
     system_info["type"] = input_file_data["type"]
     nodes = input_file_data["nodes"]
+    checklist = []
+    images_name = []
     if nodes == -1:
         return -1
     asserted_list = []
-    doc.add_page_break()
+    appendix_doc.add_page_break()
     # drw_menu(doc, nodes)
     input_root = os.path.split(input_file)[0]
     for node in nodes:
@@ -614,21 +632,23 @@ def compile(doc, input_file, out_dir, images_root, force):
         )
         print("RUNNING:CREATING CHECKLIST")
         checklist = get_score(asserted)
-        print("RUNNING:DRAWING OVERVIEW TABLE")
-        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
-        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-        overview = [
-            ["Hostname", "Product Name", "Serial Number", "IP Address"],
-            [node["node_name"], "", "", ""],
-        ]
-        drw_table(doc, overview, 2, 4)
-        doc.add_paragraph("Đánh giá", style="baocao3")
-        print("RUNNING:DRAWING SUMMARY TABLE")
-        drw_table(doc, checklist, len(checklist), 3, True)
-
-        print("RUNNING:DRAWING DETAILS")
-        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-        drw_info(doc, node["node_name"], checklist, images_root, images_name)
+        drw_doc_appendix(appendix_doc, checklist, node,
+                         images_root, images_name)
+        # print("RUNNING:DRAWING OVERVIEW TABLE")
+        # doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
+        # doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        # overview = [
+        #     ["Hostname", "Product Name", "Serial Number", "IP Address"],
+        #     [node["node_name"], "", "", ""],
+        # ]
+        # drw_table(doc, overview, 2, 4)
+        # doc.add_paragraph("Đánh giá", style="baocao3")
+        # print("RUNNING:DRAWING SUMMARY TABLE")
+        # drw_table(doc, checklist, len(checklist), 3, True)
+        #
+        # print("RUNNING:DRAWING DETAILS")
+        # doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+        # drw_info(doc, node["node_name"], checklist, images_root, images_name)
 
         print("DONE")
         print()
@@ -637,7 +657,7 @@ def compile(doc, input_file, out_dir, images_root, force):
     file_name = os.path.normpath(tools.rm_ext(
         input_file, "json") + "_asserted.json")
     tools.join_json(file_name, asserted_list)
-    return doc
+    return appendix_doc
 
 
 def print_style(doc):
@@ -646,12 +666,21 @@ def print_style(doc):
         print(style.name)
 
 
-def run(input_file, output_file, sample, images_dir, force=False):
-    doc = define_doc(sample)
+def run(input_file, output_file, sample, appendix_sample, images_dir, force=False):
+    doc = None
+    appendix_doc = None
+
+    try:
+        doc = define_doc(sample)
+    except Exception:
+        pass
+    appendix_doc = define_doc(appendix_sample)
+
     out_dir = os.path.split(output_file)[0]
     try:
-        doc = compile(doc, input_file, out_dir, images_dir, force)
-        if doc == -1:
+        appendix_doc = compile(doc, appendix_doc, input_file,
+                               out_dir, images_dir, force)
+        if appendix_doc == -1:
             return -1
     except Exception as err:
         print(err)
@@ -660,11 +689,26 @@ def run(input_file, output_file, sample, images_dir, force=False):
     if logging.root.level == 10:
         print()
         print("List of all styles")
-        print_style(doc)
+        print_style(appendix_doc)
         print()
-    file_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
-    doc.save(file_name)
-    return file_name
+    output_base_name = tools.rm_ext(os.path.split(output_file)[1], "json")
+    # doc_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
+    if doc is not None:
+        doc_name = os.path.normpath(
+            out_dir + "/" + output_base_name + ".docx")
+    else:
+        doc_name = ""
+    # appendix_doc_name =  \
+    # os.path.normpath(tools.rm_ext(output_file, "json") + + ".docx")
+    appendix_doc_name = os.path.normpath(
+        out_dir + "/appendix-" + output_base_name + ".docx")
+
+    try:
+        doc.save(doc_name)
+    except Exception:
+        pass
+    appendix_doc.save(appendix_doc_name)
+    return [doc_name, appendix_doc_name]
 
 
 ##### MAIN #####
