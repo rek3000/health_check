@@ -15,7 +15,7 @@ def save_json(file, content):
         click.echo("No content from input to save!")
         return -1
     try:
-        with open(file, "w") as f:
+        with open(file, "w+") as f:
             json.dump(content, f, indent=2, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
@@ -24,28 +24,32 @@ def save_json(file, content):
 
 def read_json(file):
     try:
-        with open(file, "r") as f:
+        with open(file, "r+") as f:
             content = json.load(f)
         return content
     except FileNotFoundError as err:
-        logging.error("Input file not found!")
+        # logging.error("Input file not found!")
         raise RuntimeError("JSON file must be exist") from err
     except ValueError as err:
-        logging.error("Invalid JSON file")
+        # logging.error("Invalid JSON file")
         raise RuntimeError("Cannot read JSON file") from err
 
 
-def join_json(content_files, output):
+def join_json(out_file, content_files):
     try:
-        with open(output, "w+") as file:
+        try:
+            file_data = read_json(out_file)
+        except Exception:
+            file_data = {}
+        with open(out_file, "w+") as file:
             x = {}
-            for i in content_files:
-                # path = "./output/" + i.split(".")[0]
-                # path = os.path.normpath("".join(path).split("_")[0] + "/" + i + ".json")
-                buffer = read_json(i)
-                key = list(buffer)[0]
-                x[key] = buffer[key]
-            json.dump(x, file, indent=4, ensure_ascii=False)
+            file_data["nodes"] = []
+            for content in content_files:
+                buffer = read_json(content)
+                # key = list(buffer)[0]
+                # file_data["nodes"].extend([{key: buffer[key]}])
+                file_data["nodes"].append(buffer)
+            json.dump(file_data, file, indent=4, ensure_ascii=False)
     except OSError as err:
         logging.error("OS error: ", err)
         raise RuntimeError("Cannot write contents to JSON file") from err
@@ -136,19 +140,19 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file):
+def cat(file, tokenize=False):
     try:
         command = ["cat", file]
-        stdout = run(command, False)[0]
+        stdout = run(command, tokenize)[0]
     except RuntimeError:
         click.echo("Cannot cat file: " + file)
         raise
-    logging.debug(stdout)
+    logging.debug(json.dumps(stdout, indent=2))
     return stdout
 
 
 def grep(path, regex, single_match, next=0):
-    command = ["grep", "-e", regex]
+    command = ["grep", "-e", regex, "--no-group-separator"]
 
     if single_match:
         command.extend(["-m1"])
@@ -160,7 +164,7 @@ def grep(path, regex, single_match, next=0):
     tokenize = bool(1 - single_match)
     stdout = run(command, tokenize)[0]
 
-    logging.debug(stdout)
+    logging.debug(json.dumps(stdout, indent=2))
     return stdout
 
 

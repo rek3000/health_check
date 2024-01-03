@@ -6,26 +6,33 @@ import logging
 import json
 import docx
 
-###
-import click
+#
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
 
-###
+#
 from rekdoc import tools
-from rekdoc.const import SECTION, SUCCESS
 
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
-    if (data["fault"] == "No faults found") or (data["fault"] == ""):
+    if data["fault"] == "":
+        score = ""
+        comment = [""]
+    elif data["fault"] == "No faults found":
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
+    elif data["fault"] == "warning":
+        score = 3
+        comment = [
+            "Lỗi không ảnh hưởng tới hiệu năng của hệ thống",
+            "Đánh giá: " + ASSERTION[score],
+        ]
     else:
         score = 1
         comment = [
@@ -41,7 +48,10 @@ def assert_fault(data):
 def assert_temp(data):
     inlet_temp = data["inlet"].split()[0]
     inlet_temp = int(inlet_temp)
-    if inlet_temp >= 21 and inlet_temp <= 23:
+    if inlet_temp == "":
+        score = ""
+        comment = [""]
+    elif inlet_temp >= 21 and inlet_temp <= 23:
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
@@ -67,15 +77,21 @@ def assert_temp(data):
 
 def assert_firmware(data):
     latest = ""
+    if data["firmware"] == "":
+        firmware = ["", [""]]
+        logging.debug(json.dumps(firmware, ensure_ascii=False))
+        return firmware
     while True:
         try:
             sys.stdout.write("\033[?25h")
             latest = (
-                input("\nEnter latest ILOM version\n [" + data["firmware"] + "] ")
+                input(
+                    "Enter latest ILOM version\n[" + data["firmware"] + "] "
+                )
                 or data["firmware"]
             )
         except KeyboardInterrupt:
-            click.echo()
+            print()
             sys.exit()
         except ValueError:
             continue
@@ -86,21 +102,22 @@ def assert_firmware(data):
     else:
         while True:
             try:
-                click.echo("Đánh giá")
-                click.echo("[0] Tốt")
-                click.echo("[1] Cần lưu ý")
-                click.echo("[2] Kém")
+                print("Đánh giá")
+                print("[0] Tốt")
+                print("[1] Cần lưu ý")
+                print("[2] Kém")
                 score = int(input("Chọn đánh giá\n [0] ") or "0")
             except KeyboardInterrupt:
-                click.echo()
+                print()
                 sys.exit()
             except ValueError:
                 continue
             break
 
     comment = [
-        "Phiên bản Ilom hiện tại: " + data["firmware"],
-        "Phiên bản Ilom mới nhất: " + latest,
+        "Phiên bản ILOM hiện tại: " + data["firmware"],
+        "Phiên bản ILOM mới nhất: " + latest,
+        "Đánh giá: " + ASSERTION[score]
     ]
     firmware = [score, comment]
     logging.debug(json.dumps(firmware, ensure_ascii=False))
@@ -109,15 +126,20 @@ def assert_firmware(data):
 
 def assert_image(data):
     score = 0
+    if data["image"] == "":
+        image = ["", [""]]
+        logging.debug(json.dumps(image, ensure_ascii=False))
+        return image
+
     while True:
         try:
             sys.stdout.write("\033[?25h")
             latest = (
-                input("\nEnter latest OS version\n [" + data["image"] + "] ")
+                input("Enter latest OS version\n[" + data["image"] + "] ")
                 or data["image"]
             )
         except KeyboardInterrupt:
-            click.echo()
+            print()
             sys.exit()
         except ValueError:
             continue
@@ -128,13 +150,13 @@ def assert_image(data):
     else:
         while True:
             try:
-                click.echo("Đánh giá")
-                click.echo("[0] Tốt")
-                click.echo("[1] Cần lưu ý")
-                click.echo("[2] Kém")
+                print("Đánh giá")
+                print("[0] Tốt")
+                print("[1] Cần lưu ý")
+                print("[2] Kém")
                 score = int(input("Chọn đánh giá\n [0] ") or "0")
             except KeyboardInterrupt:
-                click.echo()
+                print()
                 sys.exit()
             except ValueError:
                 continue
@@ -143,16 +165,19 @@ def assert_image(data):
     comment = [
         "Phiên bản OS hiện tại: " + data["image"],
         "Phiên bản OS mới nhất: " + latest,
+        "Đánh giá: " + ASSERTION[score]
     ]
     image = [score, comment]
     logging.debug(json.dumps(image, ensure_ascii=False))
-
     return image
 
 
 def assert_vol(data):
     score = 0
-    if data["vol_avail"] > 30 and data["raid_stat"] is True:
+    if data["vol_avail"] == "":
+        score = ""
+        comment = [""]
+    elif data["vol_avail"] > 30 and data["raid_stat"] is True:
         score = 5
         comment = [
             "Phân vùng OS được cấu hình RAID",
@@ -161,7 +186,7 @@ def assert_vol(data):
         ]
     elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
         "raid_stat"
-    ] == True:
+    ] is True:
         score = 3
         comment = [
             "Phân vùng OS được cấu hình RAID",
@@ -197,7 +222,10 @@ def assert_vol(data):
 
 
 def assert_bonding(data):
-    if data["bonding"] == "none":
+    if data["bonding"] == "":
+        score = ""
+        comment = [""]
+    elif data["bonding"] == "none":
         score = 1
         comment = ["Network không được cấu hình bonding"]
     elif data["bonding"] == "aggr":
@@ -206,6 +234,7 @@ def assert_bonding(data):
     elif data["bonding"] == "ipmp":
         score = 5
         comment = ["Network được cấu hình bonding IPMP"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     bonding = [score, comment]
     logging.debug(json.dumps(bonding, ensure_ascii=False))
@@ -214,13 +243,17 @@ def assert_bonding(data):
 
 
 def assert_cpu_util(data):
-    if data["cpu_util"] <= 30:
+    if data["cpu_util"] == "":
+        score = ""
+        comment = [""]
+    elif data["cpu_util"] <= 30:
         score = 5
     elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
         score = 3
     else:
         score = 1
-    comment = ["CPU Ultilization khoảng " + str(data["cpu_util"]) + "%"]
+    comment = ["CPU Utilization khoảng " + str(data["cpu_util"]) + "%"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     cpu_util = [score, comment]
     logging.debug(json.dumps(cpu_util, ensure_ascii=False))
@@ -229,7 +262,10 @@ def assert_cpu_util(data):
 
 
 def assert_load(data):
-    if data["load"]["load_avg_per"] <= 2:
+    if data["load_avg"] == "":
+        score = ""
+        comment = [""]
+    elif data["load"]["load_avg_per"] <= 2:
         score = 5
     elif 2 < data["load"]["load_avg_per"] <= 5:
         score = 3
@@ -240,6 +276,7 @@ def assert_load(data):
         "Number of Cores: " + str(data["load"]["vcpu"]),
         "CPU Load Average per core = CPU Load Average / Number of Cores = "
         + str(data["load"]["load_avg_per"]),
+        "Đánh giá: " + ASSERTION[score]
     ]
 
     load = [score, comment]
@@ -249,19 +286,42 @@ def assert_load(data):
 
 
 def assert_mem_free(data):
-    mem_free = 100 - data["mem_util"]
-    if mem_free >= 20:
+    # mem_free = 100 - data["mem_util"]
+    mem_free = data["mem_free"]
+    if mem_free == "":
+        score = ""
+        comment = [""]
+        mem_free = [score, comment]
+        logging.debug(json.dumps(mem_free, ensure_ascii=False))
+        return mem_free
+    elif mem_free >= 20:
         score = 5
     elif mem_free > 10 and mem_free < 20:
         score = 3
     else:
         score = 1
-    comment = ["Physical memory free: " + str(mem_free) + "%"]
+    comment = ["Average physical memory free: " + str(mem_free) + "%"]
+    comment.append("Đánh giá: " + ASSERTION[score])
 
     mem_free = [score, comment]
     logging.debug(json.dumps(mem_free, ensure_ascii=False))
 
     return mem_free
+
+
+def assert_io_busy(data):
+    if data["io_busy"]["busy"] < 50:
+        score = 5
+    elif 50 <= data["io_busy"]["busy"] <= 70:
+        score = 3
+    else:
+        score = 1
+
+    comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
+    comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
+    comment.append("Đánh giá: " + ASSERTION[score])
+    io_busy = [score, comment]
+    return io_busy
 
 
 def assert_swap_util(data):
@@ -271,7 +331,7 @@ def assert_swap_util(data):
         score = 3
     else:
         score = 1
-    comment = ["SWAP Ultilization: " + str(data["swap_util"]) + "%"]
+    comment = ["SWAP Utilization: " + str(data["swap_util"]) + "%"]
 
     swap_util = [score, comment]
     logging.debug(json.dumps(swap_util, ensure_ascii=False))
@@ -279,58 +339,109 @@ def assert_swap_util(data):
     return swap_util
 
 
+def assert_ilom(data):
+    x = {}
+    try:
+        fault = assert_fault(data)
+        temp = assert_temp(data)
+        firmware = assert_firmware(data)
+        x = {"fault": fault,
+             "temp": temp,
+             "firmware": firmware}
+    except RuntimeError:
+        print("Failed to assert ILOM")
+        raise
+    return x
+
+
+def assert_system_status(data, server_type):
+    x = {}
+    try:
+        image = assert_image(data)
+        vol = assert_vol(data)
+        bonding = assert_bonding(data)
+        x = {"image": image,
+             "vol": vol,
+             "bonding": bonding}
+    except RuntimeError:
+        print("Failed to assert system status")
+        raise
+    return x
+
+
+def assert_system_perform(data, platform, system_type):
+    x = {}
+    try:
+        if system_type == "standalone":
+            if platform == "solaris":
+                cpu_util = assert_cpu_util(data)
+                mem_free = assert_mem_free(data)
+                io_busy = assert_io_busy(data)
+
+                x = {"cpu_util": cpu_util,
+                     "mem_free": mem_free,
+                     "io_busy": io_busy}
+            elif platform == "linux":
+                pass
+        elif system_type == "exa":
+            pass
+    except RuntimeError:
+        print("Failed to assert system performance")
+        raise
+    logging.debug(json.dumps(x))
+    return x
+
+
 def assert_data(data):
     asserted = {}
-    for i in data:
-        if i == "inlet":
-            i = "temp"
-        if i == "exhaust":
-            continue
-        if i == "raid_stat":
-            continue
-        if i == "mem_util":
-            i = "mem_free"
-        asserted[i] = ["", []]
+    # for i in data:
+    #     if i == "inlet":
+    #         i = "temp"
+    #     if i == "exhaust":
+    #         continue
+    #     if i == "raid_stat":
+    #         continue
+    #     # if i == "mem_util":
+    #     #     i = "mem_free"
+    #     asserted[i] = ["", []]
 
-    fault = assert_fault(data)
-    asserted["fault"][0] = fault[0]
-    asserted["fault"][1].extend(fault[1])
+    ilom = assert_ilom(data)
+    system_status = None
+    system_perform = None
+    if system_info["system_type"] == "standalone":
+        system_status = assert_system_status(data,
+                                             # system_info["platform"],
+                                             system_info["type"])
+        system_perform = assert_system_perform(data,
+                                               system_info["platform"],
+                                               system_info["system_type"])
+    elif system_info["system_type"] == "exa":
+        system_status = assert_system_status(data,
+                                             # system_info["system_type"],
+                                             system_info["type"])
+        system_perform = assert_system_perform(data,
+                                               system_info["platform"],
+                                               system_info["system_type"])
+    asserted = {"node_name": data["node_name"],
+                **ilom,
+                **system_status,
+                **system_perform}
 
-    temp = assert_temp(data)
-    asserted["temp"][0] = temp[0]
-    asserted["temp"][1].extend(temp[1])
-
-    firmware = assert_firmware(data)
-    asserted["firmware"][0] = firmware[0]
-    asserted["firmware"][1].extend(firmware[1])
-
-    image = assert_image(data)
-    asserted["image"][0] = image[0]
-    asserted["image"][1].extend(image[1])
-
-    vol = assert_vol(data)
-    asserted["vol_avail"][0] = vol[0]
-    asserted["vol_avail"][1].extend(vol[1])
-
-    bonding = assert_bonding(data)
-    asserted["bonding"][0] = bonding[0]
-    asserted["bonding"][1].extend(bonding[1])
-
-    cpu_util = assert_cpu_util(data)
-    asserted["cpu_util"][0] = cpu_util[0]
-    asserted["cpu_util"][1].extend(cpu_util[1])
-
-    load = assert_load(data)
-    asserted["load"][0] = load[0]
-    asserted["load"][1].extend(load[1])
-
-    mem_free = assert_mem_free(data)
-    asserted["mem_free"][0] = mem_free[0]
-    asserted["mem_free"][1].extend(mem_free[1])
-
-    swap_util = assert_swap_util(data)
-    asserted["swap_util"][0] = swap_util[0]
-    asserted["swap_util"][1].extend(swap_util[1])
+    # cpu_util = assert_cpu_util(data)
+    # asserted["cpu_util"][0] = cpu_util[0]
+    # asserted["cpu_util"][1].extend(cpu_util[1])
+    #
+    # mem_free = assert_mem_free(data)
+    # asserted["mem_free"][0] = mem_free[0]
+    # asserted["mem_free"][1].extend(mem_free[1])
+    # load = assert_load(data)
+    # asserted["load"][0] = load[0]
+    # asserted["load"][1].extend(load[1])
+    #
+    #
+    # swap_util = assert_swap_util(data)
+    # asserted["swap_util"][0] = swap_util[0]
+    # asserted["swap_util"][1].extend(swap_util[1])
 
     for field in asserted:
         logging.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
@@ -347,16 +458,16 @@ def get_score(asserted):
         [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
         [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
         [7, "Kiểm tra CPU Utilization", ["", []]],
-        [8, "Kiểm tra CPU Load Average", ["", []]],
-        [9, "Kiểm tra Memory", ["", []]],
-        [10, "Kiểm tra Swap", ["", []]],
+        # [8, "Kiểm tra CPU Load Average", ["", []]],
+        [8, "Kiểm tra Memory", ["", []]],
+        [9, "Kiểm tra IO Busy", ["", []]],
     ]
 
     keys = list(asserted)
 
     for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i - 1]][0]
-        comment = asserted[keys[i - 1]][1]
+        asserted_score = asserted[keys[i]][0]
+        comment = asserted[keys[i]][1]
         try:
             score = ASSERTION[asserted_score]
         except Exception:
@@ -415,16 +526,21 @@ def drw_table(doc, checklist, row, col, info=False):
 def drw_info(doc, node, checklist, images_root, images_name=[]):
     for i in range(1, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
-        if isinstance(images_name[i - 1], list):
-            for image in images_name[i - 1]:
-                path = os.path.normpath(images_root + "/" + node + "/" + image)
-            doc.add_picture(path, width=Inches(6.73))
-        else:
-            path = os.path.normpath(images_root + "/" + node + "/" + images_name[i - 1])
-            doc.add_picture(
-                path,
-                width=Inches(6.73),
-            )
+        try:
+            if isinstance(images_name[i - 1], list):
+                for image in images_name[i - 1]:
+                    path = os.path.normpath(
+                        images_root + "/" + node + "/" + image)
+                    doc.add_picture(path, width=Inches(6.73))
+            else:
+                path = os.path.normpath(
+                    images_root + "/" + node + "/" + images_name[i - 1])
+                doc.add_picture(
+                    path,
+                    width=Inches(6.73),
+                )
+        except Exception:
+            pass
         for line in checklist[i][2][1]:
             doc.add_paragraph(line, style="Dash List")
     doc.add_page_break()
@@ -434,7 +550,7 @@ def define_doc(sample):
     try:
         doc = docx.Document(os.path.normpath(sample))
     except Exception:
-        click.echo("Sample docx not found!")
+        print("Sample docx not found!")
         sys.exit()
     return doc
 
@@ -451,8 +567,17 @@ def drw_menu(doc, nodes):
     doc.add_page_break()
 
 
+system_info = {"system_type": "",
+               "platform": "",
+               "type": ""}
+
+
 def drw_doc(doc, input_file, out_dir, images_root, force):
-    nodes = tools.read_json(input_file)
+    input_file_data = tools.read_json(input_file)
+    system_info["system_type"] = input_file_data["system_type"]
+    system_info["platform"] = input_file_data["platform"]
+    system_info["type"] = input_file_data["type"]
+    nodes = input_file_data["nodes"]
     if nodes == -1:
         return -1
     asserted_list = []
@@ -460,83 +585,56 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
     # drw_menu(doc, nodes)
     input_root = os.path.split(input_file)[0]
     for node in nodes:
-        level = logging.root.level
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node, bg="cyan", fg="black")
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node, fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-                bar_template="",
-            )
-            progress_bar.finish()
-        else:
-            progress_bar = click.progressbar(
-                range(100),
-                label=click.style(node, fg=SECTION),
-                fill_char="*",
-                empty_char=" ",
-                show_eta=False,
-            )
-        image_json = os.path.normpath(images_root + "/" + node + "/images.json")
+        print("NODE:" + node["node_name"])
+        print("RUNNING:GETTING SAVED IMAGES")
+        image_json = os.path.normpath(
+            images_root + "/" + node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
-        progress_bar.update(10)
 
-        file_dump = {}
-        progress_bar.update(1)
-        asserted = assert_data(nodes[node])
-        progress_bar.update(10)
+        print("RUNNING:ASSERTING DATA")
+        asserted = assert_data(node)
 
-        file_dump[node] = asserted
-
-        # keys = list(asserted)
-        checklist = get_score(asserted)
-        progress_bar.update(10)
-        doc.add_paragraph("Máy chủ " + node, style="baocao2")
-        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-        progress_bar.update(10)
-        overview = [
-            ["Hostname", "Product Name", "Serial Number", "IP Address"],
-            [node, "", "", ""],
-        ]
-        drw_table(doc, overview, 2, 4)
-        progress_bar.update(10)
-        doc.add_paragraph("Đánh giá", style="baocao3")
-        progress_bar.update(10)
-        drw_table(doc, checklist, 11, 3, True)
-        progress_bar.update(10)
-
-        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-        progress_bar.update(10)
-
-        drw_info(doc, node, checklist, images_root, images_name)
-        progress_bar.update(10)
-
-        asserted_file = node + "_asserted"
+        print("RUNNING:SAVING ASSERTED DATA")
+        file_dump = asserted
+        asserted_file = input_root + "/" + \
+            node["node_name"] + "/" + node["node_name"] + "_asserted.json"
         asserted_list += [asserted_file]
-
         tools.save_json(
-            os.path.normpath(input_root + "/" + node + "/" + asserted_file + ".json"),
+            os.path.normpath(asserted_file),
             file_dump,
         )
-        progress_bar.update(10)
-        if (logging.DEBUG == level) or (logging.INFO == level):
-            click.secho(node + " DONE", bg=SUCCESS, fg="black")
-            click.echo()
-        else:
-            click.echo(" ", nl=False)
-            click.secho("DONE", bg=SUCCESS, fg="black")
-    file_name = os.path.normpath(tools.rm_ext(input_file, "json") + "_asserted.json")
-    tools.join_json(asserted_list, file_name)
+        print("RUNNING:CREATING CHECKLIST")
+        checklist = get_score(asserted)
+        print("RUNNING:DRAWING OVERVIEW TABLE")
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
+        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        overview = [
+            ["Hostname", "Product Name", "Serial Number", "IP Address"],
+            [node["node_name"], "", "", ""],
+        ]
+        drw_table(doc, overview, 2, 4)
+        doc.add_paragraph("Đánh giá", style="baocao3")
+        print("RUNNING:DRAWING SUMMARY TABLE")
+        drw_table(doc, checklist, len(checklist), 3, True)
+
+        print("RUNNING:DRAWING DETAILS")
+        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+        drw_info(doc, node["node_name"], checklist, images_root, images_name)
+
+        print("DONE")
+        print()
+    logging.debug(json.dumps(asserted_list))
+    print("RUNNING:SAVING ASSERTED SUMMARY FILE")
+    file_name = os.path.normpath(tools.rm_ext(
+        input_file, "json") + "_asserted.json")
+    tools.join_json(file_name, asserted_list)
     return doc
 
 
 def print_style(doc):
     styles = doc.styles
     for style in styles:
-        click.echo(style.name)
+        print(style.name)
 
 
 def run(input_file, output_file, sample, images_dir, force=False):
@@ -547,14 +645,14 @@ def run(input_file, output_file, sample, images_dir, force=False):
         if doc == -1:
             return -1
     except Exception as err:
-        click.echo(err)
+        print(err)
         return -1
 
     if logging.root.level == 10:
-        click.echo()
-        click.secho("List of all styles", bg="cyan", fg="black")
+        print()
+        print("List of all styles")
         print_style(doc)
-        click.echo()
+        print()
     file_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
     doc.save(file_name)
     return file_name

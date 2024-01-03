@@ -4,8 +4,9 @@ build:
 	# echo Building rekdoc ...
 	source venv/bin/activate
 	mkdir -p target/local > /dev/null 2>&1
-	pip install pyinstaller pillow mysql.connector click python-docx
-	pyinstaller --strip --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
+	pip install pyinstaller pillow mysql.connector click python-docx python-dotenv
+	pyinstaller --strip --clean -F src/rekdoc/core.py src/rekdoc/doc.py src/rekdoc/fetch.py src/rekdoc/const.py src/rekdoc/tools.py \
+		--add-binary src/oswbba.jar:. \
 		-n rekdoc --distpath target/local
 	deactivate
 
@@ -43,13 +44,20 @@ run:
 init:
 	python -m venv venv
 
-clean:
-	rm -rf temp/*
-	rm -rf output/*
-	rm -f *.spec
-purge: 
+# clean:
+# 	rm -rf temp/*
+# 	rm -rf output/*
+# 	rm -f *.spec
+purge-build: 
+	rm -rf build 
+	rm -rf *.egg-info
+purge-target:
+	rm -rf dist target
+	rm -rf *.egg-info
+purge-all: 
 	rm -rf build dist target
 	rm -rf *.egg-info
+	rm -rf *.spec
 tree:
 	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info -I test_env -I mysql-data 
- PHONY: build-debian
+ PHONY: build

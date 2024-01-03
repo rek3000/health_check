@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[tool.hatch.version]
+path = "rekdoc/__init__.py"
+
+
+[project]
+name = "rekdoc"
+dynamic = ["version"]
+dependencies = ["python-docx",
+             "pillow",
+             "click",
+             "mysql-connector-python",
+             "python-dotenv"
+]
+authors = [
+{name = "rek3000", email = "torek3k@example.com"}
+]
+description = "System health check toolkit"
+requires-python = ">=3"
+readme = "README.md"
+
+[project.scripts]
+rekdoc = "rekdoc.core:cli"
+
+[project.optional-dependencies]
+dev = ["hatch",
+    "hatchling",
+    "pyink",
+    "pyinstaller",
+
+]
