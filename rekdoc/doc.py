@@ -310,8 +310,16 @@ def assert_mem_free(data):
 
 
 def assert_io_busy(data):
-    score = ""
-    comment = [""]
+    if data["io_busy"]["busy"] < 50:
+        score = 5
+    elif 50 <= data["io_busy"]["busy"] <= 70:
+        score = 3
+    else:
+        score = 1
+
+    comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
+    comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
+    comment.append("Đánh giá: " + ASSERTION[score])
     io_busy = [score, comment]
     return io_busy
 

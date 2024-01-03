@@ -638,27 +638,33 @@ def get_io_busy(path):
     try:
         io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
         files = glob.glob(io_busy_path, recursive=True)
-        io_busy = {"name": None, "busy": None}
+        io_busy = {"name": None, "busy": 0}
         for file in files:
             stdout = tools.cat(file, True)
             io_busy_persection_list = []
-            for i in range(1, len(stdout)):
+            i = 1
+            while i < len(stdout):
                 if "zzz" in stdout[i]:
-                    if i == len(stdout) - 1:
-                        break
-                    i = i + 2
-
+                    logging.debug("ZZZ")
                     logging.debug(json.dumps(
                         io_busy_persection_list, indent=2))
                     try:
+                        logging.info(io_busy_persection_list)
                         maxbusy = max(io_busy_persection_list)
-                        maxpos = io_busy_persection_list.index(maxbusy)
-                        io_busy["name"] = stdout[maxpos][-1]
-                        io_busy["busy"] = maxbusy
-                    except Exception:
-                        continue
+                        index = io_busy_persection_list.index(maxbusy)
+                        maxpos = i - (len(io_busy_persection_list) - index)
+                        if io_busy["busy"] < maxbusy:
+                            io_busy["name"] = stdout[maxpos].split()[-1]
+                            io_busy["busy"] = maxbusy
+                        logging.info("CURRENT MAXIO")
+                        logging.info(json.dumps(io_busy, indent=2))
+                        io_busy_persection_list = []
+                    except Exception as err:
+                        print(err)
+                    i += 3
                     continue
                 io_busy_persection_list.append(float(stdout[i].split()[-2]))
+                i += 1
         return io_busy
     except Exception as err:
         print(err)
