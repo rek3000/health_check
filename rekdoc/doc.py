@@ -21,10 +21,11 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
-    if data["fault"] == "":
-        score = ""
-        comment = [""]
-    elif data["fault"] == "No faults found":
+    score = 0
+    # if data["fault"] == "":
+    #     score = ""
+    #     comment = [""]
+    if data["fault"] == "No faults found" or data["fault"] == "":
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     elif data["fault"] == "warning":
@@ -48,10 +49,12 @@ def assert_fault(data):
 def assert_temp(data):
     inlet_temp = data["inlet"].split()[0]
     inlet_temp = int(inlet_temp)
+    score = 0
+    comment = [""]
     if inlet_temp == "":
         score = ""
         comment = [""]
-    elif inlet_temp >= 21 and inlet_temp <= 23:
+    elif inlet_temp <= 23:
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
@@ -174,46 +177,49 @@ def assert_image(data):
 
 def assert_vol(data):
     score = 0
+    comment = [""]
     if data["vol_avail"] == "":
         score = ""
         comment = [""]
-    elif data["vol_avail"] > 30 and data["raid_stat"] is True:
-        score = 5
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
-        "raid_stat"
-    ] is True:
-        score = 3
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
-        score = 1
-        comment = [
-            "Phân vùng OS không được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
-        score = 1
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] > 30 and data["raid_stat"] is False:
-        score = 3
-        comment = [
-            "Phân vùng OS không được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
+    elif system_info["type"] == "vm":
+        if data["vol_avail"] > 30:
+            score = 5
+        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30):
+            score = 3
+        elif data["vol_avail"] <= 15:
+            score = 1
+    else:
+        if data["vol_avail"] > 30 and data["raid_stat"] is True:
+            score = 5
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
+            "raid_stat"
+        ] is True:
+            score = 3
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
+            score = 1
+            comment = [
+                "Phân vùng OS không được cấu hình RAID",
+            ]
+        elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
+            score = 1
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif data["vol_avail"] > 30 and data["raid_stat"] is False:
+            score = 3
+            comment = [
+                "Phân vùng OS không được cấu hình RAID",
+            ]
+
+    comment.extend(["Dung lượng khả dụng: " +
+                    str(data["vol_avail"]) + "%",
+                    "Đánh giá: " + ASSERTION[score]])
 
     vol = [score, comment]
     logging.debug(json.dumps(vol, ensure_ascii=False))
@@ -358,6 +364,7 @@ def assert_ilom(data):
     except RuntimeError:
         print("Failed to assert ILOM")
         raise
+    logging.debug(json.dumps(x, indent=2))
     return x
 
 
@@ -366,10 +373,11 @@ def assert_system_status(data, server_type):
     try:
         image = assert_image(data)
         vol = assert_vol(data)
-        bonding = assert_bonding(data)
         x = {"image": image,
-             "vol": vol,
-             "bonding": bonding}
+             "vol": vol}
+        if server_type == "baremetal":
+            bonding = assert_bonding(data)
+            x["bonding"] = bonding
     except RuntimeError:
         print("Failed to assert system status")
         raise
@@ -401,30 +409,22 @@ def assert_system_perform(data, platform, system_type):
 
 def assert_data(data):
     asserted = {}
-    # for i in data:
-    #     if i == "inlet":
-    #         i = "temp"
-    #     if i == "exhaust":
-    #         continue
-    #     if i == "raid_stat":
-    #         continue
-    #     # if i == "mem_util":
-    #     #     i = "mem_free"
-    #     asserted[i] = ["", []]
+    ilom = {}
 
-    ilom = assert_ilom(data)
+    if system_info["type"] == "baremetal":
+        ilom = assert_ilom(data)
+    else:
+        ilom = {"fault": assert_fault(data)}
     system_status = None
     system_perform = None
     if system_info["system_type"] == "standalone":
         system_status = assert_system_status(data,
-                                             # system_info["platform"],
                                              system_info["type"])
         system_perform = assert_system_perform(data,
                                                system_info["platform"],
                                                system_info["system_type"])
     elif system_info["system_type"] == "exa":
         system_status = assert_system_status(data,
-                                             # system_info["system_type"],
                                              system_info["type"])
         system_perform = assert_system_perform(data,
                                                system_info["platform"],
@@ -456,19 +456,33 @@ def assert_data(data):
 
 
 def get_score(asserted):
-    checklist = [
-        # ["STT", "Hạng mục kiểm tra", "Score"],
-        [1, "Kiểm tra trạng thái phần cứng", ["", []]],
-        [2, "Kiểm tra nhiệt độ", ["", []]],
-        [3, "Kiểm tra phiên bản ILOM", ["", []]],
-        [4, "Kiểm tra phiên bản Image", ["", []]],
-        [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
-        [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
-        [7, "Kiểm tra CPU Utilization", ["", []]],
-        # [8, "Kiểm tra CPU Load Average", ["", []]],
-        [8, "Kiểm tra Memory", ["", []]],
-        [9, "Kiểm tra IO Busy", ["", []]],
-    ]
+    checklist = []
+    if system_info["type"] == "baremetal" \
+            and system_info["platform"] == "solaris":
+        checklist = [
+            # ["STT", "Hạng mục kiểm tra", "Score"],
+            [1, "Kiểm tra trạng thái phần cứng", ["", []]],
+            [2, "Kiểm tra nhiệt độ", ["", []]],
+            [3, "Kiểm tra phiên bản ILOM", ["", []]],
+            [4, "Kiểm tra phiên bản Image", ["", []]],
+            [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
+            [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
+            [7, "Kiểm tra CPU Utilization", ["", []]],
+            # [8, "Kiểm tra CPU Load Average", ["", []]],
+            [8, "Kiểm tra Memory", ["", []]],
+            [9, "Kiểm tra IO Busy", ["", []]],
+        ]
+    elif system_info["type"] == "vm" \
+            and system_info["platform"] == "solaris":
+        checklist = [
+            # ["STT", "Hạng mục kiểm tra", "Score"],
+            [1, "Kiểm tra lỗi", ["", []]],
+            [2, "Kiểm tra phiên bản Image", ["", []]],
+            [3, "Kiểm tra dung lượng phân vùng OS", ["", []]],
+            [4, "Kiểm tra CPU Utilization", ["", []]],
+            [5, "Kiểm tra Memory", ["", []]],
+            [6, "Kiểm tra IO Busy", ["", []]],
+        ]
 
     keys = list(asserted)
 
@@ -669,12 +683,12 @@ def drw_doc(doc, checklist_list, nodes):
     doc.add_paragraph(
         "Ý KIẾN CÁC BÊN", style="baocao1")
     ref = [
-            ["KHÁCH HÀNG", "MPS"],
-            [" ", " "],
-            ["Tên: ", "Tên: "],
-            ["Chữ ký: ", "Chữ ký: "],
-            ["Ngày: ", "Ngày: "],
-            ]
+        ["KHÁCH HÀNG", "MPS"],
+        [" ", " "],
+        ["Tên: ", "Tên: "],
+        ["Chữ ký: ", "Chữ ký: "],
+        ["Ngày: ", "Ngày: "],
+    ]
     drw_table(doc, ref, len(ref), 2, False)
     print("DONE")
     print()
@@ -724,10 +738,19 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     print(json.dumps(checklist_list, indent=2))
     print("RUNNING:DRAWING REPORTS")
     print("RUNNING:DRAWING APPENDIX REPORT")
+    if system_info["type"] == "baremetal" \
+            and system_info["platform"] == "solaris":
+        appendix_doc.add_paragraph("Máy chủ SPARC", style="baocao1")
+    elif system_info["type"] == "vm":
+        appendix_doc.add_paragraph("Máy chủ ảo hóa", style="baocao1")
+
     drw_doc_appendix(appendix_doc, checklist_list, nodes,
                      images_root, images_name)
     print("RUNNING:DRAWING REPORT")
-    drw_doc(doc, checklist_list, nodes)
+    try:
+        drw_doc(doc, checklist_list, nodes)
+    except Exception:
+        pass
 
     return appendix_doc
 

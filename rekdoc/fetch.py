@@ -205,10 +205,16 @@ def check_valid(path):
 # DRAW ILOM
 def drw_fault(path, out_dir):
     fault = io.StringIO()
-    fault.write(path + const.FAULT + "\n")
-    stdout = tools.cat(os.path.normpath(path + const.FAULT))
-    fault.write(str(stdout))
-    tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
+    if system_info["type"] == "baremetal":
+        fault.write(path + const.FAULT + "\n")
+        stdout = tools.cat(os.path.normpath(path + const.FAULT))
+        fault.write(str(stdout))
+        tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
+    else:
+        fault.write(path + const.FAULT_SOL + "\n")
+        stdout = tools.cat(os.path.normpath(path + const.FAULT_SOL))
+        fault.write(str(stdout))
+        tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
 
 
 def drw_temp(path, out_dir):
@@ -231,11 +237,11 @@ def drw_firmware(path, out_dir):
 
 
 def drw_ilom(path, out_dir):
-    drw_fault(path, out_dir)
-    drw_temp(path, out_dir)
-    drw_firmware(path, out_dir)
-
-    return ["fault.png", "temp.png", "firmware.png"]
+    if system_info["type"] == "baremetal":
+        drw_fault(path, out_dir)
+        drw_temp(path, out_dir)
+        drw_firmware(path, out_dir)
+        return ["fault.png", "temp.png", "firmware.png"]
 
 
 ## END DRAW ILOM ##
@@ -310,15 +316,23 @@ def drw_swap(path, out_dir):
 
 # SUCKS, rewrite later
 def drw_system_status(path, out_dir):
-    drw_image(path, out_dir)
-    drw_vol(path, out_dir)
-    drw_raid(path, out_dir)
-    drw_net(path, out_dir)
-    return [
-        "image.png",
-        ["vol.png", "raid.png"],
-        "net.png",
-    ]
+    if system_info["type"] == "baremetal":
+        drw_image(path, out_dir)
+        drw_vol(path, out_dir)
+        drw_raid(path, out_dir)
+        drw_net(path, out_dir)
+        return [
+            "image.png",
+            ["vol.png", "raid.png"],
+            "net.png",
+        ]
+    else:
+        drw_image(path, out_dir)
+        drw_vol(path, out_dir)
+        return [
+            "image.png",
+            ["vol.png", ""],
+        ]
 
 
 def drw_system_performance(path, out_dir):
@@ -360,7 +374,12 @@ def drw_system_performance(path, out_dir):
 
 
 def drw_content(path, out_dir):
-    ilom = drw_ilom(path[0], out_dir)
+    ilom = []
+    if system_info["type"] == "baremetal":
+        ilom = drw_ilom(path[0], out_dir)
+    else:
+        drw_fault(path[1], out_dir)
+        ilom = ["fault.png"]
     system_status = drw_system_status(path[1], out_dir)
     system_performance = drw_system_performance(path[2], out_dir)
     # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
@@ -376,6 +395,22 @@ def drw_content(path, out_dir):
 # ------------------------------
 def get_fault(path):
     fault = ""
+    if system_info["type"] == "vm":
+        try:
+            if tools.grep(os.path.normpath(path + const.FAULT_SOL), "critical", True):
+                fault = "critical"
+            elif tools.grep(os.path.normpath(path + const.FAULT_SOL), "warning", True):
+                fault = "warning"
+            else:
+                stdout = tools.grep(os.path.normpath(
+                    path + const.FAULT), ".", True, 9)
+                fault = stdout.strip()
+            return fault
+        except RuntimeError:
+            return fault
+        except Exception:
+            print("Failed to fetch fault data")
+            raise
     try:
         if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
             fault = "critical"
@@ -506,8 +541,8 @@ def get_bonding(path):
     try:
         net_ipmp = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
                               "ipmp", True)
-        net_aggr = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
-                              "aggr", True)
+        net_aggr = tools.grep(os.path.normpath(path + const.NETWORK_SOL_AGGR),
+                              "up", True)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -516,8 +551,8 @@ def get_bonding(path):
             if state == "ok":
                 bonding = "ipmp"
         elif net_aggr and not net_ipmp:
-            state = net_ipmp.split()[2]
-            if state == "ok":
+            state = net_aggr.split()[4]
+            if state == "up":
                 bonding = "aggr"
         else:
             bonding = "both"
@@ -632,6 +667,8 @@ def get_mem_free(path):
             logging.debug(mem_free_perfile_list)
         mem_free = float("{:.0f}".format(
             sum(mem_free_alltime) / len(mem_free_alltime)))
+        if mem_free > total_mem:
+            mem_free = mem_free / 1024
         # mem_util = float("{:.0f}".format(total_mem - mem_free))
         mem_free_percent = float("{:.2f}".format((mem_free / total_mem) * 100))
         mem_util_percent = 100 - mem_free_percent
@@ -780,18 +817,20 @@ def get_detail(node, path):
     system_status = {}
     system_perform = {}
     try:
-        if path[0] == "":
+        if path[0] == "" and system_info["type"] == "baremetal":
             ilom = {
                 "fault": "",
                 "inlet": "",
                 "exhaust": "",
                 "firmware": "",
             }
-        else:
+        elif system_info["type"] == "baremetal":
             ilom = get_ilom(path[0])
+        else:
+            ilom = {"fault": get_fault(path[1])}
         # OSWatcher
         if system_info["system_type"] == "standalone":
-            if path[1] == "":
+            if path[1] == "" and system_info["type"] == "baremetal":
                 system_status = {
                     "image": "",
                     "vol_avail": "",
@@ -902,7 +941,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
             print("ILOM SNAPSHOT")
             file_logs[0] = get_file("*.zip", logs_dir)
             print("EXPLORER")
-            file_logs[1] = get_file("*.tar.gz", logs_dir)
+            file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
             print("OSWATCHER")
             file_logs[2] = get_file("archive*.gz", logs_dir)
             list_file_logs.append(file_logs)
