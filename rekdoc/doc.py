@@ -21,10 +21,11 @@ ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
 
 def assert_fault(data):
-    if data["fault"] == "":
-        score = ""
-        comment = [""]
-    elif data["fault"] == "No faults found":
+    score = 0
+    # if data["fault"] == "":
+    #     score = ""
+    #     comment = [""]
+    if data["fault"] == "No faults found" or data["fault"] == "":
         score = 5
         comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
     elif data["fault"] == "warning":
@@ -46,12 +47,16 @@ def assert_fault(data):
 
 
 def assert_temp(data):
-    inlet_temp = data["inlet"].split()[0]
-    inlet_temp = int(inlet_temp)
-    if inlet_temp == "":
+    if data["inlet"] == "":
         score = ""
         comment = [""]
-    elif inlet_temp >= 21 and inlet_temp <= 23:
+        temp = [score, comment]
+        return temp
+    inlet_temp = data["inlet"].split()[0]
+    inlet_temp = int(inlet_temp)
+    score = 0
+    comment = [""]
+    if inlet_temp <= 23:
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
@@ -128,7 +133,7 @@ def assert_image(data):
     score = 0
     if data["image"] == "":
         image = ["", [""]]
-        logging.debug(json.dumps(image, ensure_ascii=False))
+        # logging.debug(json.dumps(image, ensure_ascii=False))
         return image
 
     while True:
@@ -174,46 +179,51 @@ def assert_image(data):
 
 def assert_vol(data):
     score = 0
+    comment = [""]
     if data["vol_avail"] == "":
         score = ""
         comment = [""]
-    elif data["vol_avail"] > 30 and data["raid_stat"] is True:
-        score = 5
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
-        "raid_stat"
-    ] is True:
-        score = 3
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
-        score = 1
-        comment = [
-            "Phân vùng OS không được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
-        score = 1
-        comment = [
-            "Phân vùng OS được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif data["vol_avail"] > 30 and data["raid_stat"] is False:
-        score = 3
-        comment = [
-            "Phân vùng OS không được cấu hình RAID",
-            "Dung lượng khả dụng: " + str(data["vol_avail"]) + "%",
-            "Đánh giá: " + ASSERTION[score],
-        ]
+        vol = [score, comment]
+        return vol
+    elif system_info["type"] == "vm":
+        if data["vol_avail"] > 30:
+            score = 5
+        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30):
+            score = 3
+        elif data["vol_avail"] <= 15:
+            score = 1
+    else:
+        if data["vol_avail"] > 30 and data["raid_stat"] is True:
+            score = 5
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
+            "raid_stat"
+        ] is True:
+            score = 3
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
+            score = 1
+            comment = [
+                "Phân vùng OS không được cấu hình RAID",
+            ]
+        elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
+            score = 1
+            comment = [
+                "Phân vùng OS được cấu hình RAID",
+            ]
+        elif data["vol_avail"] > 30 and data["raid_stat"] is False:
+            score = 3
+            comment = [
+                "Phân vùng OS không được cấu hình RAID",
+            ]
+
+    comment.extend(["Dung lượng khả dụng: " +
+                    str(data["vol_avail"]) + "%",
+                    "Đánh giá: " + ASSERTION[score]])
 
     vol = [score, comment]
     logging.debug(json.dumps(vol, ensure_ascii=False))
@@ -225,6 +235,8 @@ def assert_bonding(data):
     if data["bonding"] == "":
         score = ""
         comment = [""]
+        bonding = [score, comment]
+        return bonding
     elif data["bonding"] == "none":
         score = 1
         comment = ["Network không được cấu hình bonding"]
@@ -246,6 +258,8 @@ def assert_cpu_util(data):
     if data["cpu_util"] == "":
         score = ""
         comment = [""]
+        cpu_util = [score, comment]
+        return cpu_util
     elif data["cpu_util"] <= 30:
         score = 5
     elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
@@ -287,7 +301,7 @@ def assert_load(data):
 
 def assert_mem_free(data):
     # mem_free = 100 - data["mem_util"]
-    mem_free = data["mem_free"]
+    mem_free = data["mem_free"]["mem_free_percent"]
     if mem_free == "":
         score = ""
         comment = [""]
@@ -300,7 +314,9 @@ def assert_mem_free(data):
         score = 3
     else:
         score = 1
-    comment = ["Average physical memory free: " + str(mem_free) + "%"]
+    comment = ["Total Memory: " + str(data["mem_free"]["total_mem"])]
+    comment.append("Memory Free in GB: " + str(data["mem_free"]["mem_free"]))
+    comment.append("Average physical memory free: " + str(mem_free) + "%")
     comment.append("Đánh giá: " + ASSERTION[score])
 
     mem_free = [score, comment]
@@ -310,15 +326,25 @@ def assert_mem_free(data):
 
 
 def assert_io_busy(data):
-    if data["io_busy"]["busy"] < 50:
+    score = 0
+    comment = []
+    if not data["io_busy"]:
+        score = ""
+        comment = [""]
+        io_busy = [score, comment]
+        return io_busy
+    elif data["io_busy"]["busy"] < 50:
         score = 5
+        comment = ["IO Busy: " + "< 50%"]
     elif 50 <= data["io_busy"]["busy"] <= 70:
         score = 3
+        comment = ["IO Busy: " + ">= 50%" + " " + "và" + "<= 70%"]
     else:
         score = 1
+        comment = ["IO Busy: " + "> 70%"]
 
-    comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
-    comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
+    # comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
+    # comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
     comment.append("Đánh giá: " + ASSERTION[score])
     io_busy = [score, comment]
     return io_busy
@@ -351,6 +377,7 @@ def assert_ilom(data):
     except RuntimeError:
         print("Failed to assert ILOM")
         raise
+    logging.debug(json.dumps(x, indent=2))
     return x
 
 
@@ -359,10 +386,11 @@ def assert_system_status(data, server_type):
     try:
         image = assert_image(data)
         vol = assert_vol(data)
-        bonding = assert_bonding(data)
         x = {"image": image,
-             "vol": vol,
-             "bonding": bonding}
+             "vol": vol}
+        if server_type == "baremetal":
+            bonding = assert_bonding(data)
+            x["bonding"] = bonding
     except RuntimeError:
         print("Failed to assert system status")
         raise
@@ -394,30 +422,22 @@ def assert_system_perform(data, platform, system_type):
 
 def assert_data(data):
     asserted = {}
-    # for i in data:
-    #     if i == "inlet":
-    #         i = "temp"
-    #     if i == "exhaust":
-    #         continue
-    #     if i == "raid_stat":
-    #         continue
-    #     # if i == "mem_util":
-    #     #     i = "mem_free"
-    #     asserted[i] = ["", []]
+    ilom = {}
 
-    ilom = assert_ilom(data)
+    if system_info["type"] == "baremetal":
+        ilom = assert_ilom(data)
+    else:
+        ilom = {"fault": assert_fault(data)}
     system_status = None
     system_perform = None
     if system_info["system_type"] == "standalone":
         system_status = assert_system_status(data,
-                                             # system_info["platform"],
                                              system_info["type"])
         system_perform = assert_system_perform(data,
                                                system_info["platform"],
                                                system_info["system_type"])
     elif system_info["system_type"] == "exa":
         system_status = assert_system_status(data,
-                                             # system_info["system_type"],
                                              system_info["type"])
         system_perform = assert_system_perform(data,
                                                system_info["platform"],
@@ -449,27 +469,44 @@ def assert_data(data):
 
 
 def get_score(asserted):
-    checklist = [
-        ["STT", "Hạng mục kiểm tra", "Score"],
-        [1, "Kiểm tra trạng thái phần cứng", ["", []]],
-        [2, "Kiểm tra nhiệt độ", ["", []]],
-        [3, "Kiểm tra phiên bản ILOM", ["", []]],
-        [4, "Kiểm tra phiên bản Image", ["", []]],
-        [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
-        [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
-        [7, "Kiểm tra CPU Utilization", ["", []]],
-        # [8, "Kiểm tra CPU Load Average", ["", []]],
-        [8, "Kiểm tra Memory", ["", []]],
-        [9, "Kiểm tra IO Busy", ["", []]],
-    ]
+    checklist = []
+    if system_info["type"] == "baremetal" \
+            and system_info["platform"] == "solaris":
+        checklist = [
+            # ["STT", "Hạng mục kiểm tra", "Score"],
+            [1, "Kiểm tra trạng thái phần cứng", ["", []]],
+            [2, "Kiểm tra nhiệt độ", ["", []]],
+            [3, "Kiểm tra phiên bản ILOM", ["", []]],
+            [4, "Kiểm tra phiên bản Image", ["", []]],
+            [5, "Kiểm tra cấu hình RAID và dung lượng phân vùng OS", ["", []]],
+            [6, "Kiểm tra cấu hình Bonding Network", ["", []]],
+            [7, "Kiểm tra CPU Utilization", ["", []]],
+            # [8, "Kiểm tra CPU Load Average", ["", []]],
+            [8, "Kiểm tra Memory", ["", []]],
+            [9, "Kiểm tra IO Busy", ["", []]],
+        ]
+    elif system_info["type"] == "vm" \
+            and system_info["platform"] == "solaris":
+        checklist = [
+            # ["STT", "Hạng mục kiểm tra", "Score"],
+            [1, "Kiểm tra lỗi", ["", []]],
+            [2, "Kiểm tra phiên bản Image", ["", []]],
+            [3, "Kiểm tra dung lượng phân vùng OS", ["", []]],
+            [4, "Kiểm tra CPU Utilization", ["", []]],
+            [5, "Kiểm tra Memory", ["", []]],
+            [6, "Kiểm tra IO Busy", ["", []]],
+        ]
 
     keys = list(asserted)
 
-    for i in range(1, len(checklist)):
-        asserted_score = asserted[keys[i]][0]
-        comment = asserted[keys[i]][1]
+    for i in range(0, len(checklist)):
+        asserted_score = asserted[keys[i+1]][0]
+        comment = asserted[keys[i+1]][1]
         try:
-            score = ASSERTION[asserted_score]
+            if asserted_score == "":
+                score = asserted_score
+            else:
+                score = ASSERTION[asserted_score]
         except Exception:
             score = asserted_score
         checklist[i][2][0] = score
@@ -524,17 +561,17 @@ def drw_table(doc, checklist, row, col, info=False):
 # def drw_image_to_doc(doc, node, images_root, images_name):
 # path?
 def drw_info(doc, node, checklist, images_root, images_name=[]):
-    for i in range(1, len(checklist)):
+    for i in range(0, len(checklist)):
         doc.add_paragraph(checklist[i][1], style="baocao4")
         try:
-            if isinstance(images_name[i - 1], list):
-                for image in images_name[i - 1]:
+            if isinstance(images_name[i], list):
+                for image in images_name[i]:
                     path = os.path.normpath(
                         images_root + "/" + node + "/" + image)
                     doc.add_picture(path, width=Inches(6.73))
             else:
                 path = os.path.normpath(
-                    images_root + "/" + node + "/" + images_name[i - 1])
+                    images_root + "/" + node + "/" + images_name[i])
                 doc.add_picture(
                     path,
                     width=Inches(6.73),
@@ -551,7 +588,7 @@ def define_doc(sample):
         doc = docx.Document(os.path.normpath(sample))
     except Exception:
         print("Sample docx not found!")
-        sys.exit()
+        raise
     return doc
 
 
@@ -572,26 +609,125 @@ system_info = {"system_type": "",
                "type": ""}
 
 
-def drw_doc(doc, input_file, out_dir, images_root, force):
-    input_file_data = tools.read_json(input_file)
-    system_info["system_type"] = input_file_data["system_type"]
-    system_info["platform"] = input_file_data["platform"]
-    system_info["type"] = input_file_data["type"]
-    nodes = input_file_data["nodes"]
-    if nodes == -1:
-        return -1
-    asserted_list = []
-    doc.add_page_break()
-    # drw_menu(doc, nodes)
-    input_root = os.path.split(input_file)[0]
+def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
     for node in nodes:
         print("NODE:" + node["node_name"])
         print("RUNNING:GETTING SAVED IMAGES")
         image_json = os.path.normpath(
             images_root + "/" + node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
+        print("RUNNING:DRAWING OVERVIEW TABLE")
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
+        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        overview = [
+            ["Hostname", "Product Name", "Serial Number", "IP Address"],
+            [node["node_name"], "", "", ""],
+        ]
+        drw_table(doc, overview, 2, 4)
+        doc.add_paragraph("")
+        doc.add_paragraph("Đánh giá", style="baocao3")
+        print("RUNNING:DRAWING SUMMARY TABLE")
 
-        print("RUNNING:ASSERTING DATA")
+        check_table = [
+            ["STT", "Hạng mục kiểm tra", "Score"],
+        ]
+        check_table.extend(checklist_list[node["node_name"]])
+        # ["STT", "Hạng mục kiểm tra", "Score"],
+        # drw_table(doc, checklist_list[node["node_name"]], len(
+        #     checklist_list[node["node_name"]]), 3, True)
+        drw_table(doc, check_table, len(check_table), 3, True)
+        doc.add_paragraph("")
+
+        print("RUNNING:DRAWING DETAILS")
+        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+        drw_info(doc, node["node_name"],
+                 checklist_list[node["node_name"]], images_root, images_name)
+
+        print("DONE")
+        print()
+
+
+def drw_doc(doc, checklist_list, nodes):
+    doc.add_paragraph("Máy chủ ?(S/N): ?", style="baocao2")
+
+    print("RUNNING:DRAWING OVERVIEW TABLE")
+    doc.add_paragraph("Thông tin chung", style="baocao3")
+    overview = [
+        ["ITEM", "VALUE", "VALUE(PREVIOUS REPORT)"],
+    ]
+    for node in nodes:
+        print("NODE:" + node["node_name"])
+        overview.extend([
+            ["", "Máy chủ " + node["node_name"], ""],
+            ["Hostname", node["node_name"], ""],
+            ["Serial Number", "", ""],
+            ["Image Version", "", ""],
+            ["IP Adress", "", ""]
+        ])
+    # print(json.dumps(overview, indent=2))
+    drw_table(doc, overview, len(overview), 3, False)
+    doc.add_paragraph("")
+
+    print("RUNNING:DRAWING DETAIL TABLES")
+    doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+    for node in nodes:
+        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao4")
+        detail = [
+            ["STT", "Hạng Mục kiểm tra", "Điểm đánh giá",
+                "Điểm đánh giá\n (Trong lần kiểm tra trước đây)"],
+        ]
+        for check in checklist_list[node["node_name"]]:
+            detail.append([str(check[0]), str(check[1]), str(check[2][0]), ""])
+        # print(json.dumps(detail))
+
+        drw_table(doc, detail, len(detail), 4, False)
+        doc.add_paragraph("")
+    print("RUNNING:DRAWING RECOMMNEDATION TABLE")
+    doc.add_paragraph("Khuyến cáo", style="baocao3")
+    recommend = [
+        ["No", "Khuyến cáo Rủi Ro", "Mức độ", "Note"],
+        ["", "", "", ""]
+    ]
+    drw_table(doc, recommend, len(recommend), 4, False)
+    doc.add_paragraph("")
+    print("RUNNING:DRAWING REFERENCE")
+    doc.add_paragraph(
+        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="baocao3")
+    doc.add_paragraph(
+        "Vui lòng kiểm tra tài liệu Appendix được gửi kèm báo cáo này.")
+    doc.add_paragraph("")
+    doc.add_paragraph(
+        "Ý KIẾN CÁC BÊN", style="baocao1")
+    ref = [
+        ["KHÁCH HÀNG", "MPS"],
+        [" ", " "],
+        ["Tên: ", "Tên: "],
+        ["Chữ ký: ", "Chữ ký: "],
+        ["Ngày: ", "Ngày: "],
+    ]
+    drw_table(doc, ref, len(ref), 2, False)
+    print("DONE")
+    print()
+
+
+def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
+    input_file_data = tools.read_json(input_file)
+    system_info["system_type"] = input_file_data["system_type"]
+    system_info["platform"] = input_file_data["platform"]
+    system_info["type"] = input_file_data["type"]
+    nodes = input_file_data["nodes"]
+    checklist_list = {}
+
+    images_name = []
+    if nodes == -1:
+        return -1
+    asserted_list = []
+    appendix_doc.add_page_break()
+    # drw_menu(doc, nodes)
+    input_root = os.path.split(input_file)[0]
+    print("RUNNING:ASSERTING DATA")
+    for node in nodes:
+        print("NODE:" + node["node_name"])
         asserted = assert_data(node)
 
         print("RUNNING:SAVING ASSERTED DATA")
@@ -605,30 +741,34 @@ def drw_doc(doc, input_file, out_dir, images_root, force):
         )
         print("RUNNING:CREATING CHECKLIST")
         checklist = get_score(asserted)
-        print("RUNNING:DRAWING OVERVIEW TABLE")
-        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
-        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
-        overview = [
-            ["Hostname", "Product Name", "Serial Number", "IP Address"],
-            [node["node_name"], "", "", ""],
-        ]
-        drw_table(doc, overview, 2, 4)
-        doc.add_paragraph("Đánh giá", style="baocao3")
-        print("RUNNING:DRAWING SUMMARY TABLE")
-        drw_table(doc, checklist, len(checklist), 3, True)
-
-        print("RUNNING:DRAWING DETAILS")
-        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
-        drw_info(doc, node["node_name"], checklist, images_root, images_name)
-
+        checklist_list[node["node_name"]] = checklist
         print("DONE")
         print()
     logging.debug(json.dumps(asserted_list))
     print("RUNNING:SAVING ASSERTED SUMMARY FILE")
+    print()
     file_name = os.path.normpath(tools.rm_ext(
         input_file, "json") + "_asserted.json")
     tools.join_json(file_name, asserted_list)
-    return doc
+
+    print(json.dumps(checklist_list, indent=2))
+    print("RUNNING:DRAWING REPORTS")
+    print("RUNNING:DRAWING APPENDIX REPORT")
+    if system_info["type"] == "baremetal" \
+            and system_info["platform"] == "solaris":
+        appendix_doc.add_paragraph("Máy chủ SPARC", style="baocao1")
+    elif system_info["type"] == "vm":
+        appendix_doc.add_paragraph("Máy chủ ảo hóa", style="baocao1")
+
+    drw_doc_appendix(appendix_doc, checklist_list, nodes,
+                     images_root, images_name)
+    print("RUNNING:DRAWING REPORT")
+    try:
+        drw_doc(doc, checklist_list, nodes)
+    except Exception:
+        pass
+
+    return appendix_doc
 
 
 def print_style(doc):
@@ -637,12 +777,22 @@ def print_style(doc):
         print(style.name)
 
 
-def run(input_file, output_file, sample, images_dir, force=False):
-    doc = define_doc(sample)
+def run(input_file, output_file, sample,
+        appendix_sample, images_dir, force=False):
+    doc = None
+    appendix_doc = None
+
+    try:
+        doc = define_doc(sample)
+    except Exception:
+        pass
+    appendix_doc = define_doc(appendix_sample)
+
     out_dir = os.path.split(output_file)[0]
     try:
-        doc = drw_doc(doc, input_file, out_dir, images_dir, force)
-        if doc == -1:
+        appendix_doc = compile(doc, appendix_doc, input_file,
+                               out_dir, images_dir, force)
+        if appendix_doc == -1:
             return -1
     except Exception as err:
         print(err)
@@ -651,14 +801,28 @@ def run(input_file, output_file, sample, images_dir, force=False):
     if logging.root.level == 10:
         print()
         print("List of all styles")
-        print_style(doc)
+        print_style(appendix_doc)
         print()
-    file_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
-    doc.save(file_name)
-    return file_name
+    output_base_name = tools.rm_ext(os.path.split(output_file)[1], "json")
+    # doc_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
+    if doc is not None:
+        doc_name = os.path.normpath(
+            out_dir + "/" + output_base_name + ".docx")
+    else:
+        doc_name = ""
+    # appendix_doc_name =  \
+    # os.path.normpath(tools.rm_ext(output_file, "json") + + ".docx")
+    appendix_doc_name = os.path.normpath(
+        out_dir + "/appendix-" + output_base_name + ".docx")
+
+    try:
+        doc.save(doc_name)
+    except Exception:
+        pass
+    appendix_doc.save(appendix_doc_name)
+    return [doc_name, appendix_doc_name]
 
 
-##### MAIN #####
 def main():
     run()
 

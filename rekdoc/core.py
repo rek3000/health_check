@@ -132,8 +132,16 @@ def fetch(input, output, sample, node, log, force, dryrun):
     "-s",
     "--sample",
     help="sample file.",
-    type=click.Path(exists=True),
+    required=False,
+    # type=click.Path(exists=True),
     default="sample.docx",
+)
+@click.option(
+    "-sa",
+    "--sample-appendix",
+    help="appendix sample file.",
+    type=click.Path(exists=True),
+    default="appendix-sample.docx",
 )
 @click.option("-o", "--output", help="output file.", type=click.STRING)
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
@@ -145,7 +153,7 @@ def fetch(input, output, sample, node, log, force, dryrun):
     help="Force replace if exist output file.",
     is_flag=True,
 )
-def doc(input, output, sample, image, log, force):
+def doc(input, output, sample, sample_appendix, image, log, force):
     """
     \b
     Generate report from JSON file
@@ -169,18 +177,22 @@ def doc(input, output, sample, image, log, force):
 
     if output is None:
         output = input
+        # output = "output/"
     if image is None:
         images_root = os.path.split(input)[0]
     else:
         images_root = image
 
-    file_name = rekdoc.run(input, output, sample, images_root, force)
-    if file_name == -1:
+    doc_names = rekdoc.run(input, output, sample,
+                           sample_appendix, images_root, force)
+
+    if doc_names == -1:
         click.secho("Error found!", bg="red", fg="black")
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("CREATED REPORT FILE: " + click.style(file_name, fg="cyan"))
+    click.secho("CREATED REPORT FILE: " +
+                click.style(doc_names, fg="cyan"))
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
