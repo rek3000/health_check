@@ -68,7 +68,7 @@ def save_file(file, content):
 
 
 def rm_ext(file, ext):
-    return file[: -len(ext) - 1]
+    return file[: -(len(ext) + 1)]
 
 
 ##### IMAGE GENERATE METHOD #####

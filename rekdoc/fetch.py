@@ -495,9 +495,12 @@ def get_image(path):
     image = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
-                            "Name: entire", True, 18)
+                            "Name: entire", True, 15)
         image_lines = stdout.split('\n')
-        image = image_lines[11].split()[4][:-1]
+        for line in image_lines:
+            if "Version" in line:
+                image = line.split()[4][:-1]
+                break
         return image
     except RuntimeError:
         return image
@@ -686,7 +689,6 @@ def get_mem_free(path):
         raise
 
 
-# TODO
 def get_io_busy(path):
     io_busy = ""
     try:
@@ -837,14 +839,21 @@ def get_detail(node, path):
                     "raid_stat": "",
                     "bonding": ""
                 }
+            elif path[1] == "" and system_info["type"] == "vm":
+                system_status = {
+                    "image": "",
+                    "vol_avail": "",
+                }
             else:
                 system_status = get_system_status(path[1],
                                                   system_info["platform"],
                                                   system_info["type"])
-            if path[2] == "":
+            if path[2] == "" and system_info["type"] == "baremetal":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
+                    "io_busy": {"name": "",
+                                "busy": ""}
                 }
             else:
                 system_perform = get_system_perform(path[2],
@@ -980,17 +989,15 @@ def compile(nodes_name, logs_dir, out_dir, force):
         try:
             print("RUNNING:GET DETAILS")
             content = get_detail(node, list_logs_dir)
-        # DRAW IMAGES FOR CONTENT
             print("RUNNING:DRAW IMAGES")
             images = drw_content(list_logs_dir,
                                  os.path.normpath(out_dir + "/" + node + "/"))
-        # END DRAWING
             print("RUNNING:SAVE IMAGES")
-            # SAVE IMAGE NAME
+            # Save image names
             tools.save_json(
                 os.path.normpath(out_dir + "/" + node + "/images.json"), images
             )
-            # SAVE INFORMATION
+            # Save information
             tools.save_json(
                 os.path.normpath(out_dir + "/" + node +
                                  "/" + node + ".json"), content
@@ -1104,8 +1111,6 @@ def run(nodes_name, logs_dir, out_dir, force):
 # ------------------------------
 # MAIN
 # ------------------------------
-
-
 def main():
     print("------------------------------")
     print("RUNNING AS A STANDALONE MODULE")
@@ -1124,7 +1129,6 @@ def main():
         output_file=data_object["output_file"],
         force=data_object["force"],
     )
-    pass
 
 
 if __name__ == "__main__":

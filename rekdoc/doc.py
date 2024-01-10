@@ -47,14 +47,16 @@ def assert_fault(data):
 
 
 def assert_temp(data):
+    if data["inlet"] == "":
+        score = ""
+        comment = [""]
+        temp = [score, comment]
+        return temp
     inlet_temp = data["inlet"].split()[0]
     inlet_temp = int(inlet_temp)
     score = 0
     comment = [""]
-    if inlet_temp == "":
-        score = ""
-        comment = [""]
-    elif inlet_temp <= 23:
+    if inlet_temp <= 23:
         score = 5
         comment = [
             "Nhiệt độ bên trong: " + str(inlet_temp),
@@ -131,7 +133,7 @@ def assert_image(data):
     score = 0
     if data["image"] == "":
         image = ["", [""]]
-        logging.debug(json.dumps(image, ensure_ascii=False))
+        # logging.debug(json.dumps(image, ensure_ascii=False))
         return image
 
     while True:
@@ -181,6 +183,8 @@ def assert_vol(data):
     if data["vol_avail"] == "":
         score = ""
         comment = [""]
+        vol = [score, comment]
+        return vol
     elif system_info["type"] == "vm":
         if data["vol_avail"] > 30:
             score = 5
@@ -231,6 +235,8 @@ def assert_bonding(data):
     if data["bonding"] == "":
         score = ""
         comment = [""]
+        bonding = [score, comment]
+        return bonding
     elif data["bonding"] == "none":
         score = 1
         comment = ["Network không được cấu hình bonding"]
@@ -252,6 +258,8 @@ def assert_cpu_util(data):
     if data["cpu_util"] == "":
         score = ""
         comment = [""]
+        cpu_util = [score, comment]
+        return cpu_util
     elif data["cpu_util"] <= 30:
         score = 5
     elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
@@ -320,7 +328,12 @@ def assert_mem_free(data):
 def assert_io_busy(data):
     score = 0
     comment = []
-    if data["io_busy"]["busy"] < 50:
+    if not data["io_busy"]:
+        score = ""
+        comment = [""]
+        io_busy = [score, comment]
+        return io_busy
+    elif data["io_busy"]["busy"] < 50:
         score = 5
         comment = ["IO Busy: " + "< 50%"]
     elif 50 <= data["io_busy"]["busy"] <= 70:
@@ -490,7 +503,10 @@ def get_score(asserted):
         asserted_score = asserted[keys[i+1]][0]
         comment = asserted[keys[i+1]][1]
         try:
-            score = ASSERTION[asserted_score]
+            if asserted_score == "":
+                score = asserted_score
+            else:
+                score = ASSERTION[asserted_score]
         except Exception:
             score = asserted_score
         checklist[i][2][0] = score
@@ -761,7 +777,8 @@ def print_style(doc):
         print(style.name)
 
 
-def run(input_file, output_file, sample, appendix_sample, images_dir, force=False):
+def run(input_file, output_file, sample,
+        appendix_sample, images_dir, force=False):
     doc = None
     appendix_doc = None
 
@@ -806,7 +823,6 @@ def run(input_file, output_file, sample, appendix_sample, images_dir, force=Fals
     return [doc_name, appendix_doc_name]
 
 
-##### MAIN #####
 def main():
     run()
 
