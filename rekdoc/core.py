@@ -40,7 +40,7 @@ def cli():
     no_args_is_help=True,
     short_help="get information",
 )
-@click.option("-i", "--input", help="node names file.", type=click.File("r"))
+# @click.option("-i", "--input", help="node names file.", type=click.File("r"))
 @click.option("-o", "--output", required=True, help="output folder.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
@@ -63,7 +63,8 @@ def cli():
     is_flag=True,
 )
 @click.argument("node", required=False, nargs=-1)
-def fetch(input, output, sample, node, log, force, dryrun):
+# def fetch(input, output, sample, node, log, force, dryrun):
+def fetch(output, sample, node, log, force, dryrun):
     """
     \b
     Fetch information to json and convert to images
@@ -78,16 +79,16 @@ def fetch(input, output, sample, node, log, force, dryrun):
     else:
         logging.basicConfig(format="%(levelname)s:%(message)s",
                             level=logging.WARNING)
-    nodes = []
-    try:
-        for line in input:
-            nodes.append(line.strip())
-    except Exception as err:
-        print(err)
-
-    if node:
-        nodes.extend(node)
-    print(nodes)
+    # nodes = []
+    # try:
+    #     for line in input:
+    #         nodes.append(line.strip())
+    # except Exception as err:
+    #     print(err)
+    #
+    # if node:
+    #     nodes.extend(node)
+    # print(nodes)
     if dryrun:
         rekfetch.clean_up(
             "./temp/",
@@ -99,7 +100,7 @@ def fetch(input, output, sample, node, log, force, dryrun):
 
     # root = os.path.split(output)[0]
     try:
-        out_file = rekfetch.run(nodes, sample, output, force)
+        out_file = rekfetch.run(sample, output, force)
     except RuntimeError:
         rekfetch.clean_up_force("./temp/")
         # rekfetch.clean_up_force("./temp/")

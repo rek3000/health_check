@@ -8,7 +8,9 @@ import docx
 
 #
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
+from docx.enum.style import WD_STYLE
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
@@ -559,27 +561,28 @@ def drw_table(doc, checklist, row, col, info=False):
 
 
 # def drw_image_to_doc(doc, node, images_root, images_name):
-# path?
 def drw_info(doc, node, checklist, images_root, images_name=[]):
+    doc.add_paragraph("Thông tin chi tiết", style="Heading3")
     for i in range(0, len(checklist)):
-        doc.add_paragraph(checklist[i][1], style="baocao4")
+        doc.add_paragraph(checklist[i][1], style="Heading4")
         try:
             if isinstance(images_name[i], list):
                 for image in images_name[i]:
                     path = os.path.normpath(
                         images_root + "/" + node + "/" + image)
-                    doc.add_picture(path, width=Inches(6.73))
+                    doc.add_picture(path, width=Inches(6.27))
             else:
                 path = os.path.normpath(
                     images_root + "/" + node + "/" + images_name[i])
                 doc.add_picture(
                     path,
-                    width=Inches(6.73),
+                    width=Inches(6.27),
                 )
         except Exception:
             pass
         for line in checklist[i][2][1]:
-            doc.add_paragraph(line, style="Dash List")
+            doc.add_paragraph(line)
+    doc.add_paragraph("")
     doc.add_page_break()
 
 
@@ -594,10 +597,13 @@ def define_doc(sample):
 
 def drw_menu(doc, nodes):
     # doc.add_paragraph("ORACLE EXADATA X8M-2", style="baocao1")
-    doc.add_paragraph("Kiểm tra nhiệt độ môi trường", style="baocao2")
+    # doc.add_paragraph("Kiểm tra nhiệt độ môi trường",
+    #                   style=styles["Heading2"])
+    doc.add_heading("Kiểm tra nhiệt độ môi trường", level=2)
     doc.add_paragraph("Mục lục", style="Heading")
     for node in nodes:
-        doc.add_paragraph("Kiểm tra nhiệt độ môi trường", style="baocao2")
+        doc.add_paragraph("Kiểm tra nhiệt độ môi trường",
+                          style="Heading2")
         doc.add_paragraph("").paragraph_format.tab_stops.add_tab_stop(
             Inches(1.5), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS
         )
@@ -617,41 +623,40 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
             images_root + "/" + node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
         print("RUNNING:DRAWING OVERVIEW TABLE")
-        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao2")
-        doc.add_paragraph("Thông tin tổng quát", style="baocao3")
+        doc.add_paragraph(
+            "Máy chủ " + node["node_name"], style="Heading2")
+        # doc.add_heading(
+        #     "Máy chủ " + node["node_name"], level=2)
+        doc.add_paragraph("Thông tin tổng quát", style="Heading3")
         overview = [
             ["Hostname", "Product Name", "Serial Number", "IP Address"],
             [node["node_name"], "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
         doc.add_paragraph("")
-        doc.add_paragraph("Đánh giá", style="baocao3")
+        doc.add_paragraph("Đánh giá", style="Heading3")
         print("RUNNING:DRAWING SUMMARY TABLE")
 
         check_table = [
             ["STT", "Hạng mục kiểm tra", "Score"],
         ]
         check_table.extend(checklist_list[node["node_name"]])
-        # ["STT", "Hạng mục kiểm tra", "Score"],
-        # drw_table(doc, checklist_list[node["node_name"]], len(
-        #     checklist_list[node["node_name"]]), 3, True)
         drw_table(doc, check_table, len(check_table), 3, True)
         doc.add_paragraph("")
 
         print("RUNNING:DRAWING DETAILS")
-        doc.add_paragraph("Thông tin chi tiết", style="baocao3")
         drw_info(doc, node["node_name"],
                  checklist_list[node["node_name"]], images_root, images_name)
-
+        # doc.add_page_break()
         print("DONE")
         print()
 
 
 def drw_doc(doc, checklist_list, nodes):
-    doc.add_paragraph("Máy chủ ?(S/N): ?", style="baocao2")
+    doc.add_paragraph("Máy chủ ?(S/N): ?", style="Heading2")
 
     print("RUNNING:DRAWING OVERVIEW TABLE")
-    doc.add_paragraph("Thông tin chung", style="baocao3")
+    doc.add_paragraph("Thông tin chung", style="Heading3")
     overview = [
         ["ITEM", "VALUE", "VALUE(PREVIOUS REPORT)"],
     ]
@@ -669,9 +674,10 @@ def drw_doc(doc, checklist_list, nodes):
     doc.add_paragraph("")
 
     print("RUNNING:DRAWING DETAIL TABLES")
-    doc.add_paragraph("Thông tin chi tiết", style="baocao3")
+    doc.add_paragraph("Thông tin chi tiết", style="Heading3")
     for node in nodes:
-        doc.add_paragraph("Máy chủ " + node["node_name"], style="baocao4")
+        doc.add_paragraph(
+            "Máy chủ " + node["node_name"], style="Heading4")
         detail = [
             ["STT", "Hạng Mục kiểm tra", "Điểm đánh giá",
                 "Điểm đánh giá\n (Trong lần kiểm tra trước đây)"],
@@ -683,7 +689,7 @@ def drw_doc(doc, checklist_list, nodes):
         drw_table(doc, detail, len(detail), 4, False)
         doc.add_paragraph("")
     print("RUNNING:DRAWING RECOMMNEDATION TABLE")
-    doc.add_paragraph("Khuyến cáo", style="baocao3")
+    doc.add_paragraph("Khuyến cáo", style="Heading3")
     recommend = [
         ["No", "Khuyến cáo Rủi Ro", "Mức độ", "Note"],
         ["", "", "", ""]
@@ -692,7 +698,7 @@ def drw_doc(doc, checklist_list, nodes):
     doc.add_paragraph("")
     print("RUNNING:DRAWING REFERENCE")
     doc.add_paragraph(
-        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="baocao3")
+        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="Heading3")
     doc.add_paragraph(
         "Vui lòng kiểm tra tài liệu Appendix được gửi kèm báo cáo này.")
     doc.add_paragraph("")
@@ -732,12 +738,14 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
 
         print("RUNNING:SAVING ASSERTED DATA")
         file_dump = asserted
-        asserted_file = input_root + "/" + \
-            node["node_name"] + "/" + node["node_name"] + "_asserted.json"
+        asserted_file = os.path.normpath(input_root + "/" +
+                                         node["node_name"] + "/" +
+                                         node["node_name"] + "_asserted.json")
         asserted_list += [asserted_file]
         tools.save_json(
             os.path.normpath(asserted_file),
             file_dump,
+            False
         )
         print("RUNNING:CREATING CHECKLIST")
         checklist = get_score(asserted)
@@ -751,14 +759,16 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
         input_file, "json") + "_asserted.json")
     tools.join_json(file_name, asserted_list)
 
-    print(json.dumps(checklist_list, indent=2))
+    # print(json.dumps(checklist_list, indent=2))
     print("RUNNING:DRAWING REPORTS")
     print("RUNNING:DRAWING APPENDIX REPORT")
     if system_info["type"] == "baremetal" \
             and system_info["platform"] == "solaris":
-        appendix_doc.add_paragraph("Máy chủ SPARC", style="baocao1")
+        appendix_doc.add_paragraph(
+            "Máy chủ SPARC", style="Heading1")
     elif system_info["type"] == "vm":
-        appendix_doc.add_paragraph("Máy chủ ảo hóa", style="baocao1")
+        appendix_doc.add_paragraph(
+            "Máy chủ ảo hóa", style="Heading1")
 
     drw_doc_appendix(appendix_doc, checklist_list, nodes,
                      images_root, images_name)
@@ -773,7 +783,9 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
 
 def print_style(doc):
     styles = doc.styles
-    for style in styles:
+    paragraphs_style = [s for s in styles if s.type == WD_STYLE_TYPE.PARAGRAPH]
+    # for style in styles:
+    for style in paragraphs_style:
         print(style.name)
 
 
@@ -789,6 +801,7 @@ def run(input_file, output_file, sample,
     appendix_doc = define_doc(appendix_sample)
 
     out_dir = os.path.split(output_file)[0]
+    print_style(appendix_doc)
     try:
         appendix_doc = compile(doc, appendix_doc, input_file,
                                out_dir, images_dir, force)
@@ -798,11 +811,10 @@ def run(input_file, output_file, sample,
         print(err)
         return -1
 
-    if logging.root.level == 10:
-        print()
-        print("List of all styles")
-        print_style(appendix_doc)
-        print()
+    # if logging.root.level == 10:
+    #     print()
+    #     print("List of all styles")
+    # print()
     output_base_name = tools.rm_ext(os.path.split(output_file)[1], "json")
     # doc_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
     if doc is not None:

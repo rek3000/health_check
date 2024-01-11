@@ -241,7 +241,7 @@ def drw_ilom(path, out_dir):
         drw_fault(path, out_dir)
         drw_temp(path, out_dir)
         drw_firmware(path, out_dir)
-        return ["fault.png", "temp.png", "firmware.png"]
+        return ["ilom/fault.png", "ilom/temp.png", "ilom/firmware.png"]
 
 
 ## END DRAW ILOM ##
@@ -322,16 +322,16 @@ def drw_system_status(path, out_dir):
         drw_raid(path, out_dir)
         drw_net(path, out_dir)
         return [
-            "image.png",
-            ["vol.png", "raid.png"],
-            "net.png",
+            "status/image.png",
+            ["status/vol.png", "status/raid.png"],
+            "status/net.png",
         ]
     else:
         drw_image(path, out_dir)
         drw_vol(path, out_dir)
         return [
-            "image.png",
-            ["vol.png", ""],
+            "status/image.png",
+            ["status/vol.png", ""],
         ]
 
 
@@ -344,10 +344,6 @@ def drw_system_performance(path, out_dir):
         log_name = os.path.split(path)[1]
         command = ["java", "-jar", "oswbba.jar",
                    "-i", path,
-                   # "-GC",
-                   # "-GM",
-                   # "-GD",
-                   # "-L", out_dir,
                    "-D", log_name
                    ]
         tools.run(command, False)
@@ -362,9 +358,9 @@ def drw_system_performance(path, out_dir):
             dashboard_dir + "/OSWg_OS_IO_PB.jpg"), out_dir)
     except Exception as err:
         print(err)
-    return ["OSWg_OS_Cpu_Util.jpg",
-            "OSWg_OS_Memory_Free.jpg",
-            "OSWg_OS_IO_PB.jpg"]
+    return ["perform/OSWg_OS_Cpu_Util.jpg",
+            "perform/OSWg_OS_Memory_Free.jpg",
+            "perform/OSWg_OS_IO_PB.jpg"]
     # return [
     #     "cpu_idle.png",
     #     "load.png",
@@ -376,12 +372,12 @@ def drw_system_performance(path, out_dir):
 def drw_content(path, out_dir):
     ilom = []
     if system_info["type"] == "baremetal":
-        ilom = drw_ilom(path[0], out_dir)
+        ilom = drw_ilom(path[0], out_dir + "/ilom")
     else:
-        drw_fault(path[1], out_dir)
+        drw_fault(path[1], out_dir + "/ilom")
         ilom = ["fault.png"]
-    system_status = drw_system_status(path[1], out_dir)
-    system_performance = drw_system_performance(path[2], out_dir)
+    system_status = drw_system_status(path[1], out_dir + "/status")
+    system_performance = drw_system_performance(path[2], out_dir + "/perform")
     # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
     #                       "OSWg_OS_Memory_Free.jpg",
     #                       "OSWg_OS_IO_PB.jpg"]
@@ -814,10 +810,13 @@ def get_system_perform(path, platform, system_type):
 # ------------------------------
 
 
-def get_detail(node, path):
+def get_detail(node, path, node_dir):
     ilom = {}
     system_status = {}
     system_perform = {}
+    create_dir(node_dir + "/" + "ilom")
+    create_dir(node_dir + "/" + "status")
+    create_dir(node_dir + "/" + "perform")
     try:
         if path[0] == "" and system_info["type"] == "baremetal":
             ilom = {
@@ -887,16 +886,19 @@ def get_detail(node, path):
         raise
     name = node
 
-    # content = {}
-    # logging.info(json.dumps(ilom, indent=2))
-    # logging.info(json.dumps(system_status, indent=2))
-    # logging.info(json.dumps(system_perform, indent=2))
     content = {"node_name": name,
                **ilom,
                **system_status,
                **system_perform}
     logging.info("JSON file: " +
                  json.dumps(content, indent=2, ensure_ascii=False))
+    # Save information
+    tools.save_json(os.path.normpath(
+        node_dir + "/" + "ilom" + "/" + "ilom.json"), ilom)
+    tools.save_json(os.path.normpath(node_dir + "/" + "status" +
+                    "/" + "status.json"), system_status)
+    tools.save_json(os.path.normpath(node_dir + "/" + "perform" +
+                    "/" + "perform.json"), system_perform)
     return content
 
 
@@ -961,6 +963,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
 
     print("-----------------------------")
     for node in nodes_name:
+        node_dir = os.path.normpath(out_dir + "/" + node + "/")
         print(node)
         list_logs_dir = ["", "", ""]
         file_logs = []
@@ -976,8 +979,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
         except ValueError:
             pass
 
-        content_files.append(os.path.normpath(out_dir + "/" +
-                                              node + "/" + node + ".json"))
+        content_files.append(os.path.normpath(node_dir + "/" + node + ".json"))
 
         list_logs_dir = [os.path.normpath(
             "temp/" + logs_dir) for logs_dir in list_logs_dir]
@@ -988,19 +990,17 @@ def compile(nodes_name, logs_dir, out_dir, force):
 
         try:
             print("RUNNING:GET DETAILS")
-            content = get_detail(node, list_logs_dir)
+            content = get_detail(node, list_logs_dir, node_dir)
             print("RUNNING:DRAW IMAGES")
-            images = drw_content(list_logs_dir,
-                                 os.path.normpath(out_dir + "/" + node + "/"))
+            images = drw_content(list_logs_dir, node_dir)
             print("RUNNING:SAVE IMAGES")
             # Save image names
             tools.save_json(
-                os.path.normpath(out_dir + "/" + node + "/images.json"), images
+                os.path.normpath(node_dir + "/" + "images.json"), images
             )
             # Save information
             tools.save_json(
-                os.path.normpath(out_dir + "/" + node +
-                                 "/" + node + ".json"), content
+                os.path.normpath(node_dir + "/" + node + ".json"), content
             )
             print("DONE")
             print()
@@ -1072,26 +1072,41 @@ def set_system_info():
 
 
 # Flow of program
-def run(nodes_name, logs_dir, out_dir, force):
-    set_system_info()
+def run(logs_dir, out_dir, force):
     # Create output and temp directory
     try:
         os.mkdir(os.path.normpath("temp"))
+    except FileExistsError:
+        pass
+    try:
         os.mkdir(os.path.normpath(out_dir))
     except FileExistsError:
         pass
-    # create_dir(os.path.normpath(out_dir), force)
     root_dir = out_dir + "/" + str(datetime.datetime.now().isoformat())
     create_dir(os.path.normpath(root_dir))
     # create root folder
 
-    # Fetch and cook images from logs
-    try:
-        content_files = compile(nodes_name, logs_dir, root_dir, force)
-        logging.info(content_files)
-    except RuntimeError:
-        print("Aborted")
-        raise
+    i = 0
+    while True:
+        set_system_info()
+        nodes_name = input(
+            "Enter nodes' name (each separated by a space): ").split(" ")
+        # Fetch and cook images from logs
+        try:
+            content_files = compile(nodes_name, logs_dir, root_dir, force)
+            logging.info(content_files)
+        except RuntimeError:
+            print("Aborted")
+            raise
+        out_file = os.path.normpath(root_dir + "/" + "summary-" + str(i) + ".json")
+        tools.save_json(out_file, system_info)
+        tools.join_json(out_file, content_files)
+        c = input("Run another time?[Y/N] ")
+        if c in ["", "Y", "y", "yes", "Yes", "YES"]:
+            i += 1
+            continue
+        else:
+            break
 
     if content_files == -1:
         print("Error: ", end="")
@@ -1099,9 +1114,6 @@ def run(nodes_name, logs_dir, out_dir, force):
         return -1
 
     # Union all jsons to one file
-    out_file = os.path.normpath(root_dir + "/" + "summary.json")
-    tools.save_json(out_file, system_info)
-    tools.join_json(out_file, content_files)
     return out_file
 
 
