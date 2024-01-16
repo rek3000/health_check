@@ -21,6 +21,104 @@ from rekdoc import tools
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
+def list_number(doc, par, prev=None, level=None, num=True):
+    """
+    Makes a paragraph into a list item with a specific level and
+    optional restart.
+
+    An attempt will be made to retreive an abstract numbering style that
+    corresponds to the style of the paragraph. If that is not possible,
+    the default numbering or bullet style will be used based on the
+    ``num`` parameter.
+
+    Parameters
+    ----------
+    doc : docx.document.Document
+        The document to add the list into.
+    par : docx.paragraph.Paragraph
+        The paragraph to turn into a list item.
+    prev : docx.paragraph.Paragraph or None
+        The previous paragraph in the list. If specified, the numbering
+        and styles will be taken as a continuation of this paragraph.
+        If omitted, a new numbering scheme will be started.
+    level : int or None
+        The level of the paragraph within the outline. If ``prev`` is
+        set, defaults to the same level as in ``prev``. Otherwise,
+        defaults to zero.
+    num : bool
+        If ``prev`` is :py:obj:`None` and the style of the paragraph
+        does not correspond to an existing numbering style, this will
+        determine wether or not the list will be numbered or bulleted.
+        The result is not guaranteed, but is fairly safe for most Word
+        templates.
+    """
+    xpath_options = {
+        True: {'single': 'count(w:lvl)=1 and ', 'level': 0},
+        False: {'single': '', 'level': level},
+    }
+
+    def style_xpath(prefer_single=True):
+        """
+        The style comes from the outer-scope variable ``par.style.name``.
+        """
+        style = par.style.style_id
+        return (
+            'w:abstractNum['
+                '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]'
+            ']/@w:abstractNumId'
+        ).format(style=style, **xpath_options[prefer_single])
+
+    def type_xpath(prefer_single=True):
+        """
+        The type is from the outer-scope variable ``num``.
+        """
+        type = 'decimal' if num else 'bullet'
+        return (
+            'w:abstractNum['
+                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
+            ']/@w:abstractNumId'
+        ).format(type=type, **xpath_options[prefer_single])
+
+    def get_abstract_id():
+        """
+        Select as follows:
+
+            1. Match single-level by style (get min ID)
+            2. Match exact style and level (get min ID)
+            3. Match single-level decimal/bullet types (get min ID)
+            4. Match decimal/bullet in requested level (get min ID)
+            3. 0
+        """
+        for fn in (style_xpath, type_xpath):
+            for prefer_single in (True, False):
+                xpath = fn(prefer_single)
+                ids = numbering.xpath(xpath)
+                if ids:
+                    return min(int(x) for x in ids)
+        return 0
+
+    if (prev is None or
+            prev._p.pPr is None or
+            prev._p.pPr.numPr is None or
+            prev._p.pPr.numPr.numId is None):
+        if level is None:
+            level = 0
+        numbering = doc.part.numbering_part.numbering_definitions._numbering
+        # Compute the abstract ID first by style, then by num
+        anum = get_abstract_id()
+        # Set the concrete numbering based on the abstract numbering ID
+        num = numbering.add_num(anum)
+        # Make sure to override the abstract continuation property
+        num.add_lvlOverride(ilvl=level).add_startOverride(1)
+        # Extract the newly-allocated concrete numbering ID
+        num = num.numId
+    else:
+        if level is None:
+            level = prev._p.pPr.numPr.ilvl.val
+        # Get the previous concrete numbering ID
+        num = prev._p.pPr.numPr.numId.val
+    par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num
+    par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
 
 def assert_fault(data):
     score = 0
@@ -562,9 +660,9 @@ def drw_table(doc, checklist, row, col, info=False):
 
 # def drw_image_to_doc(doc, node, images_root, images_name):
 def drw_info(doc, node, checklist, images_root, images_name=[]):
-    doc.add_paragraph("Thông tin chi tiết", style="Heading3")
+    doc.add_paragraph("Thông tin chi tiết", style="baocao4")
     for i in range(0, len(checklist)):
-        doc.add_paragraph(checklist[i][1], style="Heading4")
+        doc.add_paragraph(checklist[i][1], style="baocao5")
         try:
             if isinstance(images_name[i], list):
                 for image in images_name[i]:
@@ -598,12 +696,12 @@ def define_doc(sample):
 def drw_menu(doc, nodes):
     # doc.add_paragraph("ORACLE EXADATA X8M-2", style="baocao1")
     # doc.add_paragraph("Kiểm tra nhiệt độ môi trường",
-    #                   style=styles["Heading2"])
+    #                   style=styles["baocao2"])
     doc.add_heading("Kiểm tra nhiệt độ môi trường", level=2)
     doc.add_paragraph("Mục lục", style="Heading")
     for node in nodes:
         doc.add_paragraph("Kiểm tra nhiệt độ môi trường",
-                          style="Heading2")
+                          style="baocao2")
         doc.add_paragraph("").paragraph_format.tab_stops.add_tab_stop(
             Inches(1.5), WD_TAB_ALIGNMENT.LEFT, WD_TAB_LEADER.DOTS
         )
@@ -624,17 +722,17 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
         images_name = tools.read_json(image_json)
         print("RUNNING:DRAWING OVERVIEW TABLE")
         doc.add_paragraph(
-            "Máy chủ " + node["node_name"], style="Heading2")
+            "Máy chủ " + node["node_name"], style="baocao3")
         # doc.add_heading(
         #     "Máy chủ " + node["node_name"], level=2)
-        doc.add_paragraph("Thông tin tổng quát", style="Heading3")
+        doc.add_paragraph("Thông tin tổng quát", style="baocao4")
         overview = [
             ["Hostname", "Product Name", "Serial Number", "IP Address"],
             [node["node_name"], "", "", ""],
         ]
         drw_table(doc, overview, 2, 4)
         doc.add_paragraph("")
-        doc.add_paragraph("Đánh giá", style="Heading3")
+        doc.add_paragraph("Đánh giá", style="baocao4")
         print("RUNNING:DRAWING SUMMARY TABLE")
 
         check_table = [
@@ -653,10 +751,10 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
 
 
 def drw_doc(doc, checklist_list, nodes):
-    doc.add_paragraph("Máy chủ ?(S/N): ?", style="Heading2")
+    doc.add_paragraph("Máy chủ ?(S/N): ?", style="baocao2")
 
     print("RUNNING:DRAWING OVERVIEW TABLE")
-    doc.add_paragraph("Thông tin chung", style="Heading3")
+    doc.add_paragraph("Thông tin chung", style="baocao4")
     overview = [
         ["ITEM", "VALUE", "VALUE(PREVIOUS REPORT)"],
     ]
@@ -674,10 +772,10 @@ def drw_doc(doc, checklist_list, nodes):
     doc.add_paragraph("")
 
     print("RUNNING:DRAWING DETAIL TABLES")
-    doc.add_paragraph("Thông tin chi tiết", style="Heading3")
+    doc.add_paragraph("Thông tin chi tiết", style="baocao4")
     for node in nodes:
         doc.add_paragraph(
-            "Máy chủ " + node["node_name"], style="Heading4")
+            "Máy chủ " + node["node_name"], style="baocao3")
         detail = [
             ["STT", "Hạng Mục kiểm tra", "Điểm đánh giá",
                 "Điểm đánh giá\n (Trong lần kiểm tra trước đây)"],
@@ -689,7 +787,7 @@ def drw_doc(doc, checklist_list, nodes):
         drw_table(doc, detail, len(detail), 4, False)
         doc.add_paragraph("")
     print("RUNNING:DRAWING RECOMMNEDATION TABLE")
-    doc.add_paragraph("Khuyến cáo", style="Heading3")
+    doc.add_paragraph("Khuyến cáo", style="baocao3")
     recommend = [
         ["No", "Khuyến cáo Rủi Ro", "Mức độ", "Note"],
         ["", "", "", ""]
@@ -698,7 +796,7 @@ def drw_doc(doc, checklist_list, nodes):
     doc.add_paragraph("")
     print("RUNNING:DRAWING REFERENCE")
     doc.add_paragraph(
-        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="Heading3")
+        "Thông tin kiểm tra chi tiết cho hệ thống ?", style="baocao3")
     doc.add_paragraph(
         "Vui lòng kiểm tra tài liệu Appendix được gửi kèm báo cáo này.")
     doc.add_paragraph("")
@@ -765,10 +863,10 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     if system_info["type"] == "baremetal" \
             and system_info["platform"] == "solaris":
         appendix_doc.add_paragraph(
-            "Máy chủ SPARC", style="Heading1")
+            "Máy chủ SPARC", style="baocao1")
     elif system_info["type"] == "vm":
         appendix_doc.add_paragraph(
-            "Máy chủ ảo hóa", style="Heading1")
+            "Máy chủ ảo hóa", style="baocao1")
 
     drw_doc_appendix(appendix_doc, checklist_list, nodes,
                      images_root, images_name)
