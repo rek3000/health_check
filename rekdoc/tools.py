@@ -48,7 +48,7 @@ def join_json(out_file, content_files):
             print(err)
             file_data = {}
         logging.info(json.dumps(file_data, indent=2))
-        with open(out_file, "a+") as file:
+        with open(out_file, "w+") as file:
             file_data["nodes"] = []
             # logging.info(json.dumps(file_data, indent=2))
             for content in content_files:

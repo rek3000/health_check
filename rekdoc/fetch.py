@@ -17,7 +17,6 @@ import logging
 from rekdoc import tools
 from rekdoc import const
 
-
 TYPES = ["baremetal", "vm"]
 SYSTEM = ["standalone", "exa"]
 PLATFORM = ["linux", "solaris"]
@@ -691,36 +690,47 @@ def get_io_busy(path):
         io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
         files = glob.glob(io_busy_path, recursive=True)
         io_busy = {"name": None, "busy": 0}
+        io_busy_list = []
+
         for file in files:
             stdout = tools.cat(file, True)
             io_busy_persection_list = []
+            io_busy_perfile_list = []
+            average_io_busy_persection = 0
+            average_io_busy_perfile = 0
             i = 1
+            # Evaluate each section in a file
             while i < len(stdout):
                 if "zzz" in stdout[i]:
                     logging.debug("ZZZ")
                     logging.debug(json.dumps(
                         io_busy_persection_list, indent=2))
                     try:
-                        maxbusy = 0
                         try:
-                            maxbusy = max(io_busy_persection_list)
+                            # maxbusy = max(io_busy_persection_list)
+                            sorted_persection = sorted(
+                                io_busy_persection_list, reverse=True)
+                            average_io_busy_persection = sum(
+                                sorted_persection[:4]) / 4
+                            io_busy_perfile_list.append(
+                                average_io_busy_persection)
                         except Exception:
                             i += 3
                             continue
-                        index = io_busy_persection_list.index(maxbusy)
-                        maxpos = i - (len(io_busy_persection_list) - index)
-                        if io_busy["busy"] < maxbusy:
-                            io_busy["name"] = stdout[maxpos].split()[-1]
-                            io_busy["busy"] = maxbusy
-                        logging.debug("CURRENT MAXIO")
-                        logging.debug(json.dumps(io_busy, indent=2))
-                        io_busy_persection_list = []
                     except Exception as err:
                         print(err)
                     i += 3
                     continue
                 io_busy_persection_list.append(float(stdout[i].split()[-2]))
                 i += 1
+            sorted_perfile = sorted(
+                io_busy_perfile_list, reverse=True)
+            average_io_busy_perfile = sum(sorted_perfile) / len(sorted_perfile)
+            io_busy_list.append(average_io_busy_perfile)
+
+        sorted_io_busy = sorted(io_busy_list, reverse=True)
+        io_busy['busy'] = float("{:.2f}".format(
+            sum(sorted_io_busy) / len(sorted_io_busy)))
         return io_busy
     except Exception as err:
         print(err)
@@ -938,28 +948,9 @@ def get_overview(node, path):
 ##### END OVERVIEW #####
 
 
-def compile(nodes_name, logs_dir, out_dir, force):
+def compile(nodes_name, list_file_logs, out_dir, force):
     content_files = []
-    list_file_logs = []
     print("CHOOSE FILE TO EXTRACT")
-    for node in nodes_name:
-        create_dir(out_dir + "/" + node, force=force)
-        try:
-            file_logs = ["", "", ""]
-            print("NODE:" + node)
-            print("-----------------------------")
-
-            print("ILOM SNAPSHOT")
-            file_logs[0] = get_file("*.zip", logs_dir)
-            print("EXPLORER")
-            file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
-            print("OSWATCHER")
-            file_logs[2] = get_file("archive*.gz", logs_dir)
-            list_file_logs.append(file_logs)
-            print()
-        except RuntimeError as err:
-            err.add_note("Data files must be exist!")
-            raise err
 
     print("-----------------------------")
     for node in nodes_name:
@@ -1070,7 +1061,6 @@ def set_system_info():
         break
     print(json.dumps(system_info, indent=2))
 
-
 # Flow of program
 def run(logs_dir, out_dir, force):
     # Create output and temp directory
@@ -1087,26 +1077,54 @@ def run(logs_dir, out_dir, force):
     # create root folder
 
     i = 0
+    list_alltime_logs = []
+    summary_list = []
     while True:
         set_system_info()
         nodes_name = input(
             "Enter nodes' name (each separated by a space): ").split(" ")
-        # Fetch and cook images from logs
-        try:
-            content_files = compile(nodes_name, logs_dir, root_dir, force)
-            logging.info(content_files)
-        except RuntimeError:
-            print("Aborted")
-            raise
-        out_file = os.path.normpath(root_dir + "/" + "summary-" + str(i) + ".json")
+
+        list_file_logs = []
+        for node in nodes_name:
+            create_dir(root_dir + "/" + node, force=force)
+            try:
+                file_logs = ["", "", ""]
+                print("NODE:" + node)
+                print("-----------------------------")
+
+                print("ILOM SNAPSHOT")
+                file_logs[0] = get_file("*.zip", logs_dir)
+                print("EXPLORER")
+                file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
+                print("OSWATCHER")
+                file_logs[2] = get_file("archive*.gz", logs_dir)
+                list_file_logs.append(file_logs)
+                print()
+            except RuntimeError as err:
+                err.add_note("Data files must be exist!")
+                raise err
+        out_file = os.path.normpath(
+            root_dir + "/" + "summary-" + str(i) + ".json")
         tools.save_json(out_file, system_info)
-        tools.join_json(out_file, content_files)
+        summary_list.append(out_file)
+        list_alltime_logs.append(list_file_logs)
         c = input("Run another time?[Y/N] ")
         if c in ["", "Y", "y", "yes", "Yes", "YES"]:
             i += 1
             continue
         else:
             break
+
+    logging.debug(list_alltime_logs)
+    for time in range(0, i):
+        try:
+            content_files = compile(
+                nodes_name, list_alltime_logs[time], root_dir, force)
+            logging.info(content_files)
+        except RuntimeError:
+            print("Aborted")
+            raise
+        tools.join_json(summary_list[time], content_files)
 
     if content_files == -1:
         print("Error: ", end="")
