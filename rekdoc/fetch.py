@@ -1088,7 +1088,7 @@ def run(logs_dir, out_dir, force):
         os.mkdir(os.path.normpath(out_dir))
     except FileExistsError:
         pass
-    root_dir = out_dir + "/" + str(datetime.datetime.now().isoformat())
+    root_dir = out_dir + "/" + str(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H%M%S"))
     create_dir(os.path.normpath(root_dir))
     # create root folder
 
