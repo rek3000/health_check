@@ -692,46 +692,65 @@ def get_io_busy(path):
         files = glob.glob(io_busy_path, recursive=True)
         io_busy = {"name": None, "busy": 0}
         io_busy_list = []
+        devices = []
+        # Get devices name list
+        temp = tools.cat(files[0], True)
+        for line in temp[4:]:
+            if "zzz" in line:
+                break
+            devices.append(line.split()[-1])
+        logging.info(f"DEVICE_LIST:{devices}")
+        average_alltime = [0 for _ in range(len(devices))]
+        total_alltime = [0 for _ in range(len(devices))]
 
+        # Evaluation begin
         for file in files:
             stdout = tools.cat(file, True)
-            io_busy_persection_list = []
-            io_busy_perfile_list = []
-            average_io_busy_persection = 0
-            average_io_busy_perfile = 0
-            i = 1
-            # Evaluate each section in a file
-            while i < len(stdout):
-                if "zzz" in stdout[i]:
-                    logging.debug("ZZZ")
-                    logging.debug(json.dumps(
-                        io_busy_persection_list, indent=2))
-                    try:
-                        try:
-                            # maxbusy = max(io_busy_persection_list)
-                            sorted_persection = sorted(
-                                io_busy_persection_list, reverse=True)
-                            average_io_busy_persection = sum(
-                                sorted_persection[:4]) / 4
-                            io_busy_perfile_list.append(
-                                average_io_busy_persection)
-                        except Exception:
-                            i += 3
-                            continue
-                    except Exception as err:
-                        print(err)
-                    i += 3
-                    continue
-                io_busy_persection_list.append(float(stdout[i].split()[-2]))
-                i += 1
-            sorted_perfile = sorted(
-                io_busy_perfile_list, reverse=True)
-            average_io_busy_perfile = sum(sorted_perfile) / len(sorted_perfile)
-            io_busy_list.append(average_io_busy_perfile)
+            average_perfile = [0 for _ in range(len(devices))]
+            total_perfile = [0 for _ in range(len(devices))]
+            index = 1
 
-        sorted_io_busy = sorted(io_busy_list, reverse=True)
-        io_busy['busy'] = float("{:.2f}".format(
-            sum(sorted_io_busy) / len(sorted_io_busy)))
+            # Evaluate each section in a file
+            # Count the number of value that > 0
+            value_count = [1 for _ in range(len(devices))]
+            persection_list = [0 for _ in range(len(devices))]
+
+            while index < len(stdout):
+                if "zzz" in stdout[index]:
+                    if index == 1:
+                        index += 3
+                        continue
+                    try:
+                        logging.info(persection_list)
+                        logging.info(value_count)
+                        for i in range(len(persection_list)): 
+                            total_perfile[i] += persection_list[i]
+                        persection_list = [0 for _ in range(len(devices))]
+                    except Exception as err:
+                        logging.debug(err)
+                    index += 3
+                    continue
+                device_name = stdout[index].split()[-1]
+                io_value = float(stdout[index].split()[-2])
+                if io_value == 0:
+                    index += 1
+                    continue
+                else:
+                    persection_list[devices.index(device_name)] = io_value
+                    value_count[devices.index(device_name)] += 1
+                index += 1
+
+            for i in range(len(devices)):
+                average_perfile[i] = total_perfile[i] / value_count[i]
+                total_alltime[i] += average_perfile[i]
+
+        for i in range(len(total_alltime)):
+            average_alltime[i] = total_alltime[i] / len(files)
+
+        sorted_io_busy = sorted(average_alltime, reverse=True)
+        logging.info(f"DEVICES:{devices}")
+        logging.info(f"AVERAGE:{average_alltime}")
+        io_busy["busy"] = sorted_io_busy[0]
         return io_busy
     except Exception as err:
         print(err)
@@ -1109,9 +1128,9 @@ def run(logs_dir, out_dir, force):
         tools.save_json(out_file, system_info)
         summary_list.append(out_file)
         list_alltime_logs.append(list_file_logs)
+        i += 1
         c = input("Run another time?[Y/N] ")
         if c in ["", "Y", "y", "yes", "Yes", "YES"]:
-            i += 1
             continue
         else:
             break
@@ -1127,10 +1146,10 @@ def run(logs_dir, out_dir, force):
             raise
         tools.join_json(summary_list[time], content_files)
 
-    if content_files == -1:
-        print("Error: ", end="")
-        print("No files to join!")
-        return -1
+    # if content_files == -1:
+    #     print("Error: ", end="")
+    #     print("No files to join!")
+    #     return -1
 
     # Union all jsons to one file
     return out_file

@@ -120,6 +120,7 @@ def list_number(doc, par, prev=None, level=None, num=True):
     par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = num
     par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
 
+
 def assert_fault(data):
     score = 0
     # if data["fault"] == "":
