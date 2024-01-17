@@ -393,57 +393,56 @@ def get_fault(path):
     fault = ""
     if system_info["type"] == "vm":
         try:
-            if tools.grep(os.path.normpath(path + const.FAULT_SOL), "critical", True):
+            grep_result = tools.grep(os.path.normpath(path + const.FAULT_SOL), "(critical|warning)", True)
+            if "critial" in grep_result:
                 fault = "critical"
-            elif tools.grep(os.path.normpath(path + const.FAULT_SOL), "warning", True):
+            elif "warning" in grep_result:
                 fault = "warning"
             else:
                 stdout = tools.grep(os.path.normpath(
                     path + const.FAULT), ".", True, 9)
                 fault = stdout.strip()
             return fault
-        except RuntimeError:
-            return fault
-        except Exception:
-            print("Failed to fetch fault data")
-            raise
-    try:
-        if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
-            fault = "critical"
-        elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
-            fault = "warning"
-        else:
-            stdout = tools.grep(os.path.normpath(
-                path + const.FAULT), ".", True, 9)
-            fault = stdout.strip()
-        return fault
-    except RuntimeError:
-        return fault
-    except Exception:
-        print("Failed to fetch fault data")
-        raise
+        except (RuntimeError, Exception) as err:
+            print(f"Failed to fetch fault data: {err}")
+    return fault
+    # try:
+    #     if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
+    #         fault = "critical"
+    #     elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
+    #         fault = "warning"
+    #     else:
+    #         stdout = tools.grep(os.path.normpath(
+    #             path + const.FAULT), ".", True, 9)
+    #         fault = stdout.strip()
+    #     return fault
+    # except RuntimeError:
+    #     return fault
+    # except Exception:
+    #     print("Failed to fetch fault data")
+    #     raise
 
 
 def get_temp(path):
     inlet_temp = ""
     exhaust_temp = ""
+
     try:
         temps = tools.grep(
             os.path.normpath(path + const.TEMP), "^ /System/Cooling$", False, 9
         )
         for line in temps:
+            tokens = line.split()
             if "inlet_temp" in line:
-                inlet_temp = " ".join(line.split()[2:5])
-                continue
+                inlet_temp = " ".join(tokens[2:5])
             elif "exhaust_temp" in line:
-                exhaust_temp = " ".join(line.split()[2:5])
-                continue
+                exhaust_temp = " ".join(tokens[2:5])
+
         return inlet_temp, exhaust_temp
-    except RuntimeError:
-        return inlet_temp, exhaust_temp
-    except Exception:
-        print("Failed to fetch temperature")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch temperature: {err}")
+
+    return inlet_temp, exhaust_temp
 
 
 def get_firmware(path):
@@ -451,13 +450,12 @@ def get_firmware(path):
     try:
         stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
                             "Version", True)
-        firmware = " ".join(stdout.strip("\r\n").split()[1:])
+        firmware_tokens = stdout.strip("\r\n").split()
+        firmware = " ".join(firmware_tokens[1:])
         return firmware
-    except RuntimeError:
-        return firmware
-    except Exception:
-        print("Failed to fetch firmware")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch firmware: {err}")
+    return firmware
 
 
 def get_ilom(path):
@@ -545,7 +543,6 @@ def get_bonding(path):
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
-            # bonding = "ipmp"
             state = net_ipmp.split()[2]
             if state == "ok":
                 bonding = "ipmp"
@@ -556,11 +553,10 @@ def get_bonding(path):
         else:
             bonding = "both"
         return bonding
-    except RuntimeError:
-        return bonding
     except Exception:
         print("Failed to fetch bonding status")
         raise
+    return bonding
 
 
 def get_cpu_util(path):
@@ -571,6 +567,7 @@ def get_cpu_util(path):
             path + const.CPU_ULTILIZATION_SOL + '*.dat')
         files = glob.glob(cpu_util_path, recursive=True)
         cpu_idle_alltime = []
+
         for file in files:
             stdout_lines = tools.grep(
                 file, "CPU states:", False)
@@ -581,16 +578,20 @@ def get_cpu_util(path):
             cpu_idle_alltime.append(cpu_idle_perfile)
             logging.debug("CPU IDLE")
             logging.debug(cpu_idle_perfile_list)
-        cpu_idle = float("{:.2f}".format(
-            sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
-        cpu_util = float("{:.2f}".format(100 - cpu_idle))
+
+        # cpu_idle = float("{:.2f}".format(
+        #     sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
+        # cpu_util = float("{:.2f}".format(100 - cpu_idle))
+        
+        cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
+        cpu_util = round(100 - cpu_idle, 2)
         logging.info("CPU_IDLE:" + str(cpu_idle))
         logging.info("CPU_UTIL:" + str(cpu_util))
         return [cpu_util, cpu_idle]
     except RuntimeError:
         return [cpu_util, cpu_idle]
-    except Exception:
-        print("Failed to feth cpu util")
+    except Exception as err:
+        print(f"Failed to fetch cpu utilization: {err}")
         raise
 
 
@@ -605,8 +606,8 @@ def get_load_avg(path):
         return load_avg
     except RuntimeError:
         return load_avg
-    except Exception:
-        print("Failed to get load average")
+    except Exception as err:
+        print(f"Failed to get load average: {err}")
         raise
 
 
@@ -622,8 +623,8 @@ def get_vcpu(path):
         return vcpu
     except RuntimeError:
         return vcpu
-    except Exception:
-        print("Failed to fetch VCPU")
+    except Exception as err:
+        print(f"Failed to fetch VCPU: {err}")
         raise
 
 
@@ -637,23 +638,22 @@ def get_load(path):
         return load_avg, vcpu, load_avg_per
     except RuntimeError:
         return load_avg, vcpu, load_avg_per
-    except Exception:
-        print("Failed to fetch load")
+    except Exception as err:
+        print(f"Failed to fetch load: {err}")
         raise
 
 
 def get_mem_free(path):
-    mem_free_percent = ""
-    mem_util_percent = ""
     x = {"mem_free_percent": 0,
          "mem_free": 0,
          "total_mem": 0}
     try:
         mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
         files = glob.glob(mem_free_path, recursive=True)
-        mem_free_alltime = []
         total_mem = float(tools.grep(
             files[-1], "Memory", True).split()[1][:-1])
+
+        mem_free_alltime = []
         for file in files:
             stdout_lines = tools.grep(
                 file, "Memory", False)
@@ -664,34 +664,34 @@ def get_mem_free(path):
             mem_free_alltime.append(mem_free_perfile)
             logging.debug("MEM FREE")
             logging.debug(mem_free_perfile_list)
-        mem_free = float("{:.0f}".format(
-            sum(mem_free_alltime) / len(mem_free_alltime)))
+
+        mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
         if mem_free > total_mem:
             mem_free = mem_free / 1024
-        # mem_util = float("{:.0f}".format(total_mem - mem_free))
-        mem_free_percent = float("{:.2f}".format((mem_free / total_mem) * 100))
-        mem_util_percent = 100 - mem_free_percent
+
+        mem_free_percent = round((mem_free / total_mem) * 100)
+        mem_util_percent = round(100 - mem_free_percent, 2)
+
         logging.info("MEM_FREE:" + str(mem_free_percent))
         logging.info("MEM_UTIL:" + str(mem_util_percent))
+
         x["mem_free_percent"] = mem_free_percent
         x["mem_free"] = mem_free
         x["total_mem"] = total_mem
+
         return x
     except RuntimeError:
         return x
-        # return mem_free_percent, mem_util_percent
-    except Exception:
-        print("Failed to fetch memory util")
+    except Exception as err:
+        print(f"Failed to fetch memory util: {err}")
         raise
 
 
 def get_io_busy(path):
-    io_busy = ""
     try:
         io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
         files = glob.glob(io_busy_path, recursive=True)
-        io_busy = {"name": None, "busy": 0}
-        io_busy_list = []
+
         devices = []
         # Get devices name list
         temp = tools.cat(files[0], True)
@@ -699,43 +699,40 @@ def get_io_busy(path):
             if "zzz" in line:
                 break
             devices.append(line.split()[-1])
-        logging.info(f"DEVICE_LIST:{devices}")
-        average_alltime = [0 for _ in range(len(devices))]
-        total_alltime = [0 for _ in range(len(devices))]
 
+        logging.info(f"DEVICE_LIST:{devices}")
+
+        average_alltime = [0] * len(devices)
+        total_alltime = [0] * len(devices)
         # Evaluation begin
         for file in files:
             stdout = tools.cat(file, True)
-            average_perfile = [0 for _ in range(len(devices))]
-            total_perfile = [0 for _ in range(len(devices))]
-            index = 1
+            average_perfile = [0] * len(devices)
+            total_perfile = [0] * len(devices)
 
             # Evaluate each section in a file
             # Count the number of value that > 0
-            value_count = [1 for _ in range(len(devices))]
-            persection_list = [0 for _ in range(len(devices))]
+            value_count = [1] * len(devices)
+            persection_list = [0] * len(devices)
 
+            index = 1
             while index < len(stdout):
                 if "zzz" in stdout[index]:
                     if index == 1:
                         index += 3
                         continue
                     try:
-                        logging.info(persection_list)
-                        logging.info(value_count)
                         for i in range(len(persection_list)): 
                             total_perfile[i] += persection_list[i]
-                        persection_list = [0 for _ in range(len(devices))]
+                            persection_list[i] = 0
                     except Exception as err:
                         logging.debug(err)
                     index += 3
                     continue
+
                 device_name = stdout[index].split()[-1]
                 io_value = float(stdout[index].split()[-2])
-                if io_value == 0:
-                    index += 1
-                    continue
-                else:
+                if io_value > 0:
                     persection_list[devices.index(device_name)] = io_value
                     value_count[devices.index(device_name)] += 1
                 index += 1
@@ -744,18 +741,17 @@ def get_io_busy(path):
                 average_perfile[i] = total_perfile[i] / value_count[i]
                 total_alltime[i] += average_perfile[i]
 
-        for i in range(len(total_alltime)):
-            average_alltime[i] = total_alltime[i] / len(files)
+        average_alltime = [total / len(files) for total in total_alltime]
 
         sorted_io_busy = sorted(average_alltime, reverse=True)
         logging.info(f"DEVICES:{devices}")
         logging.info(f"AVERAGE:{average_alltime}")
-        io_busy["busy"] = sorted_io_busy[0]
-        return io_busy
+
+        return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
-        print(err)
-        print("FAILED:fetch io busy")
-        return io_busy
+        logging.error(err)
+        logging.error("FAILED:fetch io busy")
+        return {"name": None, "busy": 0}
 
 
 def get_swap_util(path):
