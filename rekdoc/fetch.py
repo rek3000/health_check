@@ -13,10 +13,10 @@ import zipfile
 import tarfile
 import logging
 
+
 # Local library
 from rekdoc import tools
 from rekdoc import const
-
 
 TYPES = ["baremetal", "vm"]
 SYSTEM = ["standalone", "exa"]
@@ -241,7 +241,7 @@ def drw_ilom(path, out_dir):
         drw_fault(path, out_dir)
         drw_temp(path, out_dir)
         drw_firmware(path, out_dir)
-        return ["fault.png", "temp.png", "firmware.png"]
+        return ["ilom/fault.png", "ilom/temp.png", "ilom/firmware.png"]
 
 
 ## END DRAW ILOM ##
@@ -322,16 +322,16 @@ def drw_system_status(path, out_dir):
         drw_raid(path, out_dir)
         drw_net(path, out_dir)
         return [
-            "image.png",
-            ["vol.png", "raid.png"],
-            "net.png",
+            "status/image.png",
+            ["status/vol.png", "status/raid.png"],
+            "status/net.png",
         ]
     else:
         drw_image(path, out_dir)
         drw_vol(path, out_dir)
         return [
-            "image.png",
-            ["vol.png", ""],
+            "status/image.png",
+            ["status/vol.png", ""],
         ]
 
 
@@ -344,10 +344,6 @@ def drw_system_performance(path, out_dir):
         log_name = os.path.split(path)[1]
         command = ["java", "-jar", "oswbba.jar",
                    "-i", path,
-                   # "-GC",
-                   # "-GM",
-                   # "-GD",
-                   # "-L", out_dir,
                    "-D", log_name
                    ]
         tools.run(command, False)
@@ -362,9 +358,9 @@ def drw_system_performance(path, out_dir):
             dashboard_dir + "/OSWg_OS_IO_PB.jpg"), out_dir)
     except Exception as err:
         print(err)
-    return ["OSWg_OS_Cpu_Util.jpg",
-            "OSWg_OS_Memory_Free.jpg",
-            "OSWg_OS_IO_PB.jpg"]
+    return ["perform/OSWg_OS_Cpu_Util.jpg",
+            "perform/OSWg_OS_Memory_Free.jpg",
+            "perform/OSWg_OS_IO_PB.jpg"]
     # return [
     #     "cpu_idle.png",
     #     "load.png",
@@ -376,12 +372,12 @@ def drw_system_performance(path, out_dir):
 def drw_content(path, out_dir):
     ilom = []
     if system_info["type"] == "baremetal":
-        ilom = drw_ilom(path[0], out_dir)
+        ilom = drw_ilom(path[0], out_dir + "/ilom")
     else:
-        drw_fault(path[1], out_dir)
+        drw_fault(path[1], out_dir + "/ilom")
         ilom = ["fault.png"]
-    system_status = drw_system_status(path[1], out_dir)
-    system_performance = drw_system_performance(path[2], out_dir)
+    system_status = drw_system_status(path[1], out_dir + "/status")
+    system_performance = drw_system_performance(path[2], out_dir + "/perform")
     # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
     #                       "OSWg_OS_Memory_Free.jpg",
     #                       "OSWg_OS_IO_PB.jpg"]
@@ -397,57 +393,56 @@ def get_fault(path):
     fault = ""
     if system_info["type"] == "vm":
         try:
-            if tools.grep(os.path.normpath(path + const.FAULT_SOL), "critical", True):
+            grep_result = tools.grep(os.path.normpath(path + const.FAULT_SOL), "(critical|warning)", True)
+            if "critial" in grep_result:
                 fault = "critical"
-            elif tools.grep(os.path.normpath(path + const.FAULT_SOL), "warning", True):
+            elif "warning" in grep_result:
                 fault = "warning"
             else:
                 stdout = tools.grep(os.path.normpath(
                     path + const.FAULT), ".", True, 9)
                 fault = stdout.strip()
             return fault
-        except RuntimeError:
-            return fault
-        except Exception:
-            print("Failed to fetch fault data")
-            raise
-    try:
-        if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
-            fault = "critical"
-        elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
-            fault = "warning"
-        else:
-            stdout = tools.grep(os.path.normpath(
-                path + const.FAULT), ".", True, 9)
-            fault = stdout.strip()
-        return fault
-    except RuntimeError:
-        return fault
-    except Exception:
-        print("Failed to fetch fault data")
-        raise
+        except (RuntimeError, Exception) as err:
+            print(f"Failed to fetch fault data: {err}")
+    return fault
+    # try:
+    #     if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
+    #         fault = "critical"
+    #     elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
+    #         fault = "warning"
+    #     else:
+    #         stdout = tools.grep(os.path.normpath(
+    #             path + const.FAULT), ".", True, 9)
+    #         fault = stdout.strip()
+    #     return fault
+    # except RuntimeError:
+    #     return fault
+    # except Exception:
+    #     print("Failed to fetch fault data")
+    #     raise
 
 
 def get_temp(path):
     inlet_temp = ""
     exhaust_temp = ""
+
     try:
         temps = tools.grep(
             os.path.normpath(path + const.TEMP), "^ /System/Cooling$", False, 9
         )
         for line in temps:
+            tokens = line.split()
             if "inlet_temp" in line:
-                inlet_temp = " ".join(line.split()[2:5])
-                continue
+                inlet_temp = " ".join(tokens[2:5])
             elif "exhaust_temp" in line:
-                exhaust_temp = " ".join(line.split()[2:5])
-                continue
+                exhaust_temp = " ".join(tokens[2:5])
+
         return inlet_temp, exhaust_temp
-    except RuntimeError:
-        return inlet_temp, exhaust_temp
-    except Exception:
-        print("Failed to fetch temperature")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch temperature: {err}")
+
+    return inlet_temp, exhaust_temp
 
 
 def get_firmware(path):
@@ -455,13 +450,12 @@ def get_firmware(path):
     try:
         stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
                             "Version", True)
-        firmware = " ".join(stdout.strip("\r\n").split()[1:])
+        firmware_tokens = stdout.strip("\r\n").split()
+        firmware = " ".join(firmware_tokens[1:])
         return firmware
-    except RuntimeError:
-        return firmware
-    except Exception:
-        print("Failed to fetch firmware")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch firmware: {err}")
+    return firmware
 
 
 def get_ilom(path):
@@ -549,7 +543,6 @@ def get_bonding(path):
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
-            # bonding = "ipmp"
             state = net_ipmp.split()[2]
             if state == "ok":
                 bonding = "ipmp"
@@ -560,11 +553,10 @@ def get_bonding(path):
         else:
             bonding = "both"
         return bonding
-    except RuntimeError:
-        return bonding
     except Exception:
         print("Failed to fetch bonding status")
         raise
+    return bonding
 
 
 def get_cpu_util(path):
@@ -575,6 +567,7 @@ def get_cpu_util(path):
             path + const.CPU_ULTILIZATION_SOL + '*.dat')
         files = glob.glob(cpu_util_path, recursive=True)
         cpu_idle_alltime = []
+
         for file in files:
             stdout_lines = tools.grep(
                 file, "CPU states:", False)
@@ -585,16 +578,20 @@ def get_cpu_util(path):
             cpu_idle_alltime.append(cpu_idle_perfile)
             logging.debug("CPU IDLE")
             logging.debug(cpu_idle_perfile_list)
-        cpu_idle = float("{:.2f}".format(
-            sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
-        cpu_util = float("{:.2f}".format(100 - cpu_idle))
+
+        # cpu_idle = float("{:.2f}".format(
+        #     sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
+        # cpu_util = float("{:.2f}".format(100 - cpu_idle))
+        
+        cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
+        cpu_util = round(100 - cpu_idle, 2)
         logging.info("CPU_IDLE:" + str(cpu_idle))
         logging.info("CPU_UTIL:" + str(cpu_util))
         return [cpu_util, cpu_idle]
     except RuntimeError:
         return [cpu_util, cpu_idle]
-    except Exception:
-        print("Failed to feth cpu util")
+    except Exception as err:
+        print(f"Failed to fetch cpu utilization: {err}")
         raise
 
 
@@ -609,8 +606,8 @@ def get_load_avg(path):
         return load_avg
     except RuntimeError:
         return load_avg
-    except Exception:
-        print("Failed to get load average")
+    except Exception as err:
+        print(f"Failed to get load average: {err}")
         raise
 
 
@@ -626,8 +623,8 @@ def get_vcpu(path):
         return vcpu
     except RuntimeError:
         return vcpu
-    except Exception:
-        print("Failed to fetch VCPU")
+    except Exception as err:
+        print(f"Failed to fetch VCPU: {err}")
         raise
 
 
@@ -641,23 +638,22 @@ def get_load(path):
         return load_avg, vcpu, load_avg_per
     except RuntimeError:
         return load_avg, vcpu, load_avg_per
-    except Exception:
-        print("Failed to fetch load")
+    except Exception as err:
+        print(f"Failed to fetch load: {err}")
         raise
 
 
 def get_mem_free(path):
-    mem_free_percent = ""
-    mem_util_percent = ""
     x = {"mem_free_percent": 0,
          "mem_free": 0,
          "total_mem": 0}
     try:
         mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
         files = glob.glob(mem_free_path, recursive=True)
-        mem_free_alltime = []
         total_mem = float(tools.grep(
             files[-1], "Memory", True).split()[1][:-1])
+
+        mem_free_alltime = []
         for file in files:
             stdout_lines = tools.grep(
                 file, "Memory", False)
@@ -668,68 +664,94 @@ def get_mem_free(path):
             mem_free_alltime.append(mem_free_perfile)
             logging.debug("MEM FREE")
             logging.debug(mem_free_perfile_list)
-        mem_free = float("{:.0f}".format(
-            sum(mem_free_alltime) / len(mem_free_alltime)))
+
+        mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
         if mem_free > total_mem:
             mem_free = mem_free / 1024
-        # mem_util = float("{:.0f}".format(total_mem - mem_free))
-        mem_free_percent = float("{:.2f}".format((mem_free / total_mem) * 100))
-        mem_util_percent = 100 - mem_free_percent
+
+        mem_free_percent = round((mem_free / total_mem) * 100)
+        mem_util_percent = round(100 - mem_free_percent, 2)
+
         logging.info("MEM_FREE:" + str(mem_free_percent))
         logging.info("MEM_UTIL:" + str(mem_util_percent))
+
         x["mem_free_percent"] = mem_free_percent
         x["mem_free"] = mem_free
         x["total_mem"] = total_mem
+
         return x
     except RuntimeError:
         return x
-        # return mem_free_percent, mem_util_percent
-    except Exception:
-        print("Failed to fetch memory util")
+    except Exception as err:
+        print(f"Failed to fetch memory util: {err}")
         raise
 
 
 def get_io_busy(path):
-    io_busy = ""
     try:
         io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
         files = glob.glob(io_busy_path, recursive=True)
-        io_busy = {"name": None, "busy": 0}
+
+        devices = []
+        # Get devices name list
+        temp = tools.cat(files[0], True)
+        for line in temp[4:]:
+            if "zzz" in line:
+                break
+            devices.append(line.split()[-1])
+
+        logging.info(f"DEVICE_LIST:{devices}")
+
+        average_alltime = [0] * len(devices)
+        total_alltime = [0] * len(devices)
+        # Evaluation begin
         for file in files:
             stdout = tools.cat(file, True)
-            io_busy_persection_list = []
-            i = 1
-            while i < len(stdout):
-                if "zzz" in stdout[i]:
-                    logging.debug("ZZZ")
-                    logging.debug(json.dumps(
-                        io_busy_persection_list, indent=2))
+            average_perfile = [0] * len(devices)
+            total_perfile = [0] * len(devices)
+
+            # Evaluate each section in a file
+            # Count the number of value that > 0
+            value_count = [1] * len(devices)
+            persection_list = [0] * len(devices)
+
+            index = 1
+            while index < len(stdout):
+                if "zzz" in stdout[index]:
+                    if index == 1:
+                        index += 3
+                        continue
                     try:
-                        maxbusy = 0
-                        try:
-                            maxbusy = max(io_busy_persection_list)
-                        except Exception:
-                            i += 3
-                            continue
-                        index = io_busy_persection_list.index(maxbusy)
-                        maxpos = i - (len(io_busy_persection_list) - index)
-                        if io_busy["busy"] < maxbusy:
-                            io_busy["name"] = stdout[maxpos].split()[-1]
-                            io_busy["busy"] = maxbusy
-                        logging.debug("CURRENT MAXIO")
-                        logging.debug(json.dumps(io_busy, indent=2))
-                        io_busy_persection_list = []
+                        for i in range(len(persection_list)): 
+                            total_perfile[i] += persection_list[i]
+                            persection_list[i] = 0
                     except Exception as err:
-                        print(err)
-                    i += 3
+                        logging.debug(err)
+                    index += 3
                     continue
-                io_busy_persection_list.append(float(stdout[i].split()[-2]))
-                i += 1
-        return io_busy
+
+                device_name = stdout[index].split()[-1]
+                io_value = float(stdout[index].split()[-2])
+                if io_value > 0:
+                    persection_list[devices.index(device_name)] = io_value
+                    value_count[devices.index(device_name)] += 1
+                index += 1
+
+            for i in range(len(devices)):
+                average_perfile[i] = total_perfile[i] / value_count[i]
+                total_alltime[i] += average_perfile[i]
+
+        average_alltime = [total / len(files) for total in total_alltime]
+
+        sorted_io_busy = sorted(average_alltime, reverse=True)
+        logging.info(f"DEVICES:{devices}")
+        logging.info(f"AVERAGE:{average_alltime}")
+
+        return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
-        print(err)
-        print("FAILED:fetch io busy")
-        return io_busy
+        logging.error(err)
+        logging.error("FAILED:fetch io busy")
+        return {"name": None, "busy": 0}
 
 
 def get_swap_util(path):
@@ -814,10 +836,13 @@ def get_system_perform(path, platform, system_type):
 # ------------------------------
 
 
-def get_detail(node, path):
+def get_detail(node, path, node_dir):
     ilom = {}
     system_status = {}
     system_perform = {}
+    create_dir(node_dir + "/" + "ilom")
+    create_dir(node_dir + "/" + "status")
+    create_dir(node_dir + "/" + "perform")
     try:
         if path[0] == "" and system_info["type"] == "baremetal":
             ilom = {
@@ -887,16 +912,19 @@ def get_detail(node, path):
         raise
     name = node
 
-    # content = {}
-    # logging.info(json.dumps(ilom, indent=2))
-    # logging.info(json.dumps(system_status, indent=2))
-    # logging.info(json.dumps(system_perform, indent=2))
     content = {"node_name": name,
                **ilom,
                **system_status,
                **system_perform}
     logging.info("JSON file: " +
                  json.dumps(content, indent=2, ensure_ascii=False))
+    # Save information
+    tools.save_json(os.path.normpath(
+        node_dir + "/" + "ilom" + "/" + "ilom.json"), ilom)
+    tools.save_json(os.path.normpath(node_dir + "/" + "status" +
+                    "/" + "status.json"), system_status)
+    tools.save_json(os.path.normpath(node_dir + "/" + "perform" +
+                    "/" + "perform.json"), system_perform)
     return content
 
 
@@ -936,31 +964,13 @@ def get_overview(node, path):
 ##### END OVERVIEW #####
 
 
-def compile(nodes_name, logs_dir, out_dir, force):
+def compile(nodes_name, list_file_logs, out_dir, force):
     content_files = []
-    list_file_logs = []
     print("CHOOSE FILE TO EXTRACT")
-    for node in nodes_name:
-        create_dir(out_dir + "/" + node, force=force)
-        try:
-            file_logs = ["", "", ""]
-            print("NODE:" + node)
-            print("-----------------------------")
-
-            print("ILOM SNAPSHOT")
-            file_logs[0] = get_file("*.zip", logs_dir)
-            print("EXPLORER")
-            file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
-            print("OSWATCHER")
-            file_logs[2] = get_file("archive*.gz", logs_dir)
-            list_file_logs.append(file_logs)
-            print()
-        except RuntimeError as err:
-            err.add_note("Data files must be exist!")
-            raise err
 
     print("-----------------------------")
     for node in nodes_name:
+        node_dir = os.path.normpath(out_dir + "/" + node + "/")
         print(node)
         list_logs_dir = ["", "", ""]
         file_logs = []
@@ -976,8 +986,7 @@ def compile(nodes_name, logs_dir, out_dir, force):
         except ValueError:
             pass
 
-        content_files.append(os.path.normpath(out_dir + "/" +
-                                              node + "/" + node + ".json"))
+        content_files.append(os.path.normpath(node_dir + "/" + node + ".json"))
 
         list_logs_dir = [os.path.normpath(
             "temp/" + logs_dir) for logs_dir in list_logs_dir]
@@ -988,19 +997,17 @@ def compile(nodes_name, logs_dir, out_dir, force):
 
         try:
             print("RUNNING:GET DETAILS")
-            content = get_detail(node, list_logs_dir)
+            content = get_detail(node, list_logs_dir, node_dir)
             print("RUNNING:DRAW IMAGES")
-            images = drw_content(list_logs_dir,
-                                 os.path.normpath(out_dir + "/" + node + "/"))
+            images = drw_content(list_logs_dir, node_dir)
             print("RUNNING:SAVE IMAGES")
             # Save image names
             tools.save_json(
-                os.path.normpath(out_dir + "/" + node + "/images.json"), images
+                os.path.normpath(node_dir + "/" + "images.json"), images
             )
             # Save information
             tools.save_json(
-                os.path.normpath(out_dir + "/" + node +
-                                 "/" + node + ".json"), content
+                os.path.normpath(node_dir + "/" + node + ".json"), content
             )
             print("DONE")
             print()
@@ -1070,38 +1077,77 @@ def set_system_info():
         break
     print(json.dumps(system_info, indent=2))
 
-
 # Flow of program
-def run(nodes_name, logs_dir, out_dir, force):
-    set_system_info()
+def run(logs_dir, out_dir, force):
     # Create output and temp directory
     try:
         os.mkdir(os.path.normpath("temp"))
+    except FileExistsError:
+        pass
+    try:
         os.mkdir(os.path.normpath(out_dir))
     except FileExistsError:
         pass
-    # create_dir(os.path.normpath(out_dir), force)
     root_dir = out_dir + "/" + str(datetime.datetime.now().isoformat())
     create_dir(os.path.normpath(root_dir))
     # create root folder
 
-    # Fetch and cook images from logs
-    try:
-        content_files = compile(nodes_name, logs_dir, root_dir, force)
-        logging.info(content_files)
-    except RuntimeError:
-        print("Aborted")
-        raise
+    i = 0
+    list_alltime_logs = []
+    summary_list = []
+    while True:
+        set_system_info()
+        nodes_name = input(
+            "Enter nodes' name (each separated by a space): ").split(" ")
 
-    if content_files == -1:
-        print("Error: ", end="")
-        print("No files to join!")
-        return -1
+        list_file_logs = []
+        for node in nodes_name:
+            create_dir(root_dir + "/" + node, force=force)
+            try:
+                file_logs = ["", "", ""]
+                print("NODE:" + node)
+                print("-----------------------------")
+
+                print("ILOM SNAPSHOT")
+                file_logs[0] = get_file("*.zip", logs_dir)
+                print("EXPLORER")
+                file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
+                print("OSWATCHER")
+                file_logs[2] = get_file("archive*.gz", logs_dir)
+                list_file_logs.append(file_logs)
+                print()
+            except RuntimeError as err:
+                err.add_note("Data files must be exist!")
+                raise err
+        out_file = os.path.normpath(
+            root_dir + "/" + "summary-" + str(i) + ".json")
+        tools.save_json(out_file, system_info)
+        summary_list.append(out_file)
+        list_alltime_logs.append(list_file_logs)
+        i += 1
+        c = input("Run another time?[Y/N] ")
+        if c in ["", "Y", "y", "yes", "Yes", "YES"]:
+            continue
+        else:
+            break
+
+    logging.debug(list_alltime_logs)
+    for time in range(0, i):
+        try:
+            content_files = compile(
+                nodes_name, list_alltime_logs[time], root_dir, force)
+            logging.info(content_files)
+        except RuntimeError:
+            print("Aborted")
+            raise
+        tools.join_json(summary_list[time], content_files)
+
+    # if content_files == -1:
+    #     print("Error: ", end="")
+    #     print("No files to join!")
+    #     return -1
 
     # Union all jsons to one file
-    out_file = os.path.normpath(root_dir + "/" + "summary.json")
-    tools.save_json(out_file, system_info)
-    tools.join_json(out_file, content_files)
     return out_file
 
 

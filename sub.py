@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
-import json, io
+
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+import json
+import io
 from PIL import Image
 from PIL import ImageColor
 from PIL import ImageDraw
 from PIL import ImageFont
+from docx.oxml import OxmlElement
 
 from rekdoc.const import *
 from rekdoc import tools
@@ -49,9 +55,69 @@ def drw_text_image(text, file):
         img_resize.save(file + ".png", format="PNG")
 
 
-if __name__ == "__main__":
-    text = "This is a test text\nand this is the second line"
-    print(str(uuid.uuid4()).split("-")[-1])
+def set_font_size(run, font_size):
+    font = run.font
+    font.size = Pt(font_size)
 
-    # text = tools.cat('temp/explorer.86d102c0.DBMC01.market_clearing.com-2023.08.25.03.30' + PARTITION_SOL)
-    drw_text_image(text, "hello")
+def set_numbering_style(paragraph, level):
+    numbering = paragraph._element.xpath('.//w:numPr')
+    if numbering:
+        num_id = numbering[0].xpath('@w:numId')[0]
+        abstract_id = numbering[0].xpath('@w:ilvl')[0]
+        numbering[0].remove(num_id)
+        numbering[0].remove(abstract_id)
+
+    paragraph._element.append(OxmlElement('w:numPr'))
+    paragraph._element.xpath('.//w:numPr')[0].append(OxmlElement('w:ilvl', val=str(level)))
+    paragraph._element.xpath('.//w:numPr')[0].append(OxmlElement('w:numId', val="1"))
+
+def add_numbered_list(document, levels):
+    for level, text in levels:
+        paragraph = document.add_paragraph(text, style='BodyText')
+        set_numbering_style(paragraph, level)
+        paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+def add_custom_heading(document, text, level):
+    heading_style = 'Heading' + str(level)
+    paragraph = document.add_heading(text, level=level)
+    paragraph.style = document.styles[heading_style]
+    paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+    # Change the font size for the heading
+    set_font_size(paragraph.runs[0], 14)
+
+def add_subheading(document, heading_level, subheading_text):
+    # Add a paragraph as a subheading under the specified heading level
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(subheading_text)
+    set_numbering_style(paragraph, heading_level + 1)  # Increment the level for subheading
+    paragraph.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+
+if __name__ == "__main__":
+    # Create a new Word document
+    doc = Document()
+
+    # Add a title to the document
+    doc.add_heading('Document with Styled Headings and Numbered List', level=1).alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+    # Define the levels and texts for each level
+    levels = [
+        (1, 'Level 1'),
+        (2, 'Level 2'),
+        (3, 'Level 3'),
+        (4, 'Level 4'),
+        (5, 'Level 5')
+    ]
+
+    # Add custom headings
+    for level, text in levels:
+        add_custom_heading(doc, text, level)
+
+        # Add a subheading for each main heading
+        add_subheading(doc, level, f'Subheading under Level {level}')
+
+    # Add the numbered list
+    add_numbered_list(doc, levels)
+
+    # Save the document
+    doc.save('styled_document_with_subheadings.docx')
