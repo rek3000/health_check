@@ -212,7 +212,13 @@ def assert_firmware(data):
                 print("[0] Tốt")
                 print("[1] Cần lưu ý")
                 print("[2] Kém")
-                score = int(input("Chọn đánh giá\n [0] ") or "0")
+                choice = int(input("Chọn đánh giá\n [0] ") or "0")
+                if choice == 0:
+                    score = 5
+                elif choice == 1:
+                    score = 3
+                else:
+                    score = 1
             except KeyboardInterrupt:
                 print()
                 sys.exit()
@@ -233,7 +239,7 @@ def assert_firmware(data):
 def assert_image(data):
     score = 0
     if data["image"] == "":
-        image = ["", [""]]
+        image = [score, [""]]
         # logging.debug(json.dumps(image, ensure_ascii=False))
         return image
 
@@ -260,7 +266,13 @@ def assert_image(data):
                 print("[0] Tốt")
                 print("[1] Cần lưu ý")
                 print("[2] Kém")
-                score = int(input("Chọn đánh giá\n [0] ") or "0")
+                choice = int(input("Chọn đánh giá\n [0] ") or "0")
+                if choice == 0:
+                    score = 5
+                elif choice == 1:
+                    score = 3
+                else:
+                    score = 1
             except KeyboardInterrupt:
                 print()
                 sys.exit()

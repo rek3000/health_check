@@ -49,44 +49,42 @@ def debug(func):
 # ------------------------------
 def extract_file(file, compress, force):
     compress = compress.lower()
-    if file == "":
+    if not file:
         return ""
-    if compress == "zip":
+
+    if compress in ["tar.gz", "gz"]:
+        untar(file, compress,force)
+        dir = tools.rm_ext(file, compress)
+        path = os.path.split(dir)[1]
+        return path
+    elif compress == "zip":
         unzip(file, force)
         dir = tools.rm_ext(file, compress)
         path = os.path.split(dir)[1]
         return path
-    elif compress == "tar.gz":
-        untar(file, compress, force)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
-    elif compress == "gz":
-        untar(file, compress, force)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
-    # else:
-    #     raise RuntimeError("Cannot extract file")
+
+    return ""
 
 
 def unzip(file, force):
     if not zipfile.is_zipfile(file):
         logging.error("Error: Not a zip file")
         return -1
+
     logging.info("Extracting: " + file)
+
     try:
-        with zipfile.ZipFile(file, "r") as zip:
+        with zipfile.ZipFile(file, "r") as zip_file:
+            temp_path = "temp/"
             try:
-                zip.extractall(path="temp/")
+                zip_file.extractall(path=temp_path)
             except IOError:
                 clean_up(
-                    os.path.normpath(
-                        "temp/" + os.path.split(tools.rm_ext(file, "zip"))[1]
-                    ),
-                    force=force,
-                )
-                zip.extractall(path="temp/")
+                    os.path.normpath(os.path.join(
+                        temp_path, 
+                        os.path.split(
+                            tools.rm_ext(file, "zip"))[1]), force=force))
+                zip_file.extractall(path="temp/")
     except IOError as err:
         logging.error(err)
         return -1
@@ -96,21 +94,23 @@ def untar(file_path, compress, force):
     if not tarfile.is_tarfile(file_path):
         logging.error("Error: Not a tar file")
         return -1
+
     logging.info("Extracting: " + file_path)
     filename = os.path.split(file_path)[-1]
-    if compress == "gz":
-        extract_folder = os.path.join(
-            "./temp", tools.rm_ext(filename, compress))
-    else:
-        extract_folder = "temp/"
+
+    extract_folder = os.path.join(
+            "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
+    # if compress == "gz":
+    #     extract_folder = os.path.join(
+    #         "./temp", tools.rm_ext(filename, compress))
+    # else:
+    #     extract_folder = "temp/"
     try:
         with tarfile.open(file_path, "r") as tar:
             for f in tar.getmembers():
                 try:
                     tar.extract(f, set_attrs=False, path=extract_folder)
-                except IOError:
-                    continue
-                except Exception as err:
+                except (Exception, IOError) as err:
                     logging.error(err)
                     return -1
 
@@ -134,60 +134,61 @@ def untar(file_path, compress, force):
 
 # Find the file matched with keyword(regular expression)
 def get_file(regex, logs_dir):
-    path = logs_dir + regex
-    files = glob.glob(path, recursive=True)
-    if len(files) == 0:
-        raise RuntimeError("No file found matched!")
-    elif len(files) == 1:
-        return files[0]
-    else:
-        for i in range(len(files)):
-            print("[", i, "] ", files[i], sep="")
-        print("[-1]. Skip")
-        c = ""
+    def print_files(files):
+        for i, file in enumerate(files):
+            print(f"[{i}] {file}")
+        print("[-1] Skip")
+
+    def get_user_input(files):
         while True:
             try:
-                c = int(input("Which file?\n [0] ") or "0")
-                if c < 0 and c > len(files):
-                    continue
+                choice = int(input("Which file?\n [0] ") or "0")
+                if choice == -1 or (0 <= choice < len(files)):
+                    return choice
             except KeyboardInterrupt:
                 print()
                 sys.exit()
             except ValueError:
                 continue
-            break
-        if c == -1:
-            return ""
-        else:
-            return files[c]
+
+    path = logs_dir + regex
+    files = glob.glob(path, recursive=True)
+
+    if not files:
+        raise RuntimeError("No file found matched!")
+
+    if len(files) == 1:
+        return files[0]
+
+    print_files(files)
+    choice = get_user_input(files)
+
+    if choice == -1:
+        return ""
+    else:
+        return files[choice]
 
 
 def clean_files(dir):
     for filename in os.listdir(dir):
         file_path = os.path.join(dir, filename)
-        logging.info("Deleted: " + file_path)
         try:
             if os.path.isfile(file_path) or os.path.islink(file_path):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
-        except Exception as e:
-            print("Failed to delete %s. Reason: %s" % (file_path, e))
+            logging.info("Deleted: " + file_path)
+        except Exception as err:
+            logging.error(f"Failed to delete {file_path}. Reason: {err}")
 
 
 def clean_up(path, prompt="Remove files?", force=False):
-    if force:
+    if force or input(f"{prompt} [y/n] ").lower() in ["y", "yes"]: 
         clean_files(path)
-    else:
-        print(prompt + "[y/n]", end="")
-        choice = input() or "\n"
-
-        if choice in ["\n", "y", "yes"]:
-            clean_files(path)
 
 
 def clean_up_force(path):
-    print("FORCE CLEAN UP DUE TO ERROR!")
+    logging.error("FORCE CLEAN UP DUE TO ERROR!")
     clean_files(path)
     return -1
 
@@ -251,8 +252,9 @@ def drw_ilom(path, out_dir):
 def drw_image(path, out_dir):
     image = io.StringIO()
     image.write(path + const.IMAGE_SOL + "\n")
-    image.write(tools.grep(os.path.normpath(
-        path + const.IMAGE_SOL), "Name: entire", True, 18))
+    stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL), "Name: entire", False, 18)
+    for line in stdout:
+        image.write(str(line) + "\n")
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
     return image
 
@@ -260,7 +262,9 @@ def drw_image(path, out_dir):
 def drw_vol(path, out_dir):
     vol = io.StringIO()
     vol.write(path + const.PARTITION_SOL + "\n")
-    vol.write(tools.cat(os.path.normpath(path + const.PARTITION_SOL)))
+    stdout = tools.cat(os.path.normpath(path + const.PARTITION_SOL), True)
+    for line in stdout:
+        vol.write(str(line) + "\n")
     tools.drw_text_image(vol, os.path.normpath(out_dir + "/vol.png"))
     return vol
 
@@ -268,7 +272,9 @@ def drw_vol(path, out_dir):
 def drw_raid(path, out_dir):
     raid = io.StringIO()
     raid.write(path + const.RAID_SOL + "\n")
-    raid.write(tools.cat(os.path.normpath(path + const.RAID_SOL)))
+    stdout = tools.cat(os.path.normpath(path + const.RAID_SOL), True)
+    for line in stdout:
+        raid.write(str(line) + "\n")
     tools.drw_text_image(raid, os.path.normpath(out_dir + "/raid.png"))
     return raid
 
@@ -276,7 +282,9 @@ def drw_raid(path, out_dir):
 def drw_net(path, out_dir):
     net = io.StringIO()
     net.write(path + const.NETWORK_SOL + "\n")
-    net.write(tools.cat(os.path.normpath(path + const.NETWORK_SOL)))
+    stdout = tools.cat(os.path.normpath(path + const.NETWORK_SOL), True)
+    for line in stdout:
+        net.write(str(line) + "\n")
     tools.drw_text_image(net, os.path.normpath(out_dir + "/net.png"))
     return net
 
@@ -375,7 +383,7 @@ def drw_content(path, out_dir):
         ilom = drw_ilom(path[0], out_dir + "/ilom")
     else:
         drw_fault(path[1], out_dir + "/ilom")
-        ilom = ["fault.png"]
+        ilom = ["ilom/fault.png"]
     system_status = drw_system_status(path[1], out_dir + "/status")
     system_performance = drw_system_performance(path[2], out_dir + "/perform")
     # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
@@ -700,7 +708,7 @@ def get_io_busy(path):
                 break
             devices.append(line.split()[-1])
 
-        logging.info(f"DEVICE_LIST:{devices}")
+        # logging.info(f"DEVICE_LIST:{devices}")
 
         average_alltime = [0] * len(devices)
         total_alltime = [0] * len(devices)
@@ -744,8 +752,8 @@ def get_io_busy(path):
         average_alltime = [total / len(files) for total in total_alltime]
 
         sorted_io_busy = sorted(average_alltime, reverse=True)
-        logging.info(f"DEVICES:{devices}")
-        logging.info(f"AVERAGE:{average_alltime}")
+        # logging.info(f"DEVICES:{devices}")
+        # logging.info(f"AVERAGE:{average_alltime}")
 
         return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
@@ -880,6 +888,13 @@ def get_detail(node, path, node_dir):
                     "io_busy": {"name": "",
                                 "busy": ""}
                 }
+            elif path[1] == "" and system_info["type"] == "vm":
+                system_perform = {
+                    "cpu_util": "",
+                    "mem_free": "",
+                    "io_busy": {"name": "",
+                                "busy": ""}
+                }
             else:
                 system_perform = get_system_perform(path[2],
                                                     system_info["platform"],
@@ -970,29 +985,33 @@ def compile(nodes_name, list_file_logs, out_dir, force):
 
     print("-----------------------------")
     for node in nodes_name:
-        node_dir = os.path.normpath(out_dir + "/" + node + "/")
+        node_dir = os.path.join(out_dir, node)
         print(node)
         list_logs_dir = ["", "", ""]
-        file_logs = []
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
-        print("RUNNING:EXTRACT ILOM SNAPSHOT")
-        try:
-            list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
-            print("RUNNING:EXTRACT EXPLORER")
-            list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
-            print("RUNNING:EXTRACT OSWATCHER")
-            list_logs_dir[2] = extract_file(file_logs[2], "gz", force)
-        except ValueError:
-            pass
+        extraction_formats = {"zip": "ILOM SNAPSHOT", "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
+        for i, file_type in enumerate(["zip", "tar.gz", "gz"]):
+            try:
+                print(f"RUNNING:EXTRACT {extraction_formats[file_type]}")
+                list_logs_dir[i] = extract_file(file_logs[i], file_type, force)
+            except ValueError:
+                pass
+        #     try:
+        #         print("RUNNING:EXTRACT ILOM SNAPSHOT")
+        #         list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
+        #         print("RUNNING:EXTRACT EXPLORER")
+        #         list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
+        #         print("RUNNING:EXTRACT OSWATCHER")
+        #         list_logs_dir[2] = extract_file(file_logs[2], "gz", force)
+        # except ValueError:
+        #     pass
 
-        content_files.append(os.path.normpath(node_dir + "/" + node + ".json"))
+        content_files.append(os.path.join(node_dir, f"{node}.json"))
 
-        list_logs_dir = [os.path.normpath(
-            "temp/" + logs_dir) for logs_dir in list_logs_dir]
-        for i in range(0, len(list_logs_dir)):
-            if list_logs_dir[i] == "temp":
-                list_logs_dir[i] = ""
+        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}") 
+                         if logs_dir != "temp" else "" 
+                         for logs_dir in list_logs_dir]
         logging.info(json.dumps(list_logs_dir, indent=2))
 
         try:
@@ -1003,11 +1022,11 @@ def compile(nodes_name, list_file_logs, out_dir, force):
             print("RUNNING:SAVE IMAGES")
             # Save image names
             tools.save_json(
-                os.path.normpath(node_dir + "/" + "images.json"), images
+                os.path.normpath(os.path.join(node_dir, "images.json")), images
             )
             # Save information
             tools.save_json(
-                os.path.normpath(node_dir + "/" + node + ".json"), content
+                os.path.normpath(os.path.join(node_dir, f"{node}.json")), content
             )
             print("DONE")
             print()
@@ -1040,87 +1059,63 @@ def create_dir(path, force=False):
 
 
 def set_system_info():
-    while True:
-        try:
-            c = str(input("System Type [standalone|exa]?\n [standalone] ")
-                    or "standalone")
-            if (c != "standalone") and (c != "exa"):
-                continue
-            system_info["system_type"] = c
-        except KeyboardInterrupt:
-            print()
-            sys.exit()
-        break
+    def prompt_user(prompt, default):
+        while True:
+            try:
+                user_input = str(input(f"{prompt}\n [{default}] ") or default)
+                if user_input in [default, "standalone", "exa", "linux", 
+                                  "solaris", "baremetal", "vm"]:
+                     return user_input
+            except KeyboardInterrupt:
+                print()
+                sys.exit()
 
-    while True:
-        try:
-            c = str(input("Platform [linux|solaris]?\n [solaris] ")
-                    or "solaris")
-            if (c != "linux") and (c != "solaris"):
-                continue
-            system_info["platform"] = c
-        except KeyboardInterrupt:
-            print()
-            sys.exit()
-        break
+    system_info["system_type"] = prompt_user("System Type [standalone|exa]?", "standalone")
+    system_info["platform"] = prompt_user("Platform [linux|solaris]?", "solaris")
+    system_info["type"] = prompt_user("Type [baremetal|vm]?", "baremetal")
 
-    while True:
-        try:
-            c = str(input("Type [baremetal|vm]?\n [baremetal] ")
-                    or "baremetal")
-            if (c != "baremetal") and (c != "vm"):
-                continue
-            system_info["type"] = c
-        except KeyboardInterrupt:
-            print()
-            sys.exit()
-        break
     print(json.dumps(system_info, indent=2))
 
 # Flow of program
 def run(logs_dir, out_dir, force):
     # Create output and temp directory
-    try:
-        os.mkdir(os.path.normpath("temp"))
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(os.path.normpath(out_dir))
-    except FileExistsError:
-        pass
-    root_dir = out_dir + "/" + str(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H%M%S"))
-    create_dir(os.path.normpath(root_dir))
+    os.makedirs(os.path.normpath("temp"), exist_ok=True)
+    os.makedirs(os.path.normpath(out_dir), exist_ok=True)
+
+    root_dir = os.path.normpath(f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
+    create_dir(root_dir)
     # create root folder
 
     i = 0
     list_alltime_logs = []
     summary_list = []
+    nodes_list = []
     while True:
         set_system_info()
         nodes_name = input(
             "Enter nodes' name (each separated by a space): ").split(" ")
+        nodes_list.append(nodes_name)
 
         list_file_logs = []
         for node in nodes_name:
-            create_dir(root_dir + "/" + node, force=force)
+            create_dir(os.path.normpath(f"{root_dir}/{node}"), force=force)
             try:
                 file_logs = ["", "", ""]
                 print("NODE:" + node)
                 print("-----------------------------")
-
                 print("ILOM SNAPSHOT")
                 file_logs[0] = get_file("*.zip", logs_dir)
                 print("EXPLORER")
                 file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
                 print("OSWATCHER")
                 file_logs[2] = get_file("archive*.gz", logs_dir)
+
                 list_file_logs.append(file_logs)
                 print()
             except RuntimeError as err:
                 err.add_note("Data files must be exist!")
                 raise err
-        out_file = os.path.normpath(
-            root_dir + "/" + "summary-" + str(i) + ".json")
+        out_file = os.path.normpath(f"{root_dir}/summary-{i}.json")
         tools.save_json(out_file, system_info)
         summary_list.append(out_file)
         list_alltime_logs.append(list_file_logs)
@@ -1135,17 +1130,12 @@ def run(logs_dir, out_dir, force):
     for time in range(0, i):
         try:
             content_files = compile(
-                nodes_name, list_alltime_logs[time], root_dir, force)
+                nodes_list[time], list_alltime_logs[time], root_dir, force)
             logging.info(content_files)
         except RuntimeError:
             print("Aborted")
             raise
         tools.join_json(summary_list[time], content_files)
-
-    # if content_files == -1:
-    #     print("Error: ", end="")
-    #     print("No files to join!")
-    #     return -1
 
     # Union all jsons to one file
     return out_file
