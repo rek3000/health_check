@@ -3,8 +3,9 @@
   name = "rekdoc";
   targetPkgs = pkgs: (with pkgs; [
     python3
-    python312Packages.pip
-    python312Packages.virtualenv
+    python311Packages.pip
+    python311Packages.virtualenv
+    zlib
   ]);
   runScript = "bash";
 }).env
