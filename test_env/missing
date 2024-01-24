@@ -1,14 +1,10 @@
 DC SITE
-VM
-dc-t24-app01 (explorer, oswatcher)
-dc-t24-app02 (explorer)
-dc-t24-app04 (explorer)
-dc-t24-etl-db01 (oswatcher)
-dc-card-app01 (explorer, oswatcher)
-dc-card-db01 (explorer, oswatcher)
--------
 
 SOLARIS
 dc-m7-82-pd2-svr (Lỗi explorer)
 dr-dev-t7-1-svr (explorer, oswatcher)
 -------
+
+
+dr-t24-db (explorer)
+dr-t24-etl-db(explorer, oswatcher) 
