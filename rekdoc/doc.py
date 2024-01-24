@@ -21,6 +21,7 @@ from rekdoc import tools
 TABLE_RED = "#C00000"
 ASSERTION = {1: "Kém", 3: "Cần lưu ý", 5: "Tốt"}
 
+
 def list_number(doc, par, prev=None, level=None, num=True):
     """
     Makes a paragraph into a list item with a specific level and
@@ -64,7 +65,7 @@ def list_number(doc, par, prev=None, level=None, num=True):
         style = par.style.style_id
         return (
             'w:abstractNum['
-                '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]'
+            '{single}w:lvl[@w:ilvl="{level}"]/w:pStyle[@w:val="{style}"]'
             ']/@w:abstractNumId'
         ).format(style=style, **xpath_options[prefer_single])
 
@@ -75,7 +76,7 @@ def list_number(doc, par, prev=None, level=None, num=True):
         type = 'decimal' if num else 'bullet'
         return (
             'w:abstractNum['
-                '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
+            '{single}w:lvl[@w:ilvl="{level}"]/w:numFmt[@w:val="{type}"]'
             ']/@w:abstractNumId'
         ).format(type=type, **xpath_options[prefer_single])
 
@@ -673,9 +674,12 @@ def drw_table(doc, checklist, row, col, info=False):
 
 # def drw_image_to_doc(doc, node, images_root, images_name):
 def drw_info(doc, node, checklist, images_root, images_name=[]):
-    doc.add_paragraph("Thông tin chi tiết", style="baocao4")
+    prev = doc.add_paragraph("Thông tin chi tiết", style="baocao4")
     for i in range(0, len(checklist)):
-        doc.add_paragraph(checklist[i][1], style="baocao5")
+        # doc.add_paragraph(checklist[i][1], style="baocao5")
+        par = doc.add_paragraph(checklist[i][1])
+        # list_number(doc, par, prev=prev, level=3)
+        list_number(doc, par, prev=prev)
         try:
             if isinstance(images_name[i], list):
                 for image in images_name[i]:
@@ -736,6 +740,7 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
         print("RUNNING:DRAWING OVERVIEW TABLE")
         doc.add_paragraph(
             "Máy chủ " + node["node_name"], style="baocao3")
+        # list_number(doc, par, prev=prev)
         # doc.add_heading(
         #     "Máy chủ " + node["node_name"], level=2)
         doc.add_paragraph("Thông tin tổng quát", style="baocao4")
@@ -759,6 +764,7 @@ def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
         drw_info(doc, node["node_name"],
                  checklist_list[node["node_name"]], images_root, images_name)
         # doc.add_page_break()
+
         print("DONE")
         print()
 
@@ -829,65 +835,82 @@ def drw_doc(doc, checklist_list, nodes):
 
 def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
     input_file_data = tools.read_json(input_file)
-    system_info["system_type"] = input_file_data["system_type"]
-    system_info["platform"] = input_file_data["platform"]
-    system_info["type"] = input_file_data["type"]
-    nodes = input_file_data["nodes"]
-    checklist_list = {}
+    # Wrap in a list if input_file_data contains only 1 dictionary
+    if not isinstance(input_file_data, list):
+        input_file_data = [input_file_data]
 
-    images_name = []
-    if nodes == -1:
-        return -1
-    asserted_list = []
-    appendix_doc.add_page_break()
+    summary_content = []
+    for time in range(len(input_file_data)):
+        system_info["system_type"] = input_file_data[time]["system_type"]
+        system_info["platform"] = input_file_data[time]["platform"]
+        system_info["type"] = input_file_data[time]["type"]
+        nodes = input_file_data[time]["nodes"]
+        checklist_list = {}
+
+        images_name = []
+        if nodes == -1:
+            return -1
+
+        asserted_list = []
+        appendix_doc.add_page_break()
     # drw_menu(doc, nodes)
-    input_root = os.path.split(input_file)[0]
-    print("RUNNING:ASSERTING DATA")
-    for node in nodes:
-        print("NODE:" + node["node_name"])
-        asserted = assert_data(node)
 
-        print("RUNNING:SAVING ASSERTED DATA")
-        file_dump = asserted
-        asserted_file = os.path.normpath(input_root + "/" +
-                                         node["node_name"] + "/" +
-                                         node["node_name"] + "_asserted.json")
-        asserted_list += [asserted_file]
+        input_root = os.path.split(input_file)[0]
+        print("RUNNING:ASSERTING DATA")
+        for node in nodes:
+            print("NODE:" + node["node_name"])
+            asserted = assert_data(node)
+
+            print("RUNNING:SAVING ASSERTED DATA")
+            asserted_file = os.path.normpath(input_root + "/" +
+                                             node["node_name"] + "/" +
+                                             node["node_name"] + "_asserted.json")
+            asserted_list += [asserted_file]
+            tools.save_json(
+                os.path.normpath(asserted_file),
+                asserted,
+                False
+            )
+            print("RUNNING:CREATING CHECKLIST")
+            checklist = get_score(asserted)
+            checklist_list[node["node_name"]] = checklist
+            print("DONE")
+            print()
+        logging.debug(json.dumps(asserted_list))
+        print("RUNNING:SAVING ASSERTED SUMMARY FILE")
+        print()
+
+        file_name = os.path.normpath(tools.rm_ext(
+            input_file, "json") + f"_asserted-{time}.json")
         tools.save_json(
-            os.path.normpath(asserted_file),
-            file_dump,
+            file_name,
+            system_info,
             False
         )
-        print("RUNNING:CREATING CHECKLIST")
-        checklist = get_score(asserted)
-        checklist_list[node["node_name"]] = checklist
-        print("DONE")
-        print()
-    logging.debug(json.dumps(asserted_list))
-    print("RUNNING:SAVING ASSERTED SUMMARY FILE")
-    print()
-    file_name = os.path.normpath(tools.rm_ext(
+        tools.join_json(file_name, asserted_list)
+        summary_content.append(tools.read_json(file_name))
+
+        print("RUNNING:DRAWING REPORTS")
+        print("RUNNING:DRAWING APPENDIX REPORT")
+        if system_info["type"] == "baremetal" \
+                and system_info["platform"] == "solaris":
+            appendix_doc.add_paragraph(
+                "Máy chủ SPARC", style="baocao1")
+        elif system_info["type"] == "vm":
+            appendix_doc.add_paragraph(
+                "Máy chủ ảo hóa", style="baocao1")
+
+        drw_doc_appendix(appendix_doc, checklist_list, nodes,
+                         images_root, images_name)
+        print("RUNNING:DRAWING REPORT")
+        try:
+            drw_doc(doc, checklist_list, nodes)
+        except Exception:
+            pass
+
+    main_summary = os.path.normpath(tools.rm_ext(
         input_file, "json") + "_asserted.json")
-    tools.join_json(file_name, asserted_list)
-
-    # print(json.dumps(checklist_list, indent=2))
-    print("RUNNING:DRAWING REPORTS")
-    print("RUNNING:DRAWING APPENDIX REPORT")
-    if system_info["type"] == "baremetal" \
-            and system_info["platform"] == "solaris":
-        appendix_doc.add_paragraph(
-            "Máy chủ SPARC", style="baocao1")
-    elif system_info["type"] == "vm":
-        appendix_doc.add_paragraph(
-            "Máy chủ ảo hóa", style="baocao1")
-
-    drw_doc_appendix(appendix_doc, checklist_list, nodes,
-                     images_root, images_name)
-    print("RUNNING:DRAWING REPORT")
-    try:
-        drw_doc(doc, checklist_list, nodes)
-    except Exception:
-        pass
+    tools.save_json(main_summary, summary_content, append=False)
 
     return appendix_doc
 
@@ -922,19 +945,14 @@ def run(input_file, output_file, sample,
         print(err)
         return -1
 
-    # if logging.root.level == 10:
-    #     print()
-    #     print("List of all styles")
-    # print()
     output_base_name = tools.rm_ext(os.path.split(output_file)[1], "json")
-    # doc_name = os.path.normpath(tools.rm_ext(output_file, "json") + ".docx")
+
     if doc is not None:
         doc_name = os.path.normpath(
             out_dir + "/" + output_base_name + ".docx")
     else:
         doc_name = ""
-    # appendix_doc_name =  \
-    # os.path.normpath(tools.rm_ext(output_file, "json") + + ".docx")
+
     appendix_doc_name = os.path.normpath(
         out_dir + "/appendix-" + output_base_name + ".docx")
 
@@ -942,7 +960,9 @@ def run(input_file, output_file, sample,
         doc.save(doc_name)
     except Exception:
         pass
+
     appendix_doc.save(appendix_doc_name)
+
     return [doc_name, appendix_doc_name]
 
 

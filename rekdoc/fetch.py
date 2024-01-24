@@ -18,15 +18,15 @@ import logging
 from rekdoc import tools
 from rekdoc import const
 
-TYPES = ["baremetal", "vm"]
-SYSTEM = ["standalone", "exa"]
-PLATFORM = ["linux", "solaris"]
+# TYPES = ["baremetal", "vm"]
+# SYSTEM = ["standalone", "exa"]
+# PLATFORM = ["linux", "solaris"]
 
-system_info = {
-    "system_type": "",
-    "platform": "",
-    "type": "",
-}
+# system_info = {
+#     "system_type": "",
+#     "platform": "",
+#     "type": "",
+# }
 
 
 # ------------------------------
@@ -53,7 +53,7 @@ def extract_file(file, compress, force):
         return ""
 
     if compress in ["tar.gz", "gz"]:
-        untar(file, compress,force)
+        untar(file, compress, force)
         dir = tools.rm_ext(file, compress)
         path = os.path.split(dir)[1]
         return path
@@ -81,7 +81,7 @@ def unzip(file, force):
             except IOError:
                 clean_up(
                     os.path.normpath(os.path.join(
-                        temp_path, 
+                        temp_path,
                         os.path.split(
                             tools.rm_ext(file, "zip"))[1]), force=force))
                 zip_file.extractall(path="temp/")
@@ -99,7 +99,7 @@ def untar(file_path, compress, force):
     filename = os.path.split(file_path)[-1]
 
     extract_folder = os.path.join(
-            "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
+        "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
     # if compress == "gz":
     #     extract_folder = os.path.join(
     #         "./temp", tools.rm_ext(filename, compress))
@@ -183,7 +183,7 @@ def clean_files(dir):
 
 
 def clean_up(path, prompt="Remove files?", force=False):
-    if force or input(f"{prompt} [y/n] ").lower() in ["y", "yes"]: 
+    if force or input(f"{prompt} [y/n] ").lower() in ["y", "yes"]:
         clean_files(path)
 
 
@@ -204,7 +204,7 @@ def check_valid(path):
 # IMAGE PROCESSING
 # ------------------------------
 # DRAW ILOM
-def drw_fault(path, out_dir):
+def drw_fault(path, out_dir, system_info):
     fault = io.StringIO()
     if system_info["type"] == "baremetal":
         fault.write(path + const.FAULT + "\n")
@@ -237,12 +237,11 @@ def drw_firmware(path, out_dir):
     tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
 
 
-def drw_ilom(path, out_dir):
-    if system_info["type"] == "baremetal":
-        drw_fault(path, out_dir)
-        drw_temp(path, out_dir)
-        drw_firmware(path, out_dir)
-        return ["ilom/fault.png", "ilom/temp.png", "ilom/firmware.png"]
+def drw_ilom(path, out_dir, system_info):
+    drw_fault(path, out_dir, system_info)
+    drw_temp(path, out_dir)
+    drw_firmware(path, out_dir)
+    return ["ilom/fault.png", "ilom/temp.png", "ilom/firmware.png"]
 
 
 ## END DRAW ILOM ##
@@ -252,7 +251,8 @@ def drw_ilom(path, out_dir):
 def drw_image(path, out_dir):
     image = io.StringIO()
     image.write(path + const.IMAGE_SOL + "\n")
-    stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL), "Name: entire", False, 18)
+    stdout = tools.grep(os.path.normpath(
+        path + const.IMAGE_SOL), "Name: entire", False, 18)
     for line in stdout:
         image.write(str(line) + "\n")
     tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
@@ -323,7 +323,7 @@ def drw_swap(path, out_dir):
 
 
 # SUCKS, rewrite later
-def drw_system_status(path, out_dir):
+def drw_system_status(path, out_dir, system_info):
     if system_info["type"] == "baremetal":
         drw_image(path, out_dir)
         drw_vol(path, out_dir)
@@ -343,7 +343,7 @@ def drw_system_status(path, out_dir):
         ]
 
 
-def drw_system_performance(path, out_dir):
+def drw_system_performance(path, out_dir, system_info):
     # drw_cpu(path, out_dir)
     # drw_load(path, out_dir)
     # drw_mem(path, out_dir)
@@ -377,18 +377,17 @@ def drw_system_performance(path, out_dir):
     # ]
 
 
-def drw_content(path, out_dir):
+def drw_content(path, out_dir, system_info):
     ilom = []
     if system_info["type"] == "baremetal":
-        ilom = drw_ilom(path[0], out_dir + "/ilom")
+        ilom = drw_ilom(path[0], out_dir + "/ilom", system_info)
     else:
-        drw_fault(path[1], out_dir + "/ilom")
+        drw_fault(path[1], out_dir + "/ilom", system_info)
         ilom = ["ilom/fault.png"]
-    system_status = drw_system_status(path[1], out_dir + "/status")
-    system_performance = drw_system_performance(path[2], out_dir + "/perform")
-    # system_performance = ["OSWg_OS_Cpu_Idle.jpg",
-    #                       "OSWg_OS_Memory_Free.jpg",
-    #                       "OSWg_OS_IO_PB.jpg"]
+    system_status = drw_system_status(
+        path[1], out_dir + "/status", system_info)
+    system_performance = drw_system_performance(
+        path[2], out_dir + "/perform", system_info)
     images = ilom + system_status + system_performance
     logging.info(images)
     return images
@@ -397,11 +396,13 @@ def drw_content(path, out_dir):
 # ------------------------------
 # FETCH ILOM
 # ------------------------------
-def get_fault(path):
+def get_fault(path, system_info):
     fault = ""
+
     if system_info["type"] == "vm":
         try:
-            grep_result = tools.grep(os.path.normpath(path + const.FAULT_SOL), "(critical|warning)", True)
+            grep_result = tools.grep(os.path.normpath(
+                path + const.FAULT_SOL), "(critical|warning)", True)
             if "critial" in grep_result:
                 fault = "critical"
             elif "warning" in grep_result:
@@ -410,28 +411,15 @@ def get_fault(path):
                 stdout = tools.grep(os.path.normpath(
                     path + const.FAULT), ".", True, 9)
                 fault = stdout.strip()
+
             return fault
         except (RuntimeError, Exception) as err:
             print(f"Failed to fetch fault data: {err}")
+
     return fault
-    # try:
-    #     if tools.grep(os.path.normpath(path + const.FAULT), "critical", True):
-    #         fault = "critical"
-    #     elif tools.grep(os.path.normpath(path + const.FAULT), "warning", True):
-    #         fault = "warning"
-    #     else:
-    #         stdout = tools.grep(os.path.normpath(
-    #             path + const.FAULT), ".", True, 9)
-    #         fault = stdout.strip()
-    #     return fault
-    # except RuntimeError:
-    #     return fault
-    # except Exception:
-    #     print("Failed to fetch fault data")
-    #     raise
 
 
-def get_temp(path):
+def get_temp(path, system_info):
     inlet_temp = ""
     exhaust_temp = ""
 
@@ -453,7 +441,7 @@ def get_temp(path):
     return inlet_temp, exhaust_temp
 
 
-def get_firmware(path):
+def get_firmware(path, system_info):
     firmware = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
@@ -466,11 +454,11 @@ def get_firmware(path):
     return firmware
 
 
-def get_ilom(path):
+def get_ilom(path, system_info):
     try:
-        fault = get_fault(path)
-        inlet_temp, exhaust_temp = get_temp(path)
-        firmware = get_firmware(path)
+        fault = get_fault(path, system_info)
+        inlet_temp, exhaust_temp = get_temp(path, system_info)
+        firmware = get_firmware(path, system_info)
     except RuntimeError:
         print("Fetching ILOM is interrupted because of error")
         raise
@@ -494,7 +482,6 @@ def get_ilom(path):
 # FETCH OS
 # ------------------------------
 def get_image(path):
-    image = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
                             "Name: entire", True, 15)
@@ -504,45 +491,41 @@ def get_image(path):
                 image = line.split()[4][:-1]
                 break
         return image
-    except RuntimeError:
-        return image
-    except Exception:
-        print("Failed to fetch image")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch image: {err}")
+        return ""
 
 
 def get_vol(path):
-    vol = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.PARTITION_SOL),
                             "\\B/$", True)
-        vol = stdout.strip().split()
-        vol = vol[-2]
+        vol = stdout.strip().split()[-2]
+
         return vol
-    except RuntimeError:
-        return vol
-    except Exception:
-        print("Failed to fetch volume")
-        raise
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch volume: {err}")
+        return ""
 
 
 def get_raid(path):
     try:
         stdout = tools.grep(os.path.normpath(path + const.RAID_SOL),
                             "mirror", True)
-        raid = stdout.strip().split()
-        if "ONLINE" in raid:
-            raid_stat = True
-        else:
-            raid_stat = False
+        # raid = stdout.strip().split()
+        # if "ONLINE" in raid:
+        #     raid_stat = True
+        # else:
+        #     raid_stat = False
+        raid_stat = "ONLINE" in stdout.strip().split()
         return raid_stat
-    except RuntimeError:
-        print("Failed to fetch raid")
-        raise
+
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch raid: {err}")
+        return ""
 
 
 def get_bonding(path):
-    bonding = ""
     try:
         net_ipmp = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
                               "ipmp", True)
@@ -552,75 +535,69 @@ def get_bonding(path):
             bonding = "none"
         elif net_ipmp and not net_aggr:
             state = net_ipmp.split()[2]
-            if state == "ok":
-                bonding = "ipmp"
+            bonding = "ipmp" if state == "ok" else ""
         elif net_aggr and not net_ipmp:
             state = net_aggr.split()[4]
-            if state == "up":
-                bonding = "aggr"
+            # if state == "up":
+            #     bonding = "aggr"
+            bonding = "aggr" if state == "up" else ""
         else:
             bonding = "both"
+
         return bonding
-    except Exception:
-        print("Failed to fetch bonding status")
-        raise
-    return bonding
+    except (RuntimeError, Exception) as err:
+        print(f"Failed to fetch bonding status: {err}")
+        return ""
 
 
 def get_cpu_util(path):
-    cpu_util = ""
-    cpu_idle = ""
     try:
         cpu_util_path = os.path.normpath(
             path + const.CPU_ULTILIZATION_SOL + '*.dat')
         files = glob.glob(cpu_util_path, recursive=True)
+
         cpu_idle_alltime = []
 
         for file in files:
             stdout_lines = tools.grep(
                 file, "CPU states:", False)
+
             cpu_idle_perfile_list = [float(stdout.split()[2][:-1])
                                      for stdout in stdout_lines]
+
             cpu_idle_perfile = sum(cpu_idle_perfile_list) / \
                 len(cpu_idle_perfile_list)
             cpu_idle_alltime.append(cpu_idle_perfile)
             logging.debug("CPU IDLE")
             logging.debug(cpu_idle_perfile_list)
 
-        # cpu_idle = float("{:.2f}".format(
-        #     sum(cpu_idle_alltime) / len(cpu_idle_alltime)))
-        # cpu_util = float("{:.2f}".format(100 - cpu_idle))
-        
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
+
         logging.info("CPU_IDLE:" + str(cpu_idle))
         logging.info("CPU_UTIL:" + str(cpu_util))
+
         return [cpu_util, cpu_idle]
-    except RuntimeError:
-        return [cpu_util, cpu_idle]
-    except Exception as err:
+    except (RuntimeError, Exception) as err:
         print(f"Failed to fetch cpu utilization: {err}")
-        raise
+        return ["", ""]
 
 
 def get_load_avg(path):
-    load_avg = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.CPU_LOAD_SOL),
                             "load average", True)
         load = stdout.strip().split(", ")
-        load_avg = " ".join(load).split()[-3:]
-        load_avg = float(max(load_avg))
+        # load_avg = " ".join(load).split()[-3:]
+        load_avg = float(max(load[-3:], key=float))
+
         return load_avg
-    except RuntimeError:
-        return load_avg
-    except Exception as err:
+    except (RuntimeError, Exception) as err:
         print(f"Failed to get load average: {err}")
-        raise
+        return ""
 
 
 def get_vcpu(path):
-    vcpu = ""
     try:
         stdout = tools.grep(
             os.path.normpath(path + const.VCPU_SOL),
@@ -628,27 +605,24 @@ def get_vcpu(path):
         )
         vcpu = stdout[-1].split()[4]
         vcpu = int(vcpu) + 1
+
         return vcpu
-    except RuntimeError:
-        return vcpu
-    except Exception as err:
+    except (RuntimeError, Exception) as err:
         print(f"Failed to fetch VCPU: {err}")
-        raise
+        return ""
 
 
 def get_load(path):
-    load_avg, vcpu, load_avg_per = ""
     try:
         load_avg = get_load_avg(path)
         vcpu = get_vcpu(path)
         load_avg_per = load_avg / vcpu
         load_avg_per = float(f"{load_avg_per:.3f}")
+
         return load_avg, vcpu, load_avg_per
-    except RuntimeError:
-        return load_avg, vcpu, load_avg_per
-    except Exception as err:
+    except (RuntimeError, Exception) as err:
         print(f"Failed to fetch load: {err}")
-        raise
+        return "", "", ""
 
 
 def get_mem_free(path):
@@ -662,9 +636,11 @@ def get_mem_free(path):
             files[-1], "Memory", True).split()[1][:-1])
 
         mem_free_alltime = []
+
         for file in files:
             stdout_lines = tools.grep(
                 file, "Memory", False)
+
             mem_free_perfile_list = [float(stdout.split()[4][:-1])
                                      for stdout in stdout_lines]
             mem_free_perfile = sum(mem_free_perfile_list) / \
@@ -674,6 +650,7 @@ def get_mem_free(path):
             logging.debug(mem_free_perfile_list)
 
         mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
+
         if mem_free > total_mem:
             mem_free = mem_free / 1024
 
@@ -708,7 +685,7 @@ def get_io_busy(path):
                 break
             devices.append(line.split()[-1])
 
-        # logging.info(f"DEVICE_LIST:{devices}")
+        logging.debug(f"DEVICE_LIST:{devices}")
 
         average_alltime = [0] * len(devices)
         total_alltime = [0] * len(devices)
@@ -730,7 +707,7 @@ def get_io_busy(path):
                         index += 3
                         continue
                     try:
-                        for i in range(len(persection_list)): 
+                        for i in range(len(persection_list)):
                             total_perfile[i] += persection_list[i]
                             persection_list[i] = 0
                     except Exception as err:
@@ -752,8 +729,6 @@ def get_io_busy(path):
         average_alltime = [total / len(files) for total in total_alltime]
 
         sorted_io_busy = sorted(average_alltime, reverse=True)
-        # logging.info(f"DEVICES:{devices}")
-        # logging.info(f"AVERAGE:{average_alltime}")
 
         return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
@@ -782,18 +757,12 @@ def get_system_status(path, platform, server_type):
     x = {}
     try:
         if platform == "solaris":
-            image = get_image(path)
-
-            vol = get_vol(path)
-            vol_avail = 100 - int(vol[:-1])
-            x["image"] = image
-            x["vol_avail"] = vol_avail
+            x["image"] = get_image(path)
+            x["vol_avail"] = 100 - int(get_vol(path)[:-1])
 
             if server_type == "baremetal":
-                raid_stat = get_raid(path)
-                x["raid_stat"] = raid_stat
-                bonding = get_bonding(path)
-                x["bonding"] = bonding
+                x["raid_stat"] = get_raid(path)
+                x["bonding"] = get_bonding(path)
         elif platform == "linux":
             pass
         elif platform == "exa":
@@ -801,9 +770,11 @@ def get_system_status(path, platform, server_type):
         else:
             print("Failed to fetch OS information")
             raise RuntimeError()
+
     except RuntimeError:
         print("Failed to fetch OS information")
         raise
+
     return x
 
 
@@ -812,20 +783,15 @@ def get_system_perform(path, platform, system_type):
     try:
         if system_type == "standalone":
             if platform == "solaris":
-                cpu_util = get_cpu_util(path)[0]
-                x["cpu_util"] = cpu_util
+                x["cpu_util"] = get_cpu_util(path)[0]
+                x["mem_free"] = get_mem_free(path)
+                x["io_busy"] = get_io_busy(path)
 
                 # load = get_load(path)
                 # x["load"] = {}
                 # x["load"]["load_avg"] = load[0]
                 # x["load"]["vcpu"] = load[1]
                 # x["load"]["load_avg_per"] = load[2]
-                mem_free = get_mem_free(path)
-                x["mem_free"] = mem_free
-
-                # TODO
-                io_busy = get_io_busy(path)
-                x["io_busy"] = io_busy
                 # filler
                 # x["io_busy"] = ""
 
@@ -835,48 +801,41 @@ def get_system_perform(path, platform, system_type):
                 pass
         elif system_type == "exa":
             pass
+
     except RuntimeError:
         print("Failed to fetch OS information")
         raise
+
     return x
 # ------------------------------
 # END FETCH OS
 # ------------------------------
 
 
-def get_detail(node, path, node_dir):
+def get_detail(node, path, node_dir, system_info):
     ilom = {}
     system_status = {}
     system_perform = {}
+
     create_dir(node_dir + "/" + "ilom")
     create_dir(node_dir + "/" + "status")
     create_dir(node_dir + "/" + "perform")
+
     try:
         if path[0] == "" and system_info["type"] == "baremetal":
-            ilom = {
-                "fault": "",
-                "inlet": "",
-                "exhaust": "",
-                "firmware": "",
-            }
+            ilom = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
         elif system_info["type"] == "baremetal":
-            ilom = get_ilom(path[0])
+            ilom = get_ilom(path[0], system_info)
         else:
-            ilom = {"fault": get_fault(path[1])}
+            ilom = {"fault": get_fault(path[1], system_info)}
+
         # OSWatcher
         if system_info["system_type"] == "standalone":
             if path[1] == "" and system_info["type"] == "baremetal":
-                system_status = {
-                    "image": "",
-                    "vol_avail": "",
-                    "raid_stat": "",
-                    "bonding": ""
-                }
+                system_status = {"image": "", "vol_avail": "",
+                                 "raid_stat": "", "bonding": ""}
             elif path[1] == "" and system_info["type"] == "vm":
-                system_status = {
-                    "image": "",
-                    "vol_avail": "",
-                }
+                system_status = {"image": "", "vol_avail": ""}
             else:
                 system_status = get_system_status(path[1],
                                                   system_info["platform"],
@@ -902,27 +861,18 @@ def get_detail(node, path, node_dir):
         # ExaWatcher
         elif system_info["system_type"] == "exa":
             if path[1] == "":
-                system_status = {
-                    "image": "",
-                    "vol_avail": "",
-                    "raid_stat": "",
-                    "bonding": ""
-                }
+                system_status = {"image": "", "vol_avail": "",
+                                 "raid_stat": "", "bonding": ""}
             else:
                 system_status = get_system_status(path[1],
                                                   system_info["system_type"],
                                                   system_info["type"])
             if path[2] == "":
-                system_perform = {
-                    "cpu_util": "",
-                    "mem_free": "",
-                }
+                system_perform = {"cpu_util": "", "mem_free": ""}
             else:
                 system_perform = get_system_perform(path[2],
                                                     system_info["platform"],
                                                     system_info["system_type"])
-        else:
-            raise RuntimeError
     except RuntimeError:
         raise
     name = node
@@ -940,7 +890,8 @@ def get_detail(node, path, node_dir):
                     "/" + "status.json"), system_status)
     tools.save_json(os.path.normpath(node_dir + "/" + "perform" +
                     "/" + "perform.json"), system_perform)
-    return content
+
+    return [content]
 
 
 ##### FETCH OVERVIEW #####
@@ -979,7 +930,7 @@ def get_overview(node, path):
 ##### END OVERVIEW #####
 
 
-def compile(nodes_name, list_file_logs, out_dir, force):
+def compile(nodes_name, list_file_logs, system_info, out_dir, force):
     content_files = []
     print("CHOOSE FILE TO EXTRACT")
 
@@ -990,35 +941,27 @@ def compile(nodes_name, list_file_logs, out_dir, force):
         list_logs_dir = ["", "", ""]
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
-        extraction_formats = {"zip": "ILOM SNAPSHOT", "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
+        extraction_formats = {"zip": "ILOM SNAPSHOT",
+                              "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
         for i, file_type in enumerate(["zip", "tar.gz", "gz"]):
             try:
                 print(f"RUNNING:EXTRACT {extraction_formats[file_type]}")
                 list_logs_dir[i] = extract_file(file_logs[i], file_type, force)
             except ValueError:
                 pass
-        #     try:
-        #         print("RUNNING:EXTRACT ILOM SNAPSHOT")
-        #         list_logs_dir[0] = extract_file(file_logs[0], "zip", force)
-        #         print("RUNNING:EXTRACT EXPLORER")
-        #         list_logs_dir[1] = extract_file(file_logs[1], "tar.gz", force)
-        #         print("RUNNING:EXTRACT OSWATCHER")
-        #         list_logs_dir[2] = extract_file(file_logs[2], "gz", force)
-        # except ValueError:
-        #     pass
 
         content_files.append(os.path.join(node_dir, f"{node}.json"))
 
-        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}") 
-                         if logs_dir != "temp" else "" 
+        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}")
+                         if logs_dir != "temp" else ""
                          for logs_dir in list_logs_dir]
         logging.info(json.dumps(list_logs_dir, indent=2))
 
         try:
             print("RUNNING:GET DETAILS")
-            content = get_detail(node, list_logs_dir, node_dir)
+            content = get_detail(node, list_logs_dir, node_dir, system_info)
             print("RUNNING:DRAW IMAGES")
-            images = drw_content(list_logs_dir, node_dir)
+            images = drw_content(list_logs_dir, node_dir, system_info)
             print("RUNNING:SAVE IMAGES")
             # Save image names
             tools.save_json(
@@ -1026,7 +969,8 @@ def compile(nodes_name, list_file_logs, out_dir, force):
             )
             # Save information
             tools.save_json(
-                os.path.normpath(os.path.join(node_dir, f"{node}.json")), content
+                os.path.normpath(os.path.join(
+                    node_dir, f"{node}.json")), content
             )
             print("DONE")
             print()
@@ -1063,35 +1007,47 @@ def set_system_info():
         while True:
             try:
                 user_input = str(input(f"{prompt}\n [{default}] ") or default)
-                if user_input in [default, "standalone", "exa", "linux", 
+                if user_input in [default, "standalone", "exa", "linux",
                                   "solaris", "baremetal", "vm"]:
-                     return user_input
+                    return user_input
             except KeyboardInterrupt:
                 print()
                 sys.exit()
 
-    system_info["system_type"] = prompt_user("System Type [standalone|exa]?", "standalone")
-    system_info["platform"] = prompt_user("Platform [linux|solaris]?", "solaris")
+    system_info = {}
+    system_info["system_type"] = prompt_user(
+        "System Type [standalone|exa]?", "standalone")
+    system_info["platform"] = prompt_user(
+        "Platform [linux|solaris]?", "solaris")
     system_info["type"] = prompt_user("Type [baremetal|vm]?", "baremetal")
 
     print(json.dumps(system_info, indent=2))
 
+    return system_info
+
 # Flow of program
+
+
 def run(logs_dir, out_dir, force):
     # Create output and temp directory
     os.makedirs(os.path.normpath("temp"), exist_ok=True)
     os.makedirs(os.path.normpath(out_dir), exist_ok=True)
 
-    root_dir = os.path.normpath(f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
-    create_dir(root_dir)
     # create root folder
+    root_dir = os.path.normpath(
+        f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
+    os.makedirs(root_dir)
 
     i = 0
     list_alltime_logs = []
     summary_list = []
     nodes_list = []
+    system_info_list = []
+
+    out_file = os.path.normpath(f"{root_dir}/summary.json")
     while True:
-        set_system_info()
+        system_info = set_system_info()
+        system_info_list.append(system_info)
         nodes_name = input(
             "Enter nodes' name (each separated by a space): ").split(" ")
         nodes_list.append(nodes_name)
@@ -1115,9 +1071,9 @@ def run(logs_dir, out_dir, force):
             except RuntimeError as err:
                 err.add_note("Data files must be exist!")
                 raise err
-        out_file = os.path.normpath(f"{root_dir}/summary-{i}.json")
-        tools.save_json(out_file, system_info)
-        summary_list.append(out_file)
+        out_file_part = os.path.normpath(f"{root_dir}/summary-{i}.json")
+        tools.save_json(out_file_part, system_info)
+        summary_list.append(out_file_part)
         list_alltime_logs.append(list_file_logs)
         i += 1
         c = input("Run another time?[Y/N] ")
@@ -1127,15 +1083,21 @@ def run(logs_dir, out_dir, force):
             break
 
     logging.debug(list_alltime_logs)
+    summary_content = []
     for time in range(0, i):
         try:
             content_files = compile(
-                nodes_list[time], list_alltime_logs[time], root_dir, force)
+                nodes_list[time], list_alltime_logs[time],
+                system_info_list[time], root_dir, force)
+
             logging.info(content_files)
         except RuntimeError:
             print("Aborted")
             raise
         tools.join_json(summary_list[time], content_files)
+        summary_content.append(tools.read_json(summary_list[time]))
+
+    tools.save_json(out_file, summary_content)
 
     # Union all jsons to one file
     return out_file
