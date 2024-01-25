@@ -7,7 +7,7 @@ build:
 	pip install pyinstaller pillow mysql-connector-python click python-docx python-dotenv
 	pyinstaller --onefile  --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
 		--add-binary rekdoc/oswbba.jar:. \
-		-n rekdoc --distpath target/local
+		-n rd --distpath target/local
 	deactivate
 
 build-debian:
@@ -15,28 +15,28 @@ build-debian:
 	docker build -t rek3000/rekdoc:1.0-deb -f dockerfiles/debian.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/debian/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rd target/docker/debian/'
 
 build-alpine:
 	mkdir -p target/docker/alpine > /dev/null 2>&1
 	docker build -t rek3000/rekdoc:1.0-alpine -f dockerfiles/alpine.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/alpine/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine /bin/bash -ci 'cp /usr/bin/rd target/docker/alpine/'
 
 build-alpine-glibc:
 	mkdir -p target/docker/alpine-glibc > /dev/null 2>&1
 	docker build -t rek3000/rekdoc:1.0-alpine-glibc -f dockerfiles/alpine-glibc.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine-glibc /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/alpine-glibc/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-alpine-glibc /bin/bash -ci 'cp /usr/bin/rd target/docker/alpine-glibc/'
 
 build-ol:
 	mkdir -p target/docker/ol > /dev/null 2>&1
 	docker build -t rek3000/rekdoc:1.0-ol -f dockerfiles/ol.dockerfile .
 	docker run --rm -it \
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
-		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rekdoc target/docker/ol/'
+		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rd target/docker/ol/'
 
 run:
 	docker run -it -v $(pwd)/sample:/home/py/sample/ --name rekdoc --rm rekdoc "$@"
@@ -63,5 +63,5 @@ purge-all:
 	rm -rf *.egg-info
 	rm -rf *.spec
 tree:
-	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info -I test_env -I mysql-data 
+	tree -I venv -I build -I dist -I __pycache__ -I *.egg-info -I test_env -I mysql-data -I dockerfiles -I target -I '*.sql|*.yml|*.nix' -I 'sub.py|test.py|rekdoc.png' 
  PHONY: build

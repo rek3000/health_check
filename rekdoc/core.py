@@ -13,8 +13,8 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 # CORE
 # ------------------------------
 @click.version_option(
-    version="1.0.0", prog_name="rekdoc",
-    message="Version %(version)s \nCrafted by Rek."
+    version="1.0", prog_name="Rekdoc",
+    message="%(prog)s:VERSION:%(version)s"
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
@@ -30,7 +30,7 @@ def cli():
     There are 3 subcommands also known as modules (fetch, push, doc) for user
     to interact with the toolset.
 
-    Use 'rekdoc rule' to show the rules that need to comply
+    Use 'rd rule' to show the rules that need to comply
     to interact successfully with the toolset.
     """
     pass
