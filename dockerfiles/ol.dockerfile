@@ -18,10 +18,10 @@ WORKDIR /package
 # RUN mkdir package
 # USER py
 COPY rekdoc/ /package/rekdoc/
-RUN pyinstaller -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rekdoc
+RUN pyinstaller -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py -n rd
 
 FROM oraclelinux:7-slim as final
-COPY --from=base /package/dist/rekdoc /usr/bin/rekdoc 
+COPY --from=base /package/dist/rd /usr/bin/rd
 RUN useradd py -u 1000
 USER py
 WORKDIR /home/py

@@ -15,8 +15,12 @@ build
 .env
 *data
 test_env/sample/*
+test_env/archive/
+test_env/analysis/*
 test_env/temp/*
 test_env/output/*
 test_env/gif/
 test_env/*.jar
+test_env/input*
+test_env/rd
 target/*
