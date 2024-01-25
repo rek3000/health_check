@@ -145,14 +145,14 @@ def untar(file_path, compress, force, exclude=None):
     try:
         with tarfile.open(file_path, "r") as tar:
             for member in tar.getmembers():
-                print("FOLDERNAME" + folder_name)
-                logging.info(member.name)
+                # print("FOLDERNAME" + folder_name)
+                # logging.info(member.name)
                 isExist = False
                 for ex in exclude:
-                    logging.info(
-                        "CURRENT" + os.path.join(folder_name, "/", ex))
+                    # logging.info(
+                    #     "CURRENT" + os.path.join(folder_name, "/", ex))
                     if os.path.normpath(folder_name + "/" + ex) in member.name:
-                        logging.info(f"Skipping: {member.name}")
+                        logging.debug(f"Skipping: {member.name}")
                         isExist = True
                         break
 
