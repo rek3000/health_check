@@ -47,13 +47,13 @@ def debug(func):
 # ------------------------------
 # HELPER
 # ------------------------------
-def extract_file(file, compress, force):
+def extract_file(file, compress, force, exclude=None):
     compress = compress.lower()
     if not file:
         return ""
 
     if compress in ["tar.gz", "gz"]:
-        untar(file, compress, force)
+        untar(file, compress, force, exclude=exclude)
         dir = tools.rm_ext(file, compress)
         path = os.path.split(dir)[1]
         return path
@@ -90,26 +90,76 @@ def unzip(file, force):
         return -1
 
 
-def untar(file_path, compress, force):
+# def untar(file_path, compress, force):
+#     if not tarfile.is_tarfile(file_path):
+#         logging.error("Error: Not a tar file")
+#         return -1
+#
+#     logging.info("Extracting: " + file_path)
+#     filename = os.path.split(file_path)[-1]
+#
+#     extract_folder = os.path.join(
+#         "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
+#     try:
+#         with tarfile.open(file_path, "r") as tar:
+#             for f in tar.getmembers():
+#                 try:
+#                     tar.extract(f, set_attrs=False, path=extract_folder)
+#                 except (Exception, IOError) as err:
+#                     logging.error(err)
+#                     return -1
+#
+#         if compress == "gz":
+#             archive_folder = os.path.join(extract_folder, 'archive')
+#             if os.path.exists(archive_folder) \
+#                     and os.path.isdir(archive_folder):
+#                 for item in os.listdir(archive_folder):
+#                     item_path = os.path.join(archive_folder, item)
+#                     if os.path.isfile(item_path):
+#                         shutil.move(item_path, extract_folder)
+#                     elif os.path.isdir(item_path):
+#                         shutil.move(item_path,
+#                                     os.path.join(extract_folder, item))
+#                 os.rmdir(archive_folder)
+#
+#     except IOError as err:
+#         logging.error(err)
+#         raise
+
+def untar(file_path, compress, force, exclude=None):
+    if exclude is None:
+        exclude = []
+
     if not tarfile.is_tarfile(file_path):
         logging.error("Error: Not a tar file")
         return -1
 
     logging.info("Extracting: " + file_path)
     filename = os.path.split(file_path)[-1]
+    folder_name = tools.rm_ext(filename, compress)
 
     extract_folder = os.path.join(
-        "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
-    # if compress == "gz":
-    #     extract_folder = os.path.join(
-    #         "./temp", tools.rm_ext(filename, compress))
-    # else:
-    #     extract_folder = "temp/"
+        "temp/",
+        folder_name) if compress == "gz" else "temp/"
+
     try:
         with tarfile.open(file_path, "r") as tar:
-            for f in tar.getmembers():
+            for member in tar.getmembers():
+                # print("FOLDERNAME" + folder_name)
+                # logging.info(member.name)
+                isExist = False
+                for ex in exclude:
+                    # logging.info(
+                    #     "CURRENT" + os.path.join(folder_name, "/", ex))
+                    if os.path.normpath(folder_name + "/" + ex) in member.name:
+                        logging.debug(f"Skipping: {member.name}")
+                        isExist = True
+                        break
+
                 try:
-                    tar.extract(f, set_attrs=False, path=extract_folder)
+                    if not isExist:
+                        tar.extract(member, set_attrs=False,
+                                    path=extract_folder)
                 except (Exception, IOError) as err:
                     logging.error(err)
                     return -1
@@ -131,8 +181,10 @@ def untar(file_path, compress, force):
         logging.error(err)
         raise
 
-
+    return 0
 # Find the file matched with keyword(regular expression)
+
+
 def get_file(regex, logs_dir):
     def print_files(files):
         for i, file in enumerate(files):
@@ -943,10 +995,14 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
         file_logs = list_file_logs[nodes_name.index(node)]
         extraction_formats = {"zip": "ILOM SNAPSHOT",
                               "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
+        exclude = ["./rda/", "./cluster/", "./samfs/",
+                   "./ldom/core", "./fma/var", "./patch+pkg/pkg_contents.out",
+                   ]
         for i, file_type in enumerate(["zip", "tar.gz", "gz"]):
             try:
                 print(f"RUNNING:EXTRACT {extraction_formats[file_type]}")
-                list_logs_dir[i] = extract_file(file_logs[i], file_type, force)
+                list_logs_dir[i] = extract_file(
+                    file_logs[i], file_type, force, exclude=exclude)
             except ValueError:
                 pass
 

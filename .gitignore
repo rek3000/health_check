@@ -25,3 +25,4 @@ test_env/*.jar
 test_env/input*
 test_env/rd
 target/*
+./*.py

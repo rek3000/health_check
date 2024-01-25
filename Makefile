@@ -2,7 +2,7 @@
 
 build:
 	# echo Building rekdoc ...
-	source venv/bin/activate
+	source .venv/bin/activate
 	mkdir -p target/local > /dev/null 2>&1
 	pip install pyinstaller pillow mysql-connector-python click python-docx python-dotenv
 	pyinstaller --onefile  --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \

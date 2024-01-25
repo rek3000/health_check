@@ -4,17 +4,18 @@ build-backend = "hatchling.build"
 
 
 [tool.hatch.version]
-path = "rekdoc/__init__.py"
-
+path = "./rekdoc/"
 
 [project]
 name = "rekdoc"
-dynamic = ["version"]
+version = "1.0.0"
+# dynamic = ["version"]
 dependencies = ["python-docx",
              "pillow",
              "click",
              "mysql-connector-python",
-             "python-dotenv"
+             "python-dotenv",
+             "rekdoc",
 ]
 authors = [
 {name = "rek3000", email = "torek3k@example.com"}
@@ -33,3 +34,4 @@ dev = ["hatch",
     "pyinstaller",
 
 ]
+
