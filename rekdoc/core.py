@@ -55,6 +55,7 @@ def cli():
     "--sample",
     help="sample folder.",
     type=click.Path(exists=True),
+    required=True,
     default="./sample/",
 )
 @click.option(
@@ -83,6 +84,7 @@ def fetch(output, sample, log, force, dryrun):
     else:
         logging.basicConfig(format="%(levelname)s:%(message)s",
                             level=logging.WARNING)
+
     if dryrun:
         rekfetch.clean_up(
             "./temp/",
@@ -100,7 +102,7 @@ def fetch(output, sample, log, force, dryrun):
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("Summary file created after fetch: " + out_file, fg="cyan")
+    click.secho("Data File Created: " + out_file, fg="cyan")
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")

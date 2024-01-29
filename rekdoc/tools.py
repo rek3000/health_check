@@ -48,7 +48,7 @@ def join_json(out_file, content_files):
             for content in content_files:
                 try:
                     # logging.info(json.dumps(content, indent=2))
-                    buffer = read_json(content)
+                    buffer = read_json(content)[0]
                     file_data["nodes"].append(buffer)
                 except Exception as err:
                     logging.error(f"Error reading JSON content file: {err}")

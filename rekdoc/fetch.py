@@ -1087,6 +1087,8 @@ def set_system_info():
 def run(logs_dir, out_dir, force):
     # Create output and temp directory
     os.makedirs(os.path.normpath("temp"), exist_ok=True)
+    client = input("Enter client name: ")
+    out_dir = os.path.join(out_dir, client)
     os.makedirs(os.path.normpath(out_dir), exist_ok=True)
 
     # create root folder
@@ -1103,6 +1105,7 @@ def run(logs_dir, out_dir, force):
     out_file = os.path.normpath(f"{root_dir}/summary.json")
     while True:
         system_info = set_system_info()
+        system_info["client"] = client
         system_info_list.append(system_info)
         nodes_name = input(
             "Enter nodes' name (each separated by a space): ").split(" ")
