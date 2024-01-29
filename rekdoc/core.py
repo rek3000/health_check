@@ -41,7 +41,9 @@ def cli():
     short_help="get information",
 )
 # @click.option("-i", "--input", help="node names file.", type=click.File("r"))
-@click.option("-o", "--output", required=True, help="output folder.")
+@click.option("-o", "--output",
+              default="/var/tmp/rd/",
+              help="output folder.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
@@ -62,13 +64,15 @@ def cli():
     help="Force replace if exist output file.",
     is_flag=True,
 )
-@click.argument("node", required=False, nargs=-1)
-# def fetch(input, output, sample, node, log, force, dryrun):
-def fetch(output, sample, node, log, force, dryrun):
+def fetch(output, sample, log, force, dryrun):
     """
     \b
     Fetch information to json and convert to images
-    This command examine the 'sample/' folder for logs
+    This command examine the './sample/' folder as
+    a defaul folder for logs
+    Specify input source folder with '-s/--sample' option.
+
+    Default Output: /var/tmp/rd/<CustomName>/<CurrentTimeStamp>
     """
     if log == "VERBOSE":
         logging.basicConfig(format="%(levelname)s:%(message)s",
@@ -79,16 +83,6 @@ def fetch(output, sample, node, log, force, dryrun):
     else:
         logging.basicConfig(format="%(levelname)s:%(message)s",
                             level=logging.WARNING)
-    # nodes = []
-    # try:
-    #     for line in input:
-    #         nodes.append(line.strip())
-    # except Exception as err:
-    #     print(err)
-    #
-    # if node:
-    #     nodes.extend(node)
-    # print(nodes)
     if dryrun:
         rekfetch.clean_up(
             "./temp/",
@@ -98,12 +92,10 @@ def fetch(output, sample, node, log, force, dryrun):
             force=True,
         )
 
-    # root = os.path.split(output)[0]
     try:
         out_file = rekfetch.run(sample, output, force)
     except RuntimeError:
         rekfetch.clean_up_force("./temp/")
-        # rekfetch.clean_up_force("./temp/")
         click.secho("Error found!", bg="red", fg="black")
         sys.stdout.write("\033[?25h")
         return -1
