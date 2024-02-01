@@ -93,8 +93,12 @@ cd ./test_env
 - [x] Basic usage.
 - [x] Build and test with docker (sql container + `rekdoc` container)
 - [x] Fix bug handling system. (critical)
-- [ ] Enhance program flow.
-- [ ] Rewrite system layout
+- [x] Enhance program flow.
+- [x] Rewrite system layout
+- [ ] Fix bug relating to oswatcher image generation
+- [ ] Rewrite system input
+    - [ ] Output as /var/tmp/rd/
+    - [ ] Add configuration parsing 'config.ini'
 - [ ] Expand the document generate to adapt to more type of report. (TODO: to be determined)
 
 Crafted with passion.

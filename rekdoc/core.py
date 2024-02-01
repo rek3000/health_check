@@ -2,11 +2,15 @@ import os
 import sys
 import logging
 import click
+from dotenv import load_dotenv
 from rekdoc import fetch as rekfetch
 from rekdoc import doc as rekdoc
 from rekdoc import push as rekpush
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+load_dotenv("env.conf")
+DEFAULT_OUTPUT = os.environ.get("OUTPUT_DIR", "/var/rd/")
+DEFAULT_INPUT = os.environ.get("INPUT_DIR", "./sample/")
 
 
 # ------------------------------
@@ -20,28 +24,32 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 def cli():
     """
     \b
-    rekdoc - fetch, analyze and pump information to other source.
+    rekdoc - fetch, analyze and draw report document.
 
     \b
     A toolset allows user to get useful information from logs file of servers,
     generate images from them, analyze them pump to a document docx file.
-    Moreover, the data fetched could be pushed to a SQL server.
+    Data fetched could be easily integrated to SQL database.
 
-    There are 3 subcommands also known as modules (fetch, push, doc) for user
+    There are 2 subcommands also known as modules (fetch, doc) for user
     to interact with the toolset.
 
-    Use 'rd rule' to show the rules that need to comply
-    to interact successfully with the toolset.
+    Configuration: Editing 'env.conf' file or using options in each command.
+
     """
     pass
 
+#   Use 'rd rule' to show the rules that need to comply
+#   to interact successfully with the toolset.
+
 
 @click.command(
-    no_args_is_help=True,
+    no_args_is_help=False,
     short_help="get information",
 )
-# @click.option("-i", "--input", help="node names file.", type=click.File("r"))
-@click.option("-o", "--output", required=True, help="output folder.")
+@click.option("-o", "--output", "out_dir",
+              default=DEFAULT_OUTPUT,
+              help="output folder.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
@@ -49,11 +57,13 @@ def cli():
     is_flag=True, help="purge the temp folder fetch run"
 )
 @click.option(
-    "-s",
-    "--sample",
-    help="sample folder.",
+    "-i",
+    "--input",
+    "logs_dir",
+    help="select sample folder.",
     type=click.Path(exists=True),
-    default="./sample/",
+    required=True,
+    default=DEFAULT_INPUT,
 )
 @click.option(
     "-f",
@@ -62,14 +72,18 @@ def cli():
     help="Force replace if exist output file.",
     is_flag=True,
 )
-@click.argument("node", required=False, nargs=-1)
-# def fetch(input, output, sample, node, log, force, dryrun):
-def fetch(output, sample, node, log, force, dryrun):
+def fetch(logs_dir, out_dir, log, force, dryrun):
     """
     \b
     Fetch information to json and convert to images
-    This command examine the 'sample/' folder for logs
+
+    This command (module) examine the logs directory to get list of logs
+    then unpack log files to get necessary information
+    Logs directory can be specified with '-i/--input' option.
+
+    Default Output Directory: /var/rd/<CustomName>/<CurrentTimeStamp>
     """
+
     if log == "VERBOSE":
         logging.basicConfig(format="%(levelname)s:%(message)s",
                             level=logging.INFO)
@@ -79,16 +93,10 @@ def fetch(output, sample, node, log, force, dryrun):
     else:
         logging.basicConfig(format="%(levelname)s:%(message)s",
                             level=logging.WARNING)
-    # nodes = []
-    # try:
-    #     for line in input:
-    #         nodes.append(line.strip())
-    # except Exception as err:
-    #     print(err)
-    #
-    # if node:
-    #     nodes.extend(node)
-    # print(nodes)
+
+    print("Logs directory: " + logs_dir)
+    print("Output directory: " + out_dir)
+    print("----------------------------")
     if dryrun:
         rekfetch.clean_up(
             "./temp/",
@@ -98,17 +106,15 @@ def fetch(output, sample, node, log, force, dryrun):
             force=True,
         )
 
-    # root = os.path.split(output)[0]
     try:
-        out_file = rekfetch.run(sample, output, force)
+        out_file = rekfetch.run(logs_dir, out_dir, force)
     except RuntimeError:
         rekfetch.clean_up_force("./temp/")
-        # rekfetch.clean_up_force("./temp/")
         click.secho("Error found!", bg="red", fg="black")
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("Summary file created after fetch: " + out_file, fg="cyan")
+    click.secho("Data File Created: " + out_file, fg="cyan")
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")
@@ -194,6 +200,12 @@ def doc(input, output, sample, sample_appendix, image, log, force):
 
     click.secho("CREATED REPORT FILE: " +
                 click.style(doc_names, fg="cyan"))
+    rekfetch.clean_up(
+            "./temp/",
+            prompt=click.style("REMOVE ", fg="red")
+            + click.style("EXTRACTED LOGS?", fg="cyan")
+            # + click.style(" items?", fg="red"),
+        )
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 
@@ -262,8 +274,8 @@ def rule():
 
 cli.add_command(fetch)
 cli.add_command(doc)
-cli.add_command(push)
-cli.add_command(rule)
+# cli.add_command(push)
+# cli.add_command(rule)
 
 if __name__ == "__main__":
     cli()

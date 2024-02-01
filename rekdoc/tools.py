@@ -48,7 +48,7 @@ def join_json(out_file, content_files):
             for content in content_files:
                 try:
                     # logging.info(json.dumps(content, indent=2))
-                    buffer = read_json(content)
+                    buffer = read_json(content)[0]
                     file_data["nodes"].append(buffer)
                 except Exception as err:
                     logging.error(f"Error reading JSON content file: {err}")
@@ -90,7 +90,7 @@ def drw_text_image(text, file):
     text = text.getvalue().replace('\t', '  ')
 
     logging.debug(f"DRAWING:{text}")
-    with Image.new("RGB", (2000, 2000), color=(19, 20,22)) as img:
+    with Image.new("RGB", (2000, 2000), color=(19, 20, 22)) as img:
         d1 = ImageDraw.Draw(img)
         d1.fontmode = "RGB"
         box = d1.textbbox((10, 10), text, font=font)
@@ -122,11 +122,11 @@ def drw_text_image(text, file):
 def run(command, tokenize):
     try:
         process = subprocess.Popen(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                )
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
     except FileNotFoundError as err:
         print(f"Command not found: {command[0]}")
         raise RuntimeError(err)

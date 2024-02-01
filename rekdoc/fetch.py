@@ -90,42 +90,6 @@ def unzip(file, force):
         return -1
 
 
-# def untar(file_path, compress, force):
-#     if not tarfile.is_tarfile(file_path):
-#         logging.error("Error: Not a tar file")
-#         return -1
-#
-#     logging.info("Extracting: " + file_path)
-#     filename = os.path.split(file_path)[-1]
-#
-#     extract_folder = os.path.join(
-#         "temp/", tools.rm_ext(filename, compress)) if compress == "gz" else "temp/"
-#     try:
-#         with tarfile.open(file_path, "r") as tar:
-#             for f in tar.getmembers():
-#                 try:
-#                     tar.extract(f, set_attrs=False, path=extract_folder)
-#                 except (Exception, IOError) as err:
-#                     logging.error(err)
-#                     return -1
-#
-#         if compress == "gz":
-#             archive_folder = os.path.join(extract_folder, 'archive')
-#             if os.path.exists(archive_folder) \
-#                     and os.path.isdir(archive_folder):
-#                 for item in os.listdir(archive_folder):
-#                     item_path = os.path.join(archive_folder, item)
-#                     if os.path.isfile(item_path):
-#                         shutil.move(item_path, extract_folder)
-#                     elif os.path.isdir(item_path):
-#                         shutil.move(item_path,
-#                                     os.path.join(extract_folder, item))
-#                 os.rmdir(archive_folder)
-#
-#     except IOError as err:
-#         logging.error(err)
-#         raise
-
 def untar(file_path, compress, force, exclude=None):
     if exclude is None:
         exclude = []
@@ -182,10 +146,12 @@ def untar(file_path, compress, force, exclude=None):
         raise
 
     return 0
+
+
 # Find the file matched with keyword(regular expression)
-
-
 def get_file(regex, logs_dir):
+    logging.debug(logs_dir)
+
     def print_files(files):
         for i, file in enumerate(files):
             print(f"[{i}] {file}")
@@ -294,12 +260,10 @@ def drw_ilom(path, out_dir, system_info):
     drw_temp(path, out_dir)
     drw_firmware(path, out_dir)
     return ["ilom/fault.png", "ilom/temp.png", "ilom/firmware.png"]
+# END DRAW ILOM
 
 
-## END DRAW ILOM ##
-
-
-## DRAW OF ##
+# DRAW
 def drw_image(path, out_dir):
     image = io.StringIO()
     image.write(path + const.IMAGE_SOL + "\n")
@@ -374,7 +338,7 @@ def drw_swap(path, out_dir):
     return swap
 
 
-# SUCKS, rewrite later
+# rewrite later
 def drw_system_status(path, out_dir, system_info):
     if system_info["type"] == "baremetal":
         drw_image(path, out_dir)
@@ -1085,13 +1049,15 @@ def set_system_info():
 
 
 def run(logs_dir, out_dir, force):
-    # Create output and temp directory
-    os.makedirs(os.path.normpath("temp"), exist_ok=True)
-    os.makedirs(os.path.normpath(out_dir), exist_ok=True)
-
-    # create root folder
+    # Take client/customer name
+    client = input("Enter client name: ")
+    out_dir = os.path.join(out_dir, client)
+    # Root folder initialization
     root_dir = os.path.normpath(
         f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
+    # Create necessary directories
+    os.makedirs(os.path.normpath("temp"), exist_ok=True)
+    os.makedirs(os.path.normpath(out_dir), exist_ok=True)
     os.makedirs(root_dir)
 
     i = 0
@@ -1103,6 +1069,7 @@ def run(logs_dir, out_dir, force):
     out_file = os.path.normpath(f"{root_dir}/summary.json")
     while True:
         system_info = set_system_info()
+        system_info["client"] = client
         system_info_list.append(system_info)
         nodes_name = input(
             "Enter nodes' name (each separated by a space): ").split(" ")

@@ -637,7 +637,7 @@ def drw_table(doc, checklist, row, col, info=False):
         return -1
     tab = doc.add_table(row, col)
     tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tab.style = "Table Grid"
+    # tab.style = "Table Grid"
 
     # ADD TITLE CELLS AND COLOR THEM
     cols = tab.rows[0].cells
