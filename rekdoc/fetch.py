@@ -13,6 +13,7 @@ import zipfile
 import tarfile
 import logging
 
+from pathlib import Path
 
 # Local library
 from rekdoc import tools
@@ -55,6 +56,7 @@ def extract_file(file, compress, force, exclude=None):
     if compress in ["tar.gz", "gz"]:
         untar(file, compress, force, exclude=exclude)
         dir = tools.rm_ext(file, compress)
+        # dir = Path(file).stem
         path = os.path.split(dir)[1]
         return path
     elif compress == "zip":
@@ -101,6 +103,7 @@ def untar(file_path, compress, force, exclude=None):
     logging.info("Extracting: " + file_path)
     filename = os.path.split(file_path)[-1]
     folder_name = tools.rm_ext(filename, compress)
+    # folder_name = Path(filename).stem
 
     extract_folder = os.path.join(
         "temp/",
@@ -116,7 +119,7 @@ def untar(file_path, compress, force, exclude=None):
                     # logging.info(
                     #     "CURRENT" + os.path.join(folder_name, "/", ex))
                     if os.path.normpath(folder_name + "/" + ex) in member.name:
-                        logging.debug(f"Skipping: {member.name}")
+                        # logging.debug(f"Skipping: {member.name}")
                         isExist = True
                         break
 
@@ -175,8 +178,8 @@ def get_file(regex, logs_dir):
     if not files:
         raise RuntimeError("No file found matched!")
 
-    if len(files) == 1:
-        return files[0]
+    # if len(files) == 1:
+    #     return files[0]
 
     print_files(files)
     choice = get_user_input(files)
@@ -498,6 +501,7 @@ def get_ilom(path, system_info):
 # FETCH OS
 # ------------------------------
 def get_image(path):
+    image = ""
     try:
         stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
                             "Name: entire", True, 15)
@@ -514,8 +518,9 @@ def get_image(path):
 
 def get_vol(path):
     try:
-        stdout = tools.grep(os.path.normpath(path + const.PARTITION_SOL),
-                            "\\B/$", True)
+        stdout = tools.grep(os.path.normpath(
+            path + const.PARTITION_SOL), "\\B/$", True)
+        # stdout = tools.cat(os.path.join(path, const.PARTITION_SOL))
         vol = stdout.strip().split()[-2]
 
         return vol
@@ -584,8 +589,8 @@ def get_cpu_util(path):
             cpu_idle_perfile = sum(cpu_idle_perfile_list) / \
                 len(cpu_idle_perfile_list)
             cpu_idle_alltime.append(cpu_idle_perfile)
-            logging.debug("CPU IDLE")
-            logging.debug(cpu_idle_perfile_list)
+            # logging.debug("CPU IDLE")
+            # logging.debug(cpu_idle_perfile_list)
 
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
@@ -662,8 +667,8 @@ def get_mem_free(path):
             mem_free_perfile = sum(mem_free_perfile_list) / \
                 len(mem_free_perfile_list)
             mem_free_alltime.append(mem_free_perfile)
-            logging.debug("MEM FREE")
-            logging.debug(mem_free_perfile_list)
+            # logging.debug("MEM FREE")
+            # logging.debug(mem_free_perfile_list)
 
         mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
 
@@ -836,6 +841,7 @@ def get_detail(node, path, node_dir, system_info):
     create_dir(node_dir + "/" + "ilom")
     create_dir(node_dir + "/" + "status")
     create_dir(node_dir + "/" + "perform")
+    logging.debug("PATH: " + json.dumps(path, indent=2))
 
     try:
         if path[0] == "" and system_info["type"] == "baremetal":
@@ -957,14 +963,15 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
         list_logs_dir = ["", "", ""]
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
-        extraction_formats = {"zip": "ILOM SNAPSHOT",
-                              "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
+        # extraction_formats = {"zip": "ILOM SNAPSHOT",
+        #                       "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
+        extraction_formats = ["ILOM SNAPSHOT", "EXPLORER", "OSWATCHER"]
         exclude = ["./rda/", "./cluster/", "./samfs/",
                    "./ldom/core", "./fma/var", "./patch+pkg/pkg_contents.out",
                    ]
         for i, file_type in enumerate(["zip", "tar.gz", "gz"]):
             try:
-                print(f"RUNNING:EXTRACT {extraction_formats[file_type]}")
+                print(f"RUNNING:EXTRACT {extraction_formats[i]}")
                 list_logs_dir[i] = extract_file(
                     file_logs[i], file_type, force, exclude=exclude)
             except ValueError:
@@ -972,7 +979,7 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
 
         content_files.append(os.path.join(node_dir, f"{node}.json"))
 
-        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}")
+        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}/")
                          if logs_dir != "temp" else ""
                          for logs_dir in list_logs_dir]
         logging.info(json.dumps(list_logs_dir, indent=2))
@@ -1085,15 +1092,16 @@ def run(logs_dir, out_dir, force):
                 print("ILOM SNAPSHOT")
                 file_logs[0] = get_file("*.zip", logs_dir)
                 print("EXPLORER")
-                file_logs[1] = get_file("explorer*.tar.gz", logs_dir)
+                file_logs[1] = get_file("*.tar.gz", logs_dir)
                 print("OSWATCHER")
-                file_logs[2] = get_file("archive*.gz", logs_dir)
+                file_logs[2] = get_file("*.gz", logs_dir)
 
                 list_file_logs.append(file_logs)
                 print()
             except RuntimeError as err:
                 err.add_note("Data files must be exist!")
                 raise err
+
         out_file_part = os.path.normpath(f"{root_dir}/summary-{i}.json")
         tools.save_json(out_file_part, system_info)
         summary_list.append(out_file_part)

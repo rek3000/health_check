@@ -153,6 +153,7 @@ def cat(file, tokenize=False):
 
 
 def grep(path, regex, single_match, next=0):
+    logging.debug("GREP FILE: " + path)
     command = ["grep", "-e", regex, "--no-group-separator"]
 
     if single_match:
