@@ -363,13 +363,9 @@ def drw_system_status(path, out_dir, system_info):
 
 
 def drw_system_performance(path, out_dir, system_info):
-    # drw_cpu(path, out_dir)
-    # drw_load(path, out_dir)
-    # drw_mem(path, out_dir)
-    # drw_swap(path, out_dir)
     try:
         log_name = os.path.split(path)[1]
-        command = ["java", "-jar", "oswbba.jar",
+        command = ["java", "-jar", "/usr/share/java/oswbba.jar",
                    "-i", path,
                    "-D", log_name
                    ]
@@ -1056,6 +1052,10 @@ def set_system_info():
 
 
 def run(logs_dir, out_dir, force):
+    if not os.path.isfile("/usr/share/java/oswbba.jar"):
+        print("oswbba.jar - oswatcher generator not found! in /usr/share/java")
+        print("Please install it.")
+        sys.exit()
     # Take client/customer name
     client = input("Enter client name: ")
     out_dir = os.path.join(out_dir, client)
