@@ -10,10 +10,10 @@ jobs:
         run: |
           if [ "$GITEA_REF" = "refs/heads/dev" ]; then
             echo "Clonging DEV Branch"
-            git clone --branch dev http://127.0.0.1:8080/rek3000/rekdoc/
+            git clone --branch dev http://127.0.0.1:3000/rek3000/rekdoc/
           else
             echo "Clonging Origin Branch"
-            git clone --branch origin http://127.0.0.1:8080/rek3000/rekdoc/
+            git clone --branch origin http://127.0.0.1:3000/rek3000/rekdoc/
           fi
 
       - name: Login to Gitea Container Registry
