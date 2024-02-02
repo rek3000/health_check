@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 
-[tool.hatch.version]
-path = "./rekdoc/"
+# [tool.hatch.version]
+# path = "./rekdoc/"
 
 [project]
 name = "rekdoc"
@@ -35,3 +35,6 @@ dev = ["hatch",
 
 ]
 
+
+[tool.hatch.build.targets.sdist]
+exclude = ["*", "!rekdoc/"]

@@ -37,6 +37,13 @@ build-ol:
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
 		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rd target/docker/ol/'
 
+package:
+	mkdir build
+	source .venv/bin/activate
+	pip freeze > requirements.txt
+	pip download -r requirements.txt -d build/
+	tar cvfz rekdoc.tar.gz build/*
+
 run:
 	docker run -it -v $(pwd)/sample:/home/py/sample/ --name rekdoc --rm rekdoc "$@"
 	
@@ -47,10 +54,6 @@ install:
 	echo "Installing..."
 	cp target/local/rekdoc venv/bin/
 
-# clean:
-# 	rm -rf temp/*
-# 	rm -rf output/*
-# 	rm -f *.spec
 purge-build: 
 	rm -rf build 
 	rm -rf *.egg-info
