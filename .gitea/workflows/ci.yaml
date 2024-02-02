@@ -8,11 +8,12 @@ jobs:
     steps:
       - name: Checkout Code
         run: |
-            git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
             if [ "${{ github.ref }}" = "refs/heads/dev"]; then
-              cd rekdoc
-              git checkout dev
-              git pull origin dev
+              git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
+            fi
+
+            if [ "${{ github.ref }}" = "refs/heads/origin"]; then
+              git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
             fi
       - name: Login to Gitea Container Registry
         run: docker login -u rek3000 -p welcome1 localhost:3000
