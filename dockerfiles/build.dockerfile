@@ -1,4 +1,4 @@
-FROM 127.0.0.1:3000/rek3000/rekdoc as base
+FROM 127.0.0.1:3000/rek3000/rekdoc:base as base
 
 RUN mkdir package
 WORKDIR /package/
