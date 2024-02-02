@@ -5,8 +5,7 @@ build:
 	source .venv/bin/activate
 	mkdir -p target/local > /dev/null 2>&1
 	pip install pyinstaller pillow mysql-connector-python click python-docx python-dotenv
-	pyinstaller --onefile  --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
-		--add-binary rekdoc/oswbba.jar:. \
+	pyinstaller --clean -F rekdoc/core.py rekdoc/doc.py rekdoc/fetch.py rekdoc/const.py rekdoc/tools.py \
 		-n rd --distpath target/local
 	deactivate
 
@@ -38,6 +37,13 @@ build-ol:
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
 		--name rekdoc-gcc rek3000/rekdoc:1.0-ol /bin/bash -ci 'cp /usr/bin/rd target/docker/ol/'
 
+package:
+	mkdir build
+	source .venv/bin/activate
+	pip freeze > requirements.txt
+	pip download -r requirements.txt -d build/
+	tar cvfz rekdoc.tar.gz build/*
+
 run:
 	docker run -it -v $(pwd)/sample:/home/py/sample/ --name rekdoc --rm rekdoc "$@"
 	
@@ -48,10 +54,6 @@ install:
 	echo "Installing..."
 	cp target/local/rekdoc venv/bin/
 
-# clean:
-# 	rm -rf temp/*
-# 	rm -rf output/*
-# 	rm -f *.spec
 purge-build: 
 	rm -rf build 
 	rm -rf *.egg-info
