@@ -6,6 +6,8 @@ jobs:
   Build:
     runs-on=linux_amd64
     steps:
-      - uses: actions/checkout@v4
-      - run: docker login -u rek3000 -p welcome1 localhost:3000 && echo "Login successfully to Container!"
+      - name: Checkout Code
+      - uses: actions/checkout@v3
+      - name: Login to Gitea Container Registry
+      - run: docker login -u rek3000 -p welcome1 localhost:3000
       - run: echo 'Done test'
