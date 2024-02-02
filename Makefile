@@ -16,6 +16,13 @@ build-debian:
 		--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
 		--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rd target/docker/debian/'
 
+build-base-image:
+	# mkdir -p target/docker/debian > /dev/null 2>&1
+	docker build -t localhost:8080/rek3000/rekdoc:base -f dockerfiles/base.dockerfile .
+	# docker run --rm -it \
+	# 	--mount type=bind,source="$(PWD)/target/",target="/home/py/target" \
+	# 	--name rekdoc-gcc rek3000/rekdoc:1.0-deb /bin/bash -ci 'cp /usr/bin/rd target/docker/debian/'
+
 build-alpine:
 	mkdir -p target/docker/alpine > /dev/null 2>&1
 	docker build -t rek3000/rekdoc:1.0-alpine -f dockerfiles/alpine.dockerfile .
