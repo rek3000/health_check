@@ -12,6 +12,7 @@ jobs:
           #   git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
           # fi
             git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
+      - run: ls -alh && cd rekdoc
       - run: ls -alh
       - name: Login to Gitea Container Registry
         run: docker login -u rek3000 -p welcome1 localhost:3000
