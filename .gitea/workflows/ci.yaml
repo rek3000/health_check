@@ -27,7 +27,7 @@ jobs:
           cd rekdoc
           mkdir target
           docker build -t 127.0.0.1:3000/rek3000/rekdoc:rd -f dockerfiles/build.dockerfile .
-          docker run --rm -it --mount type=bind,source="$(PWD)/target/",target="/target" \
+          docker run --rm -it --mount type=bind,source="$(pwd)/target/",target="/target" \
                                                                                         --name rekdoc-gcc 127.0.0.1:3000/rek3000/rekdoc:rd /bin/bash -ci 'cp /package/dist/rd /target/'
       - name: Push to registry
         run: |
