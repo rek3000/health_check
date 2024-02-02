@@ -3,7 +3,7 @@ run-name: ${{ gitea.actor }}
 on: [push]
 
 jobs:
-  Build:
+  Pre-Build:
     runs-on: linux_amd64
     steps:
       - name: Checkout Code
@@ -17,5 +17,29 @@ jobs:
             git clone --branch origin http://127.0.0.1:3000/rek3000/rekdoc/
           fi
 
-      - name: Login to Gitea Container Registry
-        run: docker login -u rek3000 -p welcome1 localhost:3000
+    Build:
+      runs-on: linux_amd64
+      steps:
+        - name: Make output dir
+          run: mkdir -p target/ > /dev/null 2>&1
+        - name: Login to Gitea Container Registry
+          run: | 
+            docker login -u rek3000 -p welcome1 localhost:3000
+            docker pull 127.0.0.1:3000/rek3000/rekdoc:base
+        - name: Build in Docker
+          run: | 
+            cd rekdoc
+            mkdir target
+            docker build -t 127.0.0.1:3000/rek3000/rekdoc:rd -f dockerfiles/build.dockerfile .
+            docker run --rm -it --mount type=bind,source="$(PWD)/target/",target="/target" \
+                  --name rekdoc-gcc 127.0.0.1:3000/rek3000/rekdoc:rd /bin/bash -ci 'cp /package/dist/rd /target/'
+        - name: Push to registry
+          run: |
+            cd rekdoc/target
+            curl --user rek3000:welcome1 \
+              --upload-file rd \
+              http://127.0.0.1:3000/api/packages/rek3000/generic/rekdoc/1.0.0/rd
+
+                                                                                          
+
+
