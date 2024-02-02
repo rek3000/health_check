@@ -7,7 +7,11 @@ jobs:
     runs-on: linux_amd64
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        run: |
+          # if [ "${{ github.ref }}" = "refs/heads/dev"]; then
+          #   git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
+          # fi
+            git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
       - name: Login to Gitea Container Registry
         run: docker login -u rek3000 -p welcome1 localhost:3000
       - run: echo 'Done test'
