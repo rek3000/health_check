@@ -7,7 +7,7 @@ jobs:
     runs-on: linux_amd64
     steps:
       - name: Checkout Code
-        uses: http://127.0.0.1:3000/rek3000/checkout/checkout@v3
+        uses: http://127.0.0.1:3000/rek3000/checkout@v3
         # run: |
           # if [ "$GITEA_REF" = "refs/heads/dev" ]; then
           #   echo "Cloning DEV Branch"
