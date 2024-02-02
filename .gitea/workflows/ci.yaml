@@ -5,12 +5,14 @@ on: [push]
 jobs:
   Build:
     runs-on: linux_amd64
+    if: success() && github.ref == 'refs/heads/dev'
     steps:
-      - name: Checkout Code 
-        if: success() && github.ref == 'refs/heads/dev'
+      - name: Checkout Code DEV
         run: git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
-        if: success() && github.ref == 'refs/heads/origin'
+    if: success() && github.ref == 'refs/heads/origin'
+    steps:
+      - name: Checkout Code ORIGIN
         run: git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
+    steps:
       - name: Login to Gitea Container Registry
         run: docker login -u rek3000 -p welcome1 localhost:3000
-      - name: 
