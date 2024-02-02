@@ -6,12 +6,11 @@ jobs:
   Build:
     runs-on: linux_amd64
     steps:
-      - name: Checkout Code
-        run: |
-            ${{ github.ref }} = 'refs/heads/dev' &&
-              git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
-            ${{ github.ref }} = 'refs/heads/origin' &&
-              git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
+      - name: Checkout Code 
+        if: success() && github.ref == 'refs/heads/dev'
+        run: git clone -b dev http://127.0.0.1:3000/rek3000/rekdoc
+        if: success() && github.ref == 'refs/heads/origin'
+        run: git clone -b origin http://127.0.0.1:3000/rek3000/rekdoc
       - name: Login to Gitea Container Registry
         run: docker login -u rek3000 -p welcome1 localhost:3000
       - name: 
