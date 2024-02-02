@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   Build:
-    runs-on=linux_amd64
+    runs-on: linux_amd64
     steps:
       - name: Checkout Code
       - uses: actions/checkout@v3
