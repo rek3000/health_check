@@ -13,8 +13,6 @@ import zipfile
 import tarfile
 import logging
 
-from pathlib import Path
-
 # Local library
 from rekdoc import tools
 from rekdoc import const
@@ -36,7 +34,8 @@ from rekdoc import const
 def debug(func):
     def _debug(*args, **kwargs):
         result = func(*args, **kwargs)
-        print(f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}")
+        logging.debug(
+            f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}")
         return result
 
     return _debug
@@ -56,11 +55,10 @@ def extract_file(file, compress, force, exclude=None):
     if compress in ["tar.gz", "gz"]:
         untar(file, compress, force, exclude=exclude)
         dir = tools.rm_ext(file, compress)
-        # dir = Path(file).stem
         path = os.path.split(dir)[1]
         return path
     elif compress == "zip":
-        unzip(file, force)
+        unzip(file, force, exclude=exclude)
         dir = tools.rm_ext(file, compress)
         path = os.path.split(dir)[1]
         return path
@@ -68,25 +66,26 @@ def extract_file(file, compress, force, exclude=None):
     return ""
 
 
-def unzip(file, force):
-    if not zipfile.is_zipfile(file):
+def unzip(file_path, force, exclude=None):
+    if not zipfile.is_zipfile(file_path):
         logging.error("Error: Not a zip file")
         return -1
 
-    logging.info("Extracting: " + file)
+    logging.info("Extracting: " + file_path)
 
     try:
-        with zipfile.ZipFile(file, "r") as zip_file:
-            temp_path = "temp/"
-            try:
-                zip_file.extractall(path=temp_path)
-            except IOError:
-                clean_up(
-                    os.path.normpath(os.path.join(
-                        temp_path,
-                        os.path.split(
-                            tools.rm_ext(file, "zip"))[1]), force=force))
-                zip_file.extractall(path="temp/")
+        with zipfile.ZipFile(file_path, "r") as zip_file:
+            folder_name = "temp/"
+            for member in zip_file.namelist():
+                is_exist = any(os.path.normpath(folder_name + "/" + ex)
+                               in member for ex in exclude)
+                try:
+                    if not is_exist:
+                        zip_file.extract(member, path=folder_name)
+                except (Exception, IOError) as err:
+                    logging.error(err)
+                    return -1
+
     except IOError as err:
         logging.error(err)
         return -1
@@ -103,7 +102,6 @@ def untar(file_path, compress, force, exclude=None):
     logging.info("Extracting: " + file_path)
     filename = os.path.split(file_path)[-1]
     folder_name = tools.rm_ext(filename, compress)
-    # folder_name = Path(filename).stem
 
     extract_folder = os.path.join(
         "temp/",
@@ -112,19 +110,10 @@ def untar(file_path, compress, force, exclude=None):
     try:
         with tarfile.open(file_path, "r") as tar:
             for member in tar.getmembers():
-                # print("FOLDERNAME" + folder_name)
-                # logging.info(member.name)
-                isExist = False
-                for ex in exclude:
-                    # logging.info(
-                    #     "CURRENT" + os.path.join(folder_name, "/", ex))
-                    if os.path.normpath(folder_name + "/" + ex) in member.name:
-                        # logging.debug(f"Skipping: {member.name}")
-                        isExist = True
-                        break
-
+                is_exist = any(os.path.normpath(folder_name + "/" + ex)
+                               in member.name for ex in exclude)
                 try:
-                    if not isExist:
+                    if not is_exist:
                         tar.extract(member, set_attrs=False,
                                     path=extract_folder)
                 except (Exception, IOError) as err:
@@ -168,7 +157,6 @@ def get_file(regex, logs_dir):
                     return choice
             except KeyboardInterrupt:
                 print()
-                sys.exit()
             except ValueError:
                 continue
 
@@ -176,12 +164,12 @@ def get_file(regex, logs_dir):
     files = glob.glob(path, recursive=True)
 
     if not files:
-        raise RuntimeError("No file found matched!")
+        return ""
 
-    # if len(files) == 1:
-    #     return files[0]
-
-    print_files(files)
+    try:
+        print_files(files)
+    except Exception:
+        return ""
     choice = get_user_input(files)
 
     if choice == -1:
@@ -516,9 +504,8 @@ def get_vol(path):
     try:
         stdout = tools.grep(os.path.normpath(
             path + const.PARTITION_SOL), "\\B/$", True)
-        # stdout = tools.cat(os.path.join(path, const.PARTITION_SOL))
         vol = stdout.strip().split()[-2]
-
+        vol = 100 - int(vol[:-1])
         return vol
     except (RuntimeError, Exception) as err:
         print(f"Failed to fetch volume: {err}")
@@ -529,11 +516,6 @@ def get_raid(path):
     try:
         stdout = tools.grep(os.path.normpath(path + const.RAID_SOL),
                             "mirror", True)
-        # raid = stdout.strip().split()
-        # if "ONLINE" in raid:
-        #     raid_stat = True
-        # else:
-        #     raid_stat = False
         raid_stat = "ONLINE" in stdout.strip().split()
         return raid_stat
 
@@ -585,8 +567,6 @@ def get_cpu_util(path):
             cpu_idle_perfile = sum(cpu_idle_perfile_list) / \
                 len(cpu_idle_perfile_list)
             cpu_idle_alltime.append(cpu_idle_perfile)
-            # logging.debug("CPU IDLE")
-            # logging.debug(cpu_idle_perfile_list)
 
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
@@ -605,7 +585,6 @@ def get_load_avg(path):
         stdout = tools.grep(os.path.normpath(path + const.CPU_LOAD_SOL),
                             "load average", True)
         load = stdout.strip().split(", ")
-        # load_avg = " ".join(load).split()[-3:]
         load_avg = float(max(load[-3:], key=float))
 
         return load_avg
@@ -775,7 +754,7 @@ def get_system_status(path, platform, server_type):
     try:
         if platform == "solaris":
             x["image"] = get_image(path)
-            x["vol_avail"] = 100 - int(get_vol(path)[:-1])
+            x["vol_avail"] = get_vol(path)
 
             if server_type == "baremetal":
                 x["raid_stat"] = get_raid(path)
@@ -945,7 +924,6 @@ def get_overview(node, path):
     }
 
     return content
-##### END OVERVIEW #####
 
 
 def compile(nodes_name, list_file_logs, system_info, out_dir, force):
@@ -959,19 +937,19 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
         list_logs_dir = ["", "", ""]
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
-        # extraction_formats = {"zip": "ILOM SNAPSHOT",
-        #                       "tar.gz": "EXPLORER", "gz": "OSWATCHER"}
         extraction_formats = ["ILOM SNAPSHOT", "EXPLORER", "OSWATCHER"]
         exclude = ["./rda/", "./cluster/", "./samfs/",
                    "./ldom/core", "./fma/var", "./patch+pkg/pkg_contents.out",
+                   "./ldom/opt/", "./messages/", "./var/svc/",
+                   "./sp_snapshot/", "./ldom/log/",
                    ]
         for i, file_type in enumerate(["zip", "tar.gz", "gz"]):
             try:
                 print(f"RUNNING:EXTRACT {extraction_formats[i]}")
                 list_logs_dir[i] = extract_file(
                     file_logs[i], file_type, force, exclude=exclude)
-            except ValueError:
-                pass
+            except ValueError as err:
+                logging.error(err)
 
         content_files.append(os.path.join(node_dir, f"{node}.json"))
 

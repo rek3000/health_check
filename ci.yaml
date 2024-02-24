@@ -1,0 +1,11 @@
+name: Rekdoc
+run-name: %{{ gitea.actor }}
+on: [push]
+
+jobs:
+  Build:
+  runs-on=linux-amd64
+  steps:
+    - uses: actions/checkou@v4
+    - run: docker login -u rek3000 -p welcome1 localhost:3000
+    - run: echo 'Done test'

@@ -624,7 +624,7 @@ def get_score(asserted):
         except Exception:
             score = asserted_score
         checklist[i][2][0] = score
-        logging.info(checklist[i][1] + ":" + score)
+        logging.info(checklist[i][1] + ":" + str(score))
         checklist[i][2][1] = comment
 
     return checklist
@@ -656,7 +656,7 @@ def drw_table(doc, checklist, row, col, info=False):
             rows = tab.rows[i]
             cells = rows.cells
             for j in range(0, len(checklist[i])):
-                cells[j].text = checklist[i][j]
+                cells[j].text = str(checklist[i][j])
                 cells[j].paragraphs[0].style = "Table Paragraph"
     else:
         for i in range(1, len(checklist)):
@@ -664,7 +664,7 @@ def drw_table(doc, checklist, row, col, info=False):
             cells = rows.cells
             for j in range(0, len(checklist[i])):
                 if j == (len(checklist[i]) - 1):
-                    cells[j].text = checklist[i][j][0]
+                    cells[j].text = str(checklist[i][j][0])
                     cells[j].paragraphs[0].style = "Table Paragraph"
                     continue
                 cells[j].text = str(checklist[i][j])
