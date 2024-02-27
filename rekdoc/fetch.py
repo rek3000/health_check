@@ -1,6 +1,7 @@
-# -------------------
-# SYSTEM DATA FETCHER
-# -------------------
+"""
+    SYSTEM DATA FETCHER
+Get system data from Logs
+"""
 # Standard Library
 import os
 import io
@@ -17,16 +18,6 @@ import logging
 from rekdoc import tools
 from rekdoc import const
 
-# TYPES = ["baremetal", "vm"]
-# SYSTEM = ["standalone", "exa"]
-# PLATFORM = ["linux", "solaris"]
-
-# system_info = {
-#     "system_type": "",
-#     "platform": "",
-#     "type": "",
-# }
-
 
 # ------------------------------
 # DECORATORS
@@ -39,15 +30,13 @@ def debug(func):
         return result
 
     return _debug
-# ------------------------------
-# END DECORATORS
-# ------------------------------
 
 
-# ------------------------------
-# HELPER
-# ------------------------------
 def extract_file(file, compress, force, exclude=None):
+    """
+    Extract Files with filter (exclude list).
+Support "tar.gz", "gz" and "zip" files (ILOM, Explorer, OSWatcher)
+    """
     compress = compress.lower()
     if not file:
         return ""
@@ -67,6 +56,9 @@ def extract_file(file, compress, force, exclude=None):
 
 
 def unzip(file_path, force, exclude=None):
+    """
+    Helper function to decompress zip file with filter.
+    """
     if not zipfile.is_zipfile(file_path):
         logging.error("Error: Not a zip file")
         return -1
@@ -92,6 +84,9 @@ def unzip(file_path, force, exclude=None):
 
 
 def untar(file_path, compress, force, exclude=None):
+    """
+    Helper function to decompress tar file with filter.
+    """
     if exclude is None:
         exclude = []
 
@@ -142,6 +137,10 @@ def untar(file_path, compress, force, exclude=None):
 
 # Find the file matched with keyword(regular expression)
 def get_file(regex, logs_dir):
+    """
+    Choose a file from list of files
+Print a list of files in the 'dir' and let user choose file through number.
+    """
     logging.debug(logs_dir)
 
     def print_files(files):
@@ -179,6 +178,9 @@ def get_file(regex, logs_dir):
 
 
 def clean_files(dir):
+    """
+    Remove all files in "dir"
+    """
     for filename in os.listdir(dir):
         file_path = os.path.join(dir, filename)
         try:
@@ -331,6 +333,9 @@ def drw_swap(path, out_dir):
 
 # rewrite later
 def drw_system_status(path, out_dir, system_info):
+    """
+    Draw System Status Images (Explorer) from Extracted Logs
+    """
     if system_info["type"] == "baremetal":
         drw_image(path, out_dir)
         drw_vol(path, out_dir)
@@ -351,6 +356,11 @@ def drw_system_status(path, out_dir, system_info):
 
 
 def drw_system_performance(path, out_dir, system_info):
+    """
+    Draw System Performance Images (OSWatcher) from Extracted Logs
+Clarification: This just run the oswbba.jar file and
+generate images from OSWatcher.
+    """
     try:
         log_name = os.path.split(path)[1]
         command = ["java", "-jar", "/usr/share/java/oswbba.jar",
@@ -1004,6 +1014,16 @@ def create_dir(path, force=False):
 
 
 def set_system_info():
+    """
+    Set system Information with following field.
+    Get info from user stdin.
+1. TYPES:  "baremetal"  -- Physical
+           "vm"         -- Virtual Machine
+2. SYSTEM: "standalone" -- Single Machine System
+           "exa"        -- Engineered System
+3. PLATFORM: "linux"    -- Oracle Linux
+             "solaris"  -- Oracle Solaris
+    """
     def prompt_user(prompt, default):
         while True:
             try:
@@ -1030,6 +1050,21 @@ def set_system_info():
 
 
 def run(logs_dir, out_dir, force):
+    """
+    Initialize the fetch process.
+
+    Get client name, make necessary directories,
+    let user choose log files and fetch data.
+
+    Parameters
+    ----------
+    logs_dir : str
+            Directory to the Logs input.
+    out_dir : str
+            Directory to the output.
+    force : bool
+            Force flag option.
+    """
     if not os.path.isfile("/usr/share/java/oswbba.jar"):
         print("oswbba.jar - oswatcher generator not found! in /usr/share/java")
         print("Please install it.")
@@ -1112,13 +1147,13 @@ def run(logs_dir, out_dir, force):
     return out_file
 
 
-# END_IMPLEMENTATION
-
-
 # ------------------------------
 # MAIN
 # ------------------------------
 def main():
+    """
+    pass
+    """
     print("------------------------------")
     print("RUNNING AS A STANDALONE MODULE")
     print("------------------------------")

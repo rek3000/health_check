@@ -2,6 +2,7 @@ output.txt
 temp/*
 TODO
 output/*
+_*/
 __pycache__
 __pycache__/*
 *.docx
@@ -29,3 +30,4 @@ target/*
 ./*.py
 demo
 *.tar
+make.bat
