@@ -129,7 +129,7 @@ def fetch(logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool) ->
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("Data File Created: " + out_file, fg="cyan")
+    click.secho("Data File Created: " + str(out_file), fg="cyan")
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")
