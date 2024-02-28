@@ -12,7 +12,8 @@ import glob
 import json
 import zipfile
 import tarfile
-import logging
+from pathlib import Path
+from rekdoc import core
 
 # Local library
 from rekdoc import tools
@@ -25,14 +26,15 @@ from rekdoc import const
 def debug(func):
     def _debug(*args, **kwargs):
         result = func(*args, **kwargs)
-        logging.debug(
+        core.logger.info(
             f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}")
         return result
 
     return _debug
 
 
-def extract_file(file, compress, force, exclude=None):
+@debug
+def extract_file(file: Path, compress: str, force: bool, exclude: list | None = None):
     """
     Extract Files with filter (exclude list).
 Support "tar.gz", "gz" and "zip" files (ILOM, Explorer, OSWatcher)
@@ -43,30 +45,31 @@ Support "tar.gz", "gz" and "zip" files (ILOM, Explorer, OSWatcher)
 
     if compress in ["tar.gz", "gz"]:
         untar(file, compress, force, exclude=exclude)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
+        # dir = tools.rm_ext(file, compress)
+        uncompressed = Path(tools.rm_ext(str(file), compress))
+        # path = os.path.split(dir)[1]
+        return uncompressed
     elif compress == "zip":
         unzip(file, force, exclude=exclude)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
+        uncompressed = Path(tools.rm_ext(str(file), compress))
+        # path = os.path.split(dir)[1]
+        return uncompressed
 
-    return ""
+    return Path("")
 
 
-def unzip(file_path, force, exclude=None):
+def unzip(file: Path, force: bool, exclude: list | None = None):
     """
     Helper function to decompress zip file with filter.
     """
-    if not zipfile.is_zipfile(file_path):
-        logging.error("Error: Not a zip file")
+    if not zipfile.is_zipfile(file):
+        core.logger.error("Error: Not a zip file")
         return -1
 
-    logging.info("Extracting: " + file_path)
+    core.logger.info("Extracting: " + file.name)
 
     try:
-        with zipfile.ZipFile(file_path, "r") as zip_file:
+        with zipfile.ZipFile(file, "r") as zip_file:
             folder_name = "temp/"
             for member in zip_file.namelist():
                 is_exist = any(os.path.normpath(folder_name + "/" + ex)
@@ -75,27 +78,27 @@ def unzip(file_path, force, exclude=None):
                     if not is_exist:
                         zip_file.extract(member, path=folder_name)
                 except (Exception, IOError) as err:
-                    logging.error(err)
+                    core.logger.error(err)
                     return -1
 
     except IOError as err:
-        logging.error(err)
+        core.logger.error(err)
         return -1
 
 
-def untar(file_path, compress, force, exclude=None):
+def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
     """
     Helper function to decompress tar file with filter.
     """
     if exclude is None:
         exclude = []
 
-    if not tarfile.is_tarfile(file_path):
-        logging.error("Error: Not a tar file")
+    if not tarfile.is_tarfile(file):
+        core.logger.error("Error: Not a tar file")
         return -1
 
-    logging.info("Extracting: " + file_path)
-    filename = os.path.split(file_path)[-1]
+    core.logger.info("Extracting: " + file.name)
+    filename = os.path.split(file)[-1]
     folder_name = tools.rm_ext(filename, compress)
 
     extract_folder = os.path.join(
@@ -103,7 +106,7 @@ def untar(file_path, compress, force, exclude=None):
         folder_name) if compress == "gz" else "temp/"
 
     try:
-        with tarfile.open(file_path, "r") as tar:
+        with tarfile.open(file, "r") as tar:
             for member in tar.getmembers():
                 is_exist = any(os.path.normpath(folder_name + "/" + ex)
                                in member.name for ex in exclude)
@@ -112,7 +115,7 @@ def untar(file_path, compress, force, exclude=None):
                         tar.extract(member, set_attrs=False,
                                     path=extract_folder)
                 except (Exception, IOError) as err:
-                    logging.error(err)
+                    core.logger.error(err)
                     return -1
 
         if compress == "gz":
@@ -129,26 +132,26 @@ def untar(file_path, compress, force, exclude=None):
                 os.rmdir(archive_folder)
 
     except IOError as err:
-        logging.error(err)
+        core.logger.error(err)
         raise
 
     return 0
 
 
 # Find the file matched with keyword(regular expression)
-def get_file(regex, logs_dir):
+def get_file(regex: str, logs_dir: Path) -> Path:
     """
     Choose a file from list of files
 Print a list of files in the 'dir' and let user choose file through number.
     """
-    logging.debug(logs_dir)
+    core.logger.debug(logs_dir)
 
-    def print_files(files):
+    def print_files(files: list):
         for i, file in enumerate(files):
-            print(f"[{i}] {file}")
+            print(f"[{i}] {file.name}")
         print("[-1] Skip")
 
-    def get_user_input(files):
+    def get_user_input(files: list):
         while True:
             try:
                 choice = int(input("Which file?\n [0] ") or "0")
@@ -159,8 +162,9 @@ Print a list of files in the 'dir' and let user choose file through number.
             except ValueError:
                 continue
 
-    path = logs_dir + regex
-    files = glob.glob(path, recursive=True)
+    # path = logs_dir + regex
+    # files = glob.glob(path, recursive=True)
+    files = sorted(logs_dir.glob(regex), reverse=True)
 
     if not files:
         return ""
@@ -188,9 +192,9 @@ def clean_files(dir):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
-            logging.info("Deleted: " + file_path)
+            core.logger.info("Deleted: " + file_path)
         except Exception as err:
-            logging.error(f"Failed to delete {file_path}. Reason: {err}")
+            core.logger.error(f"Failed to delete {file_path}. Reason: {err}")
 
 
 def clean_up(path, prompt="Remove files?", force=False):
@@ -199,7 +203,7 @@ def clean_up(path, prompt="Remove files?", force=False):
 
 
 def clean_up_force(path):
-    logging.error("FORCE CLEAN UP DUE TO ERROR!")
+    core.logger.error("FORCE CLEAN UP DUE TO ERROR!")
     clean_files(path)
     return -1
 
@@ -402,7 +406,7 @@ def drw_content(path, out_dir, system_info):
     system_performance = drw_system_performance(
         path[2], out_dir + "/perform", system_info)
     images = ilom + system_status + system_performance
-    logging.info(images)
+    core.logger.info(images)
     return images
 
 
@@ -483,7 +487,7 @@ def get_ilom(path, system_info):
         "firmware": firmware,
     }
 
-    logging.debug(json.dumps(ilom, ensure_ascii=False))
+    core.logger.debug(json.dumps(ilom, ensure_ascii=False))
 
     return ilom
 # ------------------------------
@@ -581,8 +585,8 @@ def get_cpu_util(path):
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
 
-        logging.info("CPU_IDLE:" + str(cpu_idle))
-        logging.info("CPU_UTIL:" + str(cpu_util))
+        # core.logger.info("CPU_IDLE:" + str(cpu_idle))
+        # core.logger.info("CPU_UTIL:" + str(cpu_util))
 
         return [cpu_util, cpu_idle]
     except (RuntimeError, Exception) as err:
@@ -652,8 +656,8 @@ def get_mem_free(path):
             mem_free_perfile = sum(mem_free_perfile_list) / \
                 len(mem_free_perfile_list)
             mem_free_alltime.append(mem_free_perfile)
-            # logging.debug("MEM FREE")
-            # logging.debug(mem_free_perfile_list)
+            # core.logger.debug("MEM FREE")
+            # core.logger.debug(mem_free_perfile_list)
 
         mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
 
@@ -663,8 +667,8 @@ def get_mem_free(path):
         mem_free_percent = round((mem_free / total_mem) * 100)
         mem_util_percent = round(100 - mem_free_percent, 2)
 
-        logging.info("MEM_FREE:" + str(mem_free_percent))
-        logging.info("MEM_UTIL:" + str(mem_util_percent))
+        # core.logger.info("MEM_FREE:" + str(mem_free_percent))
+        # core.logger.info("MEM_UTIL:" + str(mem_util_percent))
 
         x["mem_free_percent"] = mem_free_percent
         x["mem_free"] = mem_free
@@ -691,7 +695,7 @@ def get_io_busy(path):
                 break
             devices.append(line.split()[-1])
 
-        logging.debug(f"DEVICE_LIST:{devices}")
+        # core.logger.debug(f"DEVICE_LIST:{devices}")
 
         average_alltime = [0] * len(devices)
         total_alltime = [0] * len(devices)
@@ -717,7 +721,7 @@ def get_io_busy(path):
                             total_perfile[i] += persection_list[i]
                             persection_list[i] = 0
                     except Exception as err:
-                        logging.debug(err)
+                        core.logger.error(err)
                     index += 3
                     continue
 
@@ -738,8 +742,8 @@ def get_io_busy(path):
 
         return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
-        logging.error(err)
-        logging.error("FAILED:fetch io busy")
+        core.logger.error(err)
+        core.logger.error("FAILED:fetch io busy")
         return {"name": None, "busy": 0}
 
 
@@ -818,43 +822,43 @@ def get_system_perform(path, platform, system_type):
 # ------------------------------
 
 
-def get_detail(node, path, node_dir, system_info):
+def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict) -> dict:
     ilom = {}
     system_status = {}
     system_perform = {}
 
-    create_dir(node_dir + "/" + "ilom")
-    create_dir(node_dir + "/" + "status")
-    create_dir(node_dir + "/" + "perform")
-    logging.debug("PATH: " + json.dumps(path, indent=2))
+    create_dir(node_dir / "ilom")
+    create_dir(node_dir / "status")
+    create_dir(node_dir / "perform")
+    core.logger.debug("PATH: " + json.dumps(list_logs_dir, indent=2))
 
     try:
-        if path[0] == "" and system_info["type"] == "baremetal":
+        if list_logs_dir[0] == "" and system_info["type"] == "baremetal":
             ilom = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
         elif system_info["type"] == "baremetal":
-            ilom = get_ilom(path[0], system_info)
+            ilom = get_ilom(list_logs_dir[0], system_info)
         else:
-            ilom = {"fault": get_fault(path[1], system_info)}
+            ilom = {"fault": get_fault(list_logs_dir[1], system_info)}
 
         # OSWatcher
         if system_info["system_type"] == "standalone":
-            if path[1] == "" and system_info["type"] == "baremetal":
+            if list_logs_dir[1] == "" and system_info["type"] == "baremetal":
                 system_status = {"image": "", "vol_avail": "",
                                  "raid_stat": "", "bonding": ""}
-            elif path[1] == "" and system_info["type"] == "vm":
+            elif list_logs_dir[1] == "" and system_info["type"] == "vm":
                 system_status = {"image": "", "vol_avail": ""}
             else:
-                system_status = get_system_status(path[1],
+                system_status = get_system_status(list_logs_dir[1],
                                                   system_info["platform"],
                                                   system_info["type"])
-            if path[2] == "" and system_info["type"] == "baremetal":
+            if list_logs_dir[2] == "" and system_info["type"] == "baremetal":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
                     "io_busy": {"name": "",
                                 "busy": ""}
                 }
-            elif path[1] == "" and system_info["type"] == "vm":
+            elif list_logs_dir[1] == "" and system_info["type"] == "vm":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
@@ -862,22 +866,22 @@ def get_detail(node, path, node_dir, system_info):
                                 "busy": ""}
                 }
             else:
-                system_perform = get_system_perform(path[2],
+                system_perform = get_system_perform(list_logs_dir[2],
                                                     system_info["platform"],
                                                     system_info["system_type"])
         # ExaWatcher
         elif system_info["system_type"] == "exa":
-            if path[1] == "":
+            if list_logs_dir[1] == "":
                 system_status = {"image": "", "vol_avail": "",
                                  "raid_stat": "", "bonding": ""}
             else:
-                system_status = get_system_status(path[1],
+                system_status = get_system_status(list_logs_dir[1],
                                                   system_info["system_type"],
                                                   system_info["type"])
-            if path[2] == "":
+            if list_logs_dir[2] == "":
                 system_perform = {"cpu_util": "", "mem_free": ""}
             else:
-                system_perform = get_system_perform(path[2],
+                system_perform = get_system_perform(list_logs_dir[2],
                                                     system_info["platform"],
                                                     system_info["system_type"])
     except RuntimeError:
@@ -888,8 +892,8 @@ def get_detail(node, path, node_dir, system_info):
                **ilom,
                **system_status,
                **system_perform}
-    logging.info("JSON file: " +
-                 json.dumps(content, indent=2, ensure_ascii=False))
+    core.logger.info("JSON file: " +
+                     json.dumps(content, indent=2, ensure_ascii=False))
     # Save information
     tools.save_json(os.path.normpath(
         node_dir + "/" + "ilom" + "/" + "ilom.json"), ilom)
@@ -936,13 +940,14 @@ def get_overview(node, path):
     return content
 
 
-def compile(nodes_name, list_file_logs, system_info, out_dir, force):
+def compile(nodes_name: list, list_file_logs: list, system_info: dict, out_dir: Path, force: bool) -> list:
     content_files = []
     print("CHOOSE FILE TO EXTRACT")
 
     print("-----------------------------")
     for node in nodes_name:
-        node_dir = os.path.join(out_dir, node)
+        # node_dir = os.path.join(out_dir, node)
+        node_dir = Path(out_dir) / node
         print(node)
         list_logs_dir = ["", "", ""]
         print("RUNNING:EXTRACT FILES")
@@ -959,14 +964,14 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
                 list_logs_dir[i] = extract_file(
                     file_logs[i], file_type, force, exclude=exclude)
             except ValueError as err:
-                logging.error(err)
+                core.logger.error(err)
 
         content_files.append(os.path.join(node_dir, f"{node}.json"))
 
         list_logs_dir = [os.path.normpath(f"temp/{logs_dir}/")
                          if logs_dir != "temp" else ""
                          for logs_dir in list_logs_dir]
-        logging.info(json.dumps(list_logs_dir, indent=2))
+        core.logger.info(json.dumps(list_logs_dir, indent=2))
 
         try:
             print("RUNNING:GET DETAILS")
@@ -991,12 +996,12 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
     return content_files
 
 
-def create_dir(path, force=False):
+def create_dir(path: Path, parents: bool = False, exist_ok: bool = False, force: bool = False) -> None:
     try:
-        os.mkdir(os.path.normpath(path))
-        logging.info("Folder created: " + path)
+        Path.mkdir(path, parents=parents, exist_ok=exist_ok)
+        core.logger.info("Folder created: " + str(path))
     except FileExistsError:
-        if not os.listdir(path):
+        if not path.iterdir():
             return
         if force:
             clean_up(
@@ -1049,7 +1054,7 @@ def set_system_info():
 # Flow of program
 
 
-def run(logs_dir, out_dir, force):
+def run(logs_dir: Path, out_dir: Path, force: bool) -> str:
     """
     Initialize the fetch process.
 
@@ -1071,14 +1076,17 @@ def run(logs_dir, out_dir, force):
         sys.exit()
     # Take client/customer name
     client = input("Enter client name: ")
-    out_dir = os.path.join(out_dir, client)
+    # out_dir = os.path.join(out_dir, client)
+    out_dir = Path(out_dir) / client
     # Root folder initialization
-    root_dir = os.path.normpath(
-        f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
+    root_dir = out_dir / datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')
     # Create necessary directories
-    os.makedirs(os.path.normpath("temp"), exist_ok=True)
-    os.makedirs(os.path.normpath(out_dir), exist_ok=True)
-    os.makedirs(root_dir)
+    create_dir(Path("temp"), parents=True, exist_ok=True)
+    create_dir(out_dir, parents=True, exist_ok=True)
+    create_dir(root_dir)
+    # Path.mkdir(Path("temp"), parents=True, exist_ok=True)
+    # Path.mkdir(out_dir, parents=True, exist_ok=True)
+    # Path.mkdir(root_dir)
 
     i = 0
     list_alltime_logs = []
@@ -1087,6 +1095,7 @@ def run(logs_dir, out_dir, force):
     system_info_list = []
 
     out_file = os.path.normpath(f"{root_dir}/summary.json")
+
     while True:
         system_info = set_system_info()
         system_info["client"] = client
@@ -1097,17 +1106,17 @@ def run(logs_dir, out_dir, force):
 
         list_file_logs = []
         for node in nodes_name:
-            create_dir(os.path.normpath(f"{root_dir}/{node}"), force=force)
+            create_dir(root_dir / node, force=force)
             try:
                 file_logs = ["", "", ""]
                 print("NODE:" + node)
                 print("-----------------------------")
                 print("ILOM SNAPSHOT")
-                file_logs[0] = get_file("*.zip", logs_dir)
+                file_logs[0] = get_file("**/*.zip", logs_dir)
                 print("EXPLORER")
-                file_logs[1] = get_file("*.tar.gz", logs_dir)
+                file_logs[1] = get_file("**/*.tar.gz", logs_dir)
                 print("OSWATCHER")
-                file_logs[2] = get_file("*.gz", logs_dir)
+                file_logs[2] = get_file("**/*.gz", logs_dir)
 
                 list_file_logs.append(file_logs)
                 print()
@@ -1126,7 +1135,7 @@ def run(logs_dir, out_dir, force):
         else:
             break
 
-    logging.debug(list_alltime_logs)
+    # core.logger.debug(list_alltime_logs)
     summary_content = []
     for time in range(0, i):
         try:
@@ -1134,7 +1143,7 @@ def run(logs_dir, out_dir, force):
                 nodes_list[time], list_alltime_logs[time],
                 system_info_list[time], root_dir, force)
 
-            logging.info(content_files)
+            core.logger.info(content_files)
         except RuntimeError:
             print("Aborted")
             raise

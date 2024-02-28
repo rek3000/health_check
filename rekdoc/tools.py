@@ -1,6 +1,7 @@
 import json
 import logging
 import subprocess
+from pathlib import Path
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -70,8 +71,8 @@ def save_file(file, content):
         raise RuntimeError("Cannot save file: ") from err
 
 
-def rm_ext(file, ext):
-    return file[: -(len(ext) + 1)]
+def rm_ext(name: str, ext: str):
+    return name[: -(len(ext) + 1)]
 
 
 ##### IMAGE GENERATE METHOD #####
