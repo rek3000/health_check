@@ -1,6 +1,10 @@
 import os
 import sys
 import logging
+from logging.handlers import RotatingFileHandler
+# from logging import Logger
+from logging import Formatter, getLogger
+from pathlib import Path
 import click
 from dotenv import load_dotenv
 from rekdoc import fetch as rekfetch
@@ -12,10 +16,22 @@ load_dotenv("env.conf")
 DEFAULT_OUTPUT = os.environ.get("OUTPUT_DIR", "/var/rd/")
 DEFAULT_INPUT = os.environ.get("INPUT_DIR", "./sample/")
 
+logger = getLogger(__package__)
+log_path = Path("./rd.log")
+log_size = 10000000
+log_numbackups = 1
+handler = RotatingFileHandler(
+    log_path,
+    maxBytes=log_size,
+    backupCount=log_numbackups,
+)
+
 
 # ------------------------------
 # CORE
 # ------------------------------
+
+
 @click.version_option(
     version="1.0", prog_name="Rekdoc",
     message="%(prog)s:VERSION:%(version)s"
@@ -49,6 +65,7 @@ def cli():
 )
 @click.option("-o", "--output", "out_dir",
               default=DEFAULT_OUTPUT,
+              type=click.Path(exists=True, path_type=Path),
               help="output folder.")
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
@@ -61,7 +78,7 @@ def cli():
     "--input",
     "logs_dir",
     help="select sample folder.",
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, path_type=Path),
     required=True,
     default=DEFAULT_INPUT,
 )
@@ -72,7 +89,7 @@ def cli():
     help="Force replace if exist output file.",
     is_flag=True,
 )
-def fetch(logs_dir, out_dir, log, force, dryrun):
+def fetch(logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool) -> None:
     """
     \b
     Fetch information to json and convert to images
@@ -83,19 +100,17 @@ def fetch(logs_dir, out_dir, log, force, dryrun):
 
     Default Output Directory: /var/rd/<CustomName>/<CurrentTimeStamp>
     """
-
+    formatter = Formatter("%(levelname)s:%(message)s")
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.INFO)
+        logger.setLevel("INFO")
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.DEBUG)
+        logger.setLevel("DEBUG")
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.WARNING)
-
-    print("Logs directory: " + logs_dir)
-    print("Output directory: " + out_dir)
+        logger.setLevel("WARNING")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    print("Logs directory: " + str(logs_dir))
+    print("Output directory: " + str(out_dir))
     print("----------------------------")
     if dryrun:
         rekfetch.clean_up(
@@ -114,7 +129,7 @@ def fetch(logs_dir, out_dir, log, force, dryrun):
         sys.stdout.write("\033[?25h")
         return -1
 
-    click.secho("Data File Created: " + out_file, fg="cyan")
+    click.secho("Data File Created: " + str(out_file), fg="cyan")
 
     click.secho("Finish!", bg="green", fg="black")
     click.echo("")
@@ -172,15 +187,15 @@ def doc(input, output, sample, sample_appendix, image, log, force):
     If there is not image root directory, the root of the input file is used.
 
     """
+    formatter = Formatter("%(levelname)s:%(message)s")
     if log == "VERBOSE":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.INFO)
+        logger.setLevel(logging.INFO)
     elif log == "DEBUG":
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
     else:
-        logging.basicConfig(format="%(levelname)s:%(message)s",
-                            level=logging.WARNING)
+        logger.setLevel(logging.WARNING)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     if output is None:
         output = input
@@ -201,11 +216,11 @@ def doc(input, output, sample, sample_appendix, image, log, force):
     click.secho("CREATED REPORT FILE: " +
                 click.style(doc_names, fg="cyan"))
     rekfetch.clean_up(
-            "./temp/",
-            prompt=click.style("REMOVE ", fg="red")
-            + click.style("EXTRACTED LOGS?", fg="cyan")
-            # + click.style(" items?", fg="red"),
-        )
+        "./temp/",
+        prompt=click.style("REMOVE ", fg="red")
+        + click.style("EXTRACTED LOGS?", fg="cyan")
+        # + click.style(" items?", fg="red"),
+    )
     click.secho("Finish!", bg="green", fg="black")
     sys.stdout.write("\033[?25h")
 

@@ -12,7 +12,8 @@ import glob
 import json
 import zipfile
 import tarfile
-import logging
+from pathlib import Path
+from rekdoc import core
 
 # Local library
 from rekdoc import tools
@@ -25,48 +26,46 @@ from rekdoc import const
 def debug(func):
     def _debug(*args, **kwargs):
         result = func(*args, **kwargs)
-        logging.debug(
+        core.logger.info(
             f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}")
         return result
 
     return _debug
 
 
-def extract_file(file, compress, force, exclude=None):
+@debug
+def extract_file(file: Path, compress: str, force: bool, exclude: list | None = None) -> Path:
     """
     Extract Files with filter (exclude list).
 Support "tar.gz", "gz" and "zip" files (ILOM, Explorer, OSWatcher)
     """
     compress = compress.lower()
+    uncompressed = Path("")
     if not file:
         return ""
 
     if compress in ["tar.gz", "gz"]:
         untar(file, compress, force, exclude=exclude)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
+        uncompressed = Path(tools.rm_ext(str(file), compress)).name
     elif compress == "zip":
         unzip(file, force, exclude=exclude)
-        dir = tools.rm_ext(file, compress)
-        path = os.path.split(dir)[1]
-        return path
+        uncompressed = Path(tools.rm_ext(str(file), compress)).name
 
-    return ""
+    return uncompressed
 
 
-def unzip(file_path, force, exclude=None):
+def unzip(file: Path, force: bool, exclude: list | None = None):
     """
     Helper function to decompress zip file with filter.
     """
-    if not zipfile.is_zipfile(file_path):
-        logging.error("Error: Not a zip file")
+    if not zipfile.is_zipfile(file):
+        core.logger.error("Error: Not a zip file")
         return -1
 
-    logging.info("Extracting: " + file_path)
+    core.logger.info("Extracting: " + file.name)
 
     try:
-        with zipfile.ZipFile(file_path, "r") as zip_file:
+        with zipfile.ZipFile(file, "r") as zip_file:
             folder_name = "temp/"
             for member in zip_file.namelist():
                 is_exist = any(os.path.normpath(folder_name + "/" + ex)
@@ -75,27 +74,27 @@ def unzip(file_path, force, exclude=None):
                     if not is_exist:
                         zip_file.extract(member, path=folder_name)
                 except (Exception, IOError) as err:
-                    logging.error(err)
+                    core.logger.error(err)
                     return -1
 
     except IOError as err:
-        logging.error(err)
+        core.logger.error(err)
         return -1
 
 
-def untar(file_path, compress, force, exclude=None):
+def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
     """
     Helper function to decompress tar file with filter.
     """
     if exclude is None:
         exclude = []
 
-    if not tarfile.is_tarfile(file_path):
-        logging.error("Error: Not a tar file")
+    if not tarfile.is_tarfile(file):
+        core.logger.error("Error: Not a tar file")
         return -1
 
-    logging.info("Extracting: " + file_path)
-    filename = os.path.split(file_path)[-1]
+    core.logger.info("Extracting: " + file.name)
+    filename = os.path.split(file)[-1]
     folder_name = tools.rm_ext(filename, compress)
 
     extract_folder = os.path.join(
@@ -103,7 +102,7 @@ def untar(file_path, compress, force, exclude=None):
         folder_name) if compress == "gz" else "temp/"
 
     try:
-        with tarfile.open(file_path, "r") as tar:
+        with tarfile.open(file, "r") as tar:
             for member in tar.getmembers():
                 is_exist = any(os.path.normpath(folder_name + "/" + ex)
                                in member.name for ex in exclude)
@@ -112,7 +111,7 @@ def untar(file_path, compress, force, exclude=None):
                         tar.extract(member, set_attrs=False,
                                     path=extract_folder)
                 except (Exception, IOError) as err:
-                    logging.error(err)
+                    core.logger.error(err)
                     return -1
 
         if compress == "gz":
@@ -129,26 +128,26 @@ def untar(file_path, compress, force, exclude=None):
                 os.rmdir(archive_folder)
 
     except IOError as err:
-        logging.error(err)
+        core.logger.error(err)
         raise
 
     return 0
 
 
 # Find the file matched with keyword(regular expression)
-def get_file(regex, logs_dir):
+def get_file(regex: str, logs_dir: Path) -> Path:
     """
     Choose a file from list of files
 Print a list of files in the 'dir' and let user choose file through number.
     """
-    logging.debug(logs_dir)
+    core.logger.debug(logs_dir)
 
-    def print_files(files):
+    def print_files(files: list):
         for i, file in enumerate(files):
-            print(f"[{i}] {file}")
+            print(f"[{i}] {file.name}")
         print("[-1] Skip")
 
-    def get_user_input(files):
+    def get_user_input(files: list):
         while True:
             try:
                 choice = int(input("Which file?\n [0] ") or "0")
@@ -159,8 +158,9 @@ Print a list of files in the 'dir' and let user choose file through number.
             except ValueError:
                 continue
 
-    path = logs_dir + regex
-    files = glob.glob(path, recursive=True)
+    # path = logs_dir + regex
+    # files = glob.glob(path, recursive=True)
+    files = sorted(logs_dir.glob(regex), reverse=True)
 
     if not files:
         return ""
@@ -188,9 +188,9 @@ def clean_files(dir):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
-            logging.info("Deleted: " + file_path)
+            core.logger.info("Deleted: " + file_path)
         except Exception as err:
-            logging.error(f"Failed to delete {file_path}. Reason: {err}")
+            core.logger.error(f"Failed to delete {file_path}. Reason: {err}")
 
 
 def clean_up(path, prompt="Remove files?", force=False):
@@ -199,7 +199,7 @@ def clean_up(path, prompt="Remove files?", force=False):
 
 
 def clean_up_force(path):
-    logging.error("FORCE CLEAN UP DUE TO ERROR!")
+    core.logger.error("FORCE CLEAN UP DUE TO ERROR!")
     clean_files(path)
     return -1
 
@@ -215,40 +215,40 @@ def check_valid(path):
 # IMAGE PROCESSING
 # ------------------------------
 # DRAW ILOM
-def drw_fault(path, out_dir, system_info):
+def drw_fault(path: Path, out_dir: Path, system_info: dict) -> None:
     fault = io.StringIO()
     if system_info["type"] == "baremetal":
-        fault.write(path + const.FAULT + "\n")
-        stdout = tools.cat(os.path.normpath(path + const.FAULT))
+        fault.write(str(path) + "/" + const.FAULT + "\n")
+        stdout = tools.cat(path / const.FAULT)
         fault.write(str(stdout))
-        tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
+        tools.drw_text_image(fault, out_dir / "fault.png")
     else:
-        fault.write(path + const.FAULT_SOL + "\n")
-        stdout = tools.cat(os.path.normpath(path + const.FAULT_SOL))
+        fault.write(str(path) + const.FAULT_SOL + "\n")
+        stdout = tools.cat(path / const.FAULT_SOL)
         fault.write(str(stdout))
-        tools.drw_text_image(fault, os.path.normpath(out_dir + "/fault.png"))
+        tools.drw_text_image(fault, out_dir / "fault.png")
 
 
-def drw_temp(path, out_dir):
+def drw_temp(path: Path, out_dir: Path) -> None:
     temp = io.StringIO()
-    temp.write(path + const.TEMP + "\n")
+    temp.write(str(path) +  "/" + const.TEMP + "\n")
     reg = "^ /System/Cooling$"
-    stdout = tools.grep(os.path.normpath(path + const.TEMP), reg, False, 9)
+    stdout = tools.grep(path / const.TEMP, reg, False, 9)
     for line in stdout:
         temp.write(str(line) + "\n")
-    tools.drw_text_image(temp, os.path.normpath(out_dir + "/temp.png"))
+    tools.drw_text_image(temp, out_dir / "temp.png")
 
 
-def drw_firmware(path, out_dir):
+def drw_firmware(path: Path, out_dir: Path) -> None:
     firmware = io.StringIO()
-    firmware.write(path + const.FIRMWARE + "\n")
+    firmware.write(str(path) + "/" + const.FIRMWARE + "\n")
     reg = "^Oracle"
-    stdout = tools.grep(os.path.normpath(path + const.FIRMWARE), reg, True, 5)
+    stdout = tools.grep(path / const.FIRMWARE, reg, True, 5)
     firmware.write(str(stdout))
-    tools.drw_text_image(firmware, os.path.normpath(out_dir + "/firmware.png"))
+    tools.drw_text_image(firmware, out_dir / "firmware.png")
 
 
-def drw_ilom(path, out_dir, system_info):
+def drw_ilom(path: Path, out_dir: Path, system_info: dict) -> list:
     drw_fault(path, out_dir, system_info)
     drw_temp(path, out_dir)
     drw_firmware(path, out_dir)
@@ -257,82 +257,80 @@ def drw_ilom(path, out_dir, system_info):
 
 
 # DRAW
-def drw_image(path, out_dir):
+def drw_image(path: Path, out_dir: Path) -> str:
     image = io.StringIO()
-    image.write(path + const.IMAGE_SOL + "\n")
-    stdout = tools.grep(os.path.normpath(
-        path + const.IMAGE_SOL), "Name: entire", False, 18)
+    image.write(str(path) + "/" + const.IMAGE_SOL + "\n")
+    stdout = tools.grep(path / const.IMAGE_SOL, "Name: entire", False, 18)
     for line in stdout:
         image.write(str(line) + "\n")
-    tools.drw_text_image(image, os.path.normpath(out_dir + "/image.png"))
+    tools.drw_text_image(image, out_dir / "image.png")
     return image
 
 
-def drw_vol(path, out_dir):
+def drw_vol(path: Path, out_dir: Path) -> str:
     vol = io.StringIO()
-    vol.write(path + const.PARTITION_SOL + "\n")
-    stdout = tools.cat(os.path.normpath(path + const.PARTITION_SOL), True)
+    vol.write(str(path) + "/" + const.PARTITION_SOL + "\n")
+    stdout = tools.cat(path / const.PARTITION_SOL, True)
     for line in stdout:
         vol.write(str(line) + "\n")
-    tools.drw_text_image(vol, os.path.normpath(out_dir + "/vol.png"))
+    tools.drw_text_image(vol, out_dir / "vol.png")
     return vol
 
 
-def drw_raid(path, out_dir):
+def drw_raid(path: Path, out_dir: Path) -> str:
     raid = io.StringIO()
-    raid.write(path + const.RAID_SOL + "\n")
-    stdout = tools.cat(os.path.normpath(path + const.RAID_SOL), True)
+    raid.write(str(path) + "/" + const.RAID_SOL + "\n")
+    stdout = tools.cat(path / const.RAID_SOL, True)
     for line in stdout:
         raid.write(str(line) + "\n")
-    tools.drw_text_image(raid, os.path.normpath(out_dir + "/raid.png"))
+    tools.drw_text_image(raid, out_dir / "raid.png")
     return raid
 
 
-def drw_net(path, out_dir):
+def drw_net(path: Path, out_dir: Path) -> str:
     net = io.StringIO()
-    net.write(path + const.NETWORK_SOL + "\n")
-    stdout = tools.cat(os.path.normpath(path + const.NETWORK_SOL), True)
+    net.write(str(path) + "/" + const.NETWORK_SOL + "\n")
+    stdout = tools.cat(path / const.NETWORK_SOL, True)
     for line in stdout:
         net.write(str(line) + "\n")
-    tools.drw_text_image(net, os.path.normpath(out_dir + "/net.png"))
+    tools.drw_text_image(net, out_dir / "net.png")
     return net
 
 
-def drw_cpu(path, out_dir):
+def drw_cpu(path: Path, out_dir: Path) -> str:
     cpu_idle = io.StringIO()
-    cpu_idle.write(path + const.CPU_ULTILIZATION_SOL + "\n")
-    cpu_idle.write(tools.cat(os.path.normpath(path +
-                                              const.CPU_ULTILIZATION_SOL)))
-    tools.drw_text_image(cpu_idle, os.path.normpath(out_dir + "/cpu_idle.png"))
+    cpu_idle.write(str(path) + "/" + const.CPU_ULTILIZATION_SOL + "\n")
+    cpu_idle.write(tools.cat(path / const.CPU_ULTILIZATION_SOL))
+    tools.drw_text_image(cpu_idle, out_dir / "cpu_idle.png")
     return cpu_idle
 
 
-def drw_load(path, out_dir):
+def drw_load(path: Path, out_dir: Path) -> str:
     load = io.StringIO()
-    load.write(path + const.CPU_LOAD_SOL + "\n")
-    load.write(tools.cat(os.path.normpath(path + const.CPU_LOAD_SOL)))
-    tools.drw_text_image(load, os.path.normpath(out_dir + "/load.png"))
+    load.write(str(path) + "/" + const.CPU_LOAD_SOL + "\n")
+    load.write(tools.cat(path / const.CPU_LOAD_SOL))
+    tools.drw_text_image(load, out_dir / "load.png")
     return load
 
 
-def drw_mem(path, out_dir):
+def drw_mem(path: Path, out_dir: Path) -> str:
     mem = io.StringIO()
-    mem.write(path + const.MEM_SOL + "\n")
-    mem.write(tools.cat(os.path.normpath(path + const.MEM_SOL)))
-    tools.drw_text_image(mem, os.path.normpath(out_dir + "/mem.png"))
+    mem.write(str(path) + "/" + const.MEM_SOL + "\n")
+    mem.write(tools.cat(path / const.MEM_SOL))
+    tools.drw_text_image(mem, out_dir / "mem.png")
     return mem
 
 
-def drw_swap(path, out_dir):
+def drw_swap(path: Path, out_dir: Path) -> str:
     swap = io.StringIO()
-    swap.write(path + const.SWAP_SOL + "\n")
-    swap.write(tools.cat(os.path.normpath(path + const.SWAP_SOL)))
-    tools.drw_text_image(swap, os.path.normpath(out_dir + "/swap.png"))
+    swap.write(str(path) + "/" + const.SWAP_SOL + "\n")
+    swap.write(tools.cat(path / const.SWAP_SOL))
+    tools.drw_text_image(swap, out_dir / "swap.png")
     return swap
 
 
 # rewrite later
-def drw_system_status(path, out_dir, system_info):
+def drw_system_status(path: Path, out_dir: Path, system_info: dict) -> list:
     """
     Draw System Status Images (Explorer) from Extracted Logs
     """
@@ -355,28 +353,26 @@ def drw_system_status(path, out_dir, system_info):
         ]
 
 
-def drw_system_performance(path, out_dir, system_info):
+def drw_system_performance(path: Path, out_dir: Path, system_info: dict) -> list:
     """
     Draw System Performance Images (OSWatcher) from Extracted Logs
 Clarification: This just run the oswbba.jar file and
 generate images from OSWatcher.
     """
     try:
-        log_name = os.path.split(path)[1]
+        # log_name = os.path.split(path)[1]
+        log_name = path.name
         command = ["java", "-jar", "/usr/share/java/oswbba.jar",
-                   "-i", path,
+                   "-i", str(path),
                    "-D", log_name
                    ]
         tools.run(command, False)
 
-        dashboard_dir = os.path.normpath(
-            "analysis/" + log_name + "/dashboard/generated_files/")
-        shutil.copy(os.path.normpath(dashboard_dir +
-                    "/OSWg_OS_Cpu_Util.jpg"), out_dir)
-        shutil.copy(os.path.normpath(dashboard_dir +
-                    "/OSWg_OS_Memory_Free.jpg"), out_dir)
-        shutil.copy(os.path.normpath(
-            dashboard_dir + "/OSWg_OS_IO_PB.jpg"), out_dir)
+        dashboard_dir = Path("analysis/") / log_name / \
+            "dashboard/generated_files/"
+        shutil.copy(dashboard_dir / "OSWg_OS_Cpu_Util.jpg", out_dir)
+        shutil.copy(dashboard_dir / "OSWg_OS_Memory_Free.jpg", out_dir)
+        shutil.copy(dashboard_dir / "OSWg_OS_IO_PB.jpg", out_dir)
     except Exception as err:
         print(err)
     return ["perform/OSWg_OS_Cpu_Util.jpg",
@@ -390,39 +386,38 @@ generate images from OSWatcher.
     # ]
 
 
-def drw_content(path, out_dir, system_info):
+def drw_content(path: Path, out_dir: Path, system_info: dict) -> list:
     ilom = []
     if system_info["type"] == "baremetal":
-        ilom = drw_ilom(path[0], out_dir + "/ilom", system_info)
+        ilom = drw_ilom(path[0], out_dir / "ilom", system_info)
     else:
-        drw_fault(path[1], out_dir + "/ilom", system_info)
+        drw_fault(path[1], out_dir / "ilom", system_info)
         ilom = ["ilom/fault.png"]
     system_status = drw_system_status(
-        path[1], out_dir + "/status", system_info)
+        path[1], out_dir / "status", system_info)
     system_performance = drw_system_performance(
-        path[2], out_dir + "/perform", system_info)
+        path[2], out_dir / "perform", system_info)
     images = ilom + system_status + system_performance
-    logging.info(images)
+    core.logger.info(images)
     return images
 
 
 # ------------------------------
 # FETCH ILOM
 # ------------------------------
-def get_fault(path, system_info):
+def get_fault(path: Path, type: str) -> str:
     fault = ""
 
-    if system_info["type"] == "vm":
+    if type == "vm":
         try:
-            grep_result = tools.grep(os.path.normpath(
-                path + const.FAULT_SOL), "(critical|warning)", True)
+            grep_result = tools.grep(
+                path / const.FAULT_SOL, "(critical|warning)", True)
             if "critial" in grep_result:
                 fault = "critical"
             elif "warning" in grep_result:
                 fault = "warning"
             else:
-                stdout = tools.grep(os.path.normpath(
-                    path + const.FAULT), ".", True, 9)
+                stdout = tools.grep(path / const.FAULT, ".", True, 9)
                 fault = stdout.strip()
 
             return fault
@@ -432,14 +427,12 @@ def get_fault(path, system_info):
     return fault
 
 
-def get_temp(path, system_info):
+def get_temp(path: Path) -> (str, str):
     inlet_temp = ""
     exhaust_temp = ""
 
     try:
-        temps = tools.grep(
-            os.path.normpath(path + const.TEMP), "^ /System/Cooling$", False, 9
-        )
+        temps = tools.grep(path / const.TEMP, "^ /System/Cooling$", False, 9)
         for line in temps:
             tokens = line.split()
             if "inlet_temp" in line:
@@ -454,11 +447,10 @@ def get_temp(path, system_info):
     return inlet_temp, exhaust_temp
 
 
-def get_firmware(path, system_info):
+def get_firmware(path: Path) -> str:
     firmware = ""
     try:
-        stdout = tools.grep(os.path.normpath(path + const.FIRMWARE),
-                            "Version", True)
+        stdout = tools.grep(path / const.FIRMWARE, "Version", True)
         firmware_tokens = stdout.strip("\r\n").split()
         firmware = " ".join(firmware_tokens[1:])
         return firmware
@@ -467,13 +459,13 @@ def get_firmware(path, system_info):
     return firmware
 
 
-def get_ilom(path, system_info):
+def get_ilom(path: Path, system_info: dict) -> dict:
     try:
-        fault = get_fault(path, system_info)
-        inlet_temp, exhaust_temp = get_temp(path, system_info)
-        firmware = get_firmware(path, system_info)
+        fault = get_fault(path, system_info["type"])
+        inlet_temp, exhaust_temp = get_temp(path)
+        firmware = get_firmware(path)
     except RuntimeError:
-        print("Fetching ILOM is interrupted because of error")
+        core.logger.error("Fetching ILOM is interrupted because of error")
         raise
 
     ilom = {
@@ -483,7 +475,7 @@ def get_ilom(path, system_info):
         "firmware": firmware,
     }
 
-    logging.debug(json.dumps(ilom, ensure_ascii=False))
+    core.logger.debug(json.dumps(ilom, ensure_ascii=False))
 
     return ilom
 # ------------------------------
@@ -494,11 +486,10 @@ def get_ilom(path, system_info):
 # ------------------------------
 # FETCH OS
 # ------------------------------
-def get_image(path):
+def get_image(path: Path, platform: str) -> str:
     image = ""
     try:
-        stdout = tools.grep(os.path.normpath(path + const.IMAGE_SOL),
-                            "Name: entire", True, 15)
+        stdout = tools.grep(path / const.IMAGE_SOL, "Name: entire", True, 15)
         image_lines = stdout.split('\n')
         for line in image_lines:
             if "Version" in line:
@@ -510,10 +501,9 @@ def get_image(path):
         return ""
 
 
-def get_vol(path):
+def get_vol(path: Path, platform: str) -> int:
     try:
-        stdout = tools.grep(os.path.normpath(
-            path + const.PARTITION_SOL), "\\B/$", True)
+        stdout = tools.grep(path / const.PARTITION_SOL, "\\B/$", True)
         vol = stdout.strip().split()[-2]
         vol = 100 - int(vol[:-1])
         return vol
@@ -522,24 +512,21 @@ def get_vol(path):
         return ""
 
 
-def get_raid(path):
+def get_raid(path: Path) -> bool:
     try:
-        stdout = tools.grep(os.path.normpath(path + const.RAID_SOL),
-                            "mirror", True)
+        stdout = tools.grep(path / const.RAID_SOL, "mirror", True)
         raid_stat = "ONLINE" in stdout.strip().split()
         return raid_stat
 
     except (RuntimeError, Exception) as err:
         print(f"Failed to fetch raid: {err}")
-        return ""
+        return False
 
 
-def get_bonding(path):
+def get_bonding(path: Path) -> str:
     try:
-        net_ipmp = tools.grep(os.path.normpath(path + const.NETWORK_SOL),
-                              "ipmp", True)
-        net_aggr = tools.grep(os.path.normpath(path + const.NETWORK_SOL_AGGR),
-                              "up", True)
+        net_ipmp = tools.grep(path / const.NETWORK_SOL, "ipmp", True)
+        net_aggr = tools.grep(path / const.NETWORK_SOL_AGGR, "up", True)
         if not net_ipmp and not net_aggr:
             bonding = "none"
         elif net_ipmp and not net_aggr:
@@ -559,12 +546,14 @@ def get_bonding(path):
         return ""
 
 
-def get_cpu_util(path):
+def get_cpu_util(path: Path) -> (int, int):
     try:
-        cpu_util_path = os.path.normpath(
-            path + const.CPU_ULTILIZATION_SOL + '*.dat')
-        files = glob.glob(cpu_util_path, recursive=True)
+        # cpu_util_path = path / const.CPU_ULTILIZATION_SOL / '*.dat'
+        # files = glob.glob(cpu_util_path, recursive=True)
 
+        cpu_util_path = path / const.CPU_ULTILIZATION_SOL
+        regex = '*.dat'
+        files = sorted(cpu_util_path.glob(regex), reverse=True)
         cpu_idle_alltime = []
 
         for file in files:
@@ -581,19 +570,18 @@ def get_cpu_util(path):
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
 
-        logging.info("CPU_IDLE:" + str(cpu_idle))
-        logging.info("CPU_UTIL:" + str(cpu_util))
+        # core.logger.info("CPU_IDLE:" + str(cpu_idle))
+        # core.logger.info("CPU_UTIL:" + str(cpu_util))
 
         return [cpu_util, cpu_idle]
     except (RuntimeError, Exception) as err:
         print(f"Failed to fetch cpu utilization: {err}")
-        return ["", ""]
+        return [-1, -1]
 
 
-def get_load_avg(path):
+def get_load_avg(path: Path) -> float:
     try:
-        stdout = tools.grep(os.path.normpath(path + const.CPU_LOAD_SOL),
-                            "load average", True)
+        stdout = tools.grep(path / const.CPU_LOAD_SOL, "load average", True)
         load = stdout.strip().split(", ")
         load_avg = float(max(load[-3:], key=float))
 
@@ -603,12 +591,11 @@ def get_load_avg(path):
         return ""
 
 
-def get_vcpu(path):
+def get_vcpu(path: Path) -> int:
     try:
-        stdout = tools.grep(
-            os.path.normpath(path + const.VCPU_SOL),
-            "Status", single_match=False
-        )
+        stdout = tools.grep(path / const.VCPU_SOL,
+                            "Status", single_match=False
+                            )
         vcpu = stdout[-1].split()[4]
         vcpu = int(vcpu) + 1
 
@@ -618,7 +605,7 @@ def get_vcpu(path):
         return ""
 
 
-def get_load(path):
+def get_load(path: Path) -> float:
     try:
         load_avg = get_load_avg(path)
         vcpu = get_vcpu(path)
@@ -628,16 +615,19 @@ def get_load(path):
         return load_avg, vcpu, load_avg_per
     except (RuntimeError, Exception) as err:
         print(f"Failed to fetch load: {err}")
-        return "", "", ""
+        return -1, -1, -1
 
 
-def get_mem_free(path):
+def get_mem_free(path: Path) -> dict:
     x = {"mem_free_percent": 0,
          "mem_free": 0,
          "total_mem": 0}
     try:
-        mem_free_path = os.path.normpath(path + const.MEM_SOL + '*.dat')
-        files = glob.glob(mem_free_path, recursive=True)
+        mem_free_path = path / const.MEM_SOL
+        regex = "*.dat"
+        # files = glob.glob(mem_free_path, recursive=True)
+        files = sorted(mem_free_path.glob(regex), reverse=True)
+        core.logger.debug(files)
         total_mem = float(tools.grep(
             files[-1], "Memory", True).split()[1][:-1])
 
@@ -652,8 +642,8 @@ def get_mem_free(path):
             mem_free_perfile = sum(mem_free_perfile_list) / \
                 len(mem_free_perfile_list)
             mem_free_alltime.append(mem_free_perfile)
-            # logging.debug("MEM FREE")
-            # logging.debug(mem_free_perfile_list)
+            # core.logger.debug("MEM FREE")
+            # core.logger.debug(mem_free_perfile_list)
 
         mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
 
@@ -663,8 +653,8 @@ def get_mem_free(path):
         mem_free_percent = round((mem_free / total_mem) * 100)
         mem_util_percent = round(100 - mem_free_percent, 2)
 
-        logging.info("MEM_FREE:" + str(mem_free_percent))
-        logging.info("MEM_UTIL:" + str(mem_util_percent))
+        # core.logger.info("MEM_FREE:" + str(mem_free_percent))
+        # core.logger.info("MEM_UTIL:" + str(mem_util_percent))
 
         x["mem_free_percent"] = mem_free_percent
         x["mem_free"] = mem_free
@@ -678,10 +668,12 @@ def get_mem_free(path):
         raise
 
 
-def get_io_busy(path):
+def get_io_busy(path: Path) -> dict:
     try:
-        io_busy_path = os.path.normpath(path + const.IO_SOL + '*.dat')
-        files = glob.glob(io_busy_path, recursive=True)
+        io_busy_path = path / const.IO_SOL
+        regex = "*.dat"
+        # files = glob.glob(io_busy_path, recursive=True)
+        files = sorted(io_busy_path.glob(regex), reverse=True)
 
         devices = []
         # Get devices name list
@@ -691,7 +683,7 @@ def get_io_busy(path):
                 break
             devices.append(line.split()[-1])
 
-        logging.debug(f"DEVICE_LIST:{devices}")
+        # core.logger.debug(f"DEVICE_LIST:{devices}")
 
         average_alltime = [0] * len(devices)
         total_alltime = [0] * len(devices)
@@ -717,7 +709,7 @@ def get_io_busy(path):
                             total_perfile[i] += persection_list[i]
                             persection_list[i] = 0
                     except Exception as err:
-                        logging.debug(err)
+                        core.logger.error(err)
                     index += 3
                     continue
 
@@ -738,12 +730,12 @@ def get_io_busy(path):
 
         return {"name": None, "busy": sorted_io_busy[0]}
     except Exception as err:
-        logging.error(err)
-        logging.error("FAILED:fetch io busy")
+        core.logger.error(err)
+        core.logger.error("FAILED:fetch io busy")
         return {"name": None, "busy": 0}
 
 
-def get_swap_util(path):
+def get_swap_util(path: Path):
     try:
         stdout = tools.cat(os.path.normpath(path + const.SWAP_SOL))
         swap_free = stdout.strip().split()
@@ -759,12 +751,12 @@ def get_swap_util(path):
         raise
 
 
-def get_system_status(path, platform, server_type):
+def get_system_status(path: Path, platform: str, server_type: str) -> dict:
     x = {}
     try:
         if platform == "solaris":
-            x["image"] = get_image(path)
-            x["vol_avail"] = get_vol(path)
+            x["image"] = get_image(path, platform)
+            x["vol_avail"] = get_vol(path, platform)
 
             if server_type == "baremetal":
                 x["raid_stat"] = get_raid(path)
@@ -784,7 +776,7 @@ def get_system_status(path, platform, server_type):
     return x
 
 
-def get_system_perform(path, platform, system_type):
+def get_system_perform(path: Path, platform: str, system_type: str) -> dict:
     x = {}
     try:
         if system_type == "standalone":
@@ -818,43 +810,44 @@ def get_system_perform(path, platform, system_type):
 # ------------------------------
 
 
-def get_detail(node, path, node_dir, system_info):
+def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict) -> dict:
     ilom = {}
     system_status = {}
     system_perform = {}
 
-    create_dir(node_dir + "/" + "ilom")
-    create_dir(node_dir + "/" + "status")
-    create_dir(node_dir + "/" + "perform")
-    logging.debug("PATH: " + json.dumps(path, indent=2))
+    create_dir(node_dir / "ilom")
+    create_dir(node_dir / "status")
+    create_dir(node_dir / "perform")
+    # core.logger.debug("PATH: " + list_logs_dir)
+    core.logger.debug("PATH: " + ','.join(map(str, list_logs_dir)))
 
     try:
-        if path[0] == "" and system_info["type"] == "baremetal":
+        if str(list_logs_dir[0]) == "" and system_info["type"] == "baremetal":
             ilom = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
         elif system_info["type"] == "baremetal":
-            ilom = get_ilom(path[0], system_info)
+            ilom = get_ilom(list_logs_dir[0], system_info)
         else:
-            ilom = {"fault": get_fault(path[1], system_info)}
+            ilom = {"fault": get_fault(list_logs_dir[1], system_info)}
 
         # OSWatcher
         if system_info["system_type"] == "standalone":
-            if path[1] == "" and system_info["type"] == "baremetal":
+            if str(list_logs_dir[1]) == "" and system_info["type"] == "baremetal":
                 system_status = {"image": "", "vol_avail": "",
                                  "raid_stat": "", "bonding": ""}
-            elif path[1] == "" and system_info["type"] == "vm":
+            elif str(list_logs_dir[1]) == "" and system_info["type"] == "vm":
                 system_status = {"image": "", "vol_avail": ""}
             else:
-                system_status = get_system_status(path[1],
+                system_status = get_system_status(list_logs_dir[1],
                                                   system_info["platform"],
                                                   system_info["type"])
-            if path[2] == "" and system_info["type"] == "baremetal":
+            if str(list_logs_dir[2]) == "" and system_info["type"] == "baremetal":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
                     "io_busy": {"name": "",
                                 "busy": ""}
                 }
-            elif path[1] == "" and system_info["type"] == "vm":
+            elif str(list_logs_dir[1]) == "" and system_info["type"] == "vm":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
@@ -862,22 +855,22 @@ def get_detail(node, path, node_dir, system_info):
                                 "busy": ""}
                 }
             else:
-                system_perform = get_system_perform(path[2],
+                system_perform = get_system_perform(list_logs_dir[2],
                                                     system_info["platform"],
                                                     system_info["system_type"])
         # ExaWatcher
         elif system_info["system_type"] == "exa":
-            if path[1] == "":
+            if str(list_logs_dir[1]) == "":
                 system_status = {"image": "", "vol_avail": "",
                                  "raid_stat": "", "bonding": ""}
             else:
-                system_status = get_system_status(path[1],
+                system_status = get_system_status(list_logs_dir[1],
                                                   system_info["system_type"],
                                                   system_info["type"])
-            if path[2] == "":
+            if str(list_logs_dir[2]) == "":
                 system_perform = {"cpu_util": "", "mem_free": ""}
             else:
-                system_perform = get_system_perform(path[2],
+                system_perform = get_system_perform(list_logs_dir[2],
                                                     system_info["platform"],
                                                     system_info["system_type"])
     except RuntimeError:
@@ -888,15 +881,12 @@ def get_detail(node, path, node_dir, system_info):
                **ilom,
                **system_status,
                **system_perform}
-    logging.info("JSON file: " +
-                 json.dumps(content, indent=2, ensure_ascii=False))
+    core.logger.info("JSON file: " +
+                     json.dumps(content, indent=2, ensure_ascii=False))
     # Save information
-    tools.save_json(os.path.normpath(
-        node_dir + "/" + "ilom" + "/" + "ilom.json"), ilom)
-    tools.save_json(os.path.normpath(node_dir + "/" + "status" +
-                    "/" + "status.json"), system_status)
-    tools.save_json(os.path.normpath(node_dir + "/" + "perform" +
-                    "/" + "perform.json"), system_perform)
+    tools.save_json(node_dir / "ilom" / "ilom.json", ilom)
+    tools.save_json(node_dir / "status" / "status.json", system_status)
+    tools.save_json(node_dir / "perform" / "perform.json", system_perform)
 
     return [content]
 
@@ -936,15 +926,16 @@ def get_overview(node, path):
     return content
 
 
-def compile(nodes_name, list_file_logs, system_info, out_dir, force):
+def compile(nodes_name: list, list_file_logs: list, system_info: dict, out_dir: Path, force: bool) -> list:
     content_files = []
     print("CHOOSE FILE TO EXTRACT")
 
     print("-----------------------------")
     for node in nodes_name:
-        node_dir = os.path.join(out_dir, node)
+        # node_dir = os.path.join(out_dir, node)
+        node_dir = Path(out_dir) / node
         print(node)
-        list_logs_dir = ["", "", ""]
+        list_logs_dir = [None, None, None]
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
         extraction_formats = ["ILOM SNAPSHOT", "EXPLORER", "OSWATCHER"]
@@ -959,14 +950,14 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
                 list_logs_dir[i] = extract_file(
                     file_logs[i], file_type, force, exclude=exclude)
             except ValueError as err:
-                logging.error(err)
+                core.logger.error(err)
 
-        content_files.append(os.path.join(node_dir, f"{node}.json"))
+        content_files.append(node_dir / f"{node}.json")
 
-        list_logs_dir = [os.path.normpath(f"temp/{logs_dir}/")
-                         if logs_dir != "temp" else ""
+        list_logs_dir = [Path(f"temp/{logs_dir}/")
+                         if logs_dir != Path("temp") else Path("")
                          for logs_dir in list_logs_dir]
-        logging.info(json.dumps(list_logs_dir, indent=2))
+        core.logger.info(list_logs_dir)
 
         try:
             print("RUNNING:GET DETAILS")
@@ -975,14 +966,9 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
             images = drw_content(list_logs_dir, node_dir, system_info)
             print("RUNNING:SAVE IMAGES")
             # Save image names
-            tools.save_json(
-                os.path.normpath(os.path.join(node_dir, "images.json")), images
-            )
+            tools.save_json(node_dir / "images.json", images)
             # Save information
-            tools.save_json(
-                os.path.normpath(os.path.join(
-                    node_dir, f"{node}.json")), content
-            )
+            tools.save_json(node_dir / f"{node}.json", content)
             print("DONE")
             print()
         except RuntimeError:
@@ -991,12 +977,12 @@ def compile(nodes_name, list_file_logs, system_info, out_dir, force):
     return content_files
 
 
-def create_dir(path, force=False):
+def create_dir(path: Path, parents: bool = False, exist_ok: bool = False, force: bool = False) -> None:
     try:
-        os.mkdir(os.path.normpath(path))
-        logging.info("Folder created: " + path)
+        Path.mkdir(path, parents=parents, exist_ok=exist_ok)
+        core.logger.info("Folder created: " + str(path))
     except FileExistsError:
-        if not os.listdir(path):
+        if not path.iterdir():
             return
         if force:
             clean_up(
@@ -1005,7 +991,7 @@ def create_dir(path, force=False):
                 force=force,
             )
         else:
-            print(path + " folder exist!")
+            print(str(path) + " folder exist!")
             clean_up(
                 path=os.path.normpath(path),
                 prompt="Do you want to replace it?",
@@ -1049,7 +1035,7 @@ def set_system_info():
 # Flow of program
 
 
-def run(logs_dir, out_dir, force):
+def run(logs_dir: Path, out_dir: Path, force: bool) -> str:
     """
     Initialize the fetch process.
 
@@ -1071,14 +1057,17 @@ def run(logs_dir, out_dir, force):
         sys.exit()
     # Take client/customer name
     client = input("Enter client name: ")
-    out_dir = os.path.join(out_dir, client)
+    # out_dir = os.path.join(out_dir, client)
+    out_dir = Path(out_dir) / client
     # Root folder initialization
-    root_dir = os.path.normpath(
-        f"{out_dir}/{datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')}")
+    root_dir = out_dir / datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')
     # Create necessary directories
-    os.makedirs(os.path.normpath("temp"), exist_ok=True)
-    os.makedirs(os.path.normpath(out_dir), exist_ok=True)
-    os.makedirs(root_dir)
+    create_dir(Path("temp"), parents=True, exist_ok=True)
+    create_dir(out_dir, parents=True, exist_ok=True)
+    create_dir(root_dir)
+    # Path.mkdir(Path("temp"), parents=True, exist_ok=True)
+    # Path.mkdir(out_dir, parents=True, exist_ok=True)
+    # Path.mkdir(root_dir)
 
     i = 0
     list_alltime_logs = []
@@ -1086,7 +1075,8 @@ def run(logs_dir, out_dir, force):
     nodes_list = []
     system_info_list = []
 
-    out_file = os.path.normpath(f"{root_dir}/summary.json")
+    out_file = root_dir / "summary.json"
+
     while True:
         system_info = set_system_info()
         system_info["client"] = client
@@ -1097,17 +1087,17 @@ def run(logs_dir, out_dir, force):
 
         list_file_logs = []
         for node in nodes_name:
-            create_dir(os.path.normpath(f"{root_dir}/{node}"), force=force)
+            create_dir(root_dir / node, force=force)
             try:
                 file_logs = ["", "", ""]
                 print("NODE:" + node)
                 print("-----------------------------")
                 print("ILOM SNAPSHOT")
-                file_logs[0] = get_file("*.zip", logs_dir)
+                file_logs[0] = get_file("**/*.zip", logs_dir)
                 print("EXPLORER")
-                file_logs[1] = get_file("*.tar.gz", logs_dir)
+                file_logs[1] = get_file("**/*.tar.gz", logs_dir)
                 print("OSWATCHER")
-                file_logs[2] = get_file("*.gz", logs_dir)
+                file_logs[2] = get_file("**/*.gz", logs_dir)
 
                 list_file_logs.append(file_logs)
                 print()
@@ -1115,7 +1105,7 @@ def run(logs_dir, out_dir, force):
                 err.add_note("Data files must be exist!")
                 raise err
 
-        out_file_part = os.path.normpath(f"{root_dir}/summary-{i}.json")
+        out_file_part = root_dir / f"summary-{i}.json"
         tools.save_json(out_file_part, system_info)
         summary_list.append(out_file_part)
         list_alltime_logs.append(list_file_logs)
@@ -1126,7 +1116,7 @@ def run(logs_dir, out_dir, force):
         else:
             break
 
-    logging.debug(list_alltime_logs)
+    # core.logger.debug(list_alltime_logs)
     summary_content = []
     for time in range(0, i):
         try:
@@ -1134,7 +1124,7 @@ def run(logs_dir, out_dir, force):
                 nodes_list[time], list_alltime_logs[time],
                 system_info_list[time], root_dir, force)
 
-            logging.info(content_files)
+            core.logger.info(content_files)
         except RuntimeError:
             print("Aborted")
             raise

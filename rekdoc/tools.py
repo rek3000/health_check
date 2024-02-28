@@ -1,14 +1,16 @@
 import json
-import logging
 import subprocess
+from pathlib import Path
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
+from rekdoc import core
+
 
 ##### JSON #####
 # get a dictionary as input and dump it to a json type file
-def save_json(file, content, append=True):
+def save_json(file: Path, content: str, append: bool = True) -> None:
     if not content:
         print("No content from input to save!")
         return -1
@@ -16,16 +18,16 @@ def save_json(file, content, append=True):
     mode = "a+" if append else "w+"
 
     try:
-        with open(file, mode) as f:
+        with file.open(mode=mode) as f:
             json.dump(content, f, indent=2, ensure_ascii=False)
     except OSError as err:
-        logging.error(f"OS error: {err}")
+        core.logger.error(f"OS error: {err}")
         raise RuntimeError("Cannot save JSON file") from err
 
 
-def read_json(file):
+def read_json(file: Path) -> str:
     try:
-        with open(file, "r+") as f:
+        with file.open(mode="r+") as f:
             content = json.load(f)
             return content
     except FileNotFoundError as err:
@@ -34,49 +36,50 @@ def read_json(file):
         raise RuntimeError("Cannot read JSON file") from err
 
 
-def join_json(out_file, content_files):
+def join_json(out_file: Path, content_files: list) -> None:
     try:
         file_data = {}
         try:
             file_data = read_json(out_file)
         except Exception as err:
-            logging.debug(f"Error reading existing JSON file: {err}")
+            core.logger.debug(f"Error reading existing JSON file: {err}")
 
-        with open(out_file, "w+") as file:
+        with out_file.open(mode="w+") as file:
             file_data["nodes"] = []
 
             for content in content_files:
                 try:
-                    # logging.info(json.dumps(content, indent=2))
+                    # core.logger.info(json.dumps(content, indent=2))
                     buffer = read_json(content)[0]
                     file_data["nodes"].append(buffer)
                 except Exception as err:
-                    logging.error(f"Error reading JSON content file: {err}")
+                    core.logger.error(
+                        f"Error reading JSON content file: {err}")
 
             json.dump(file_data, file, indent=4, ensure_ascii=False)
 
     except OSError as err:
-        logging.error("OS error: ", err)
+        core.logger.error("OS error: ", err)
         raise RuntimeError("Cannot write contents to JSON file") from err
 ##### END JSON #####
 
 
-def save_file(file, content):
-    try:
-        with open(file, "w") as f:
-            f.write(content)
-    except OSError as err:
-        logging.error("OS error: ", err)
-        raise RuntimeError("Cannot save file: ") from err
+# def save_file(file, content):
+#     try:
+#         with open(file, "w") as f:
+#             f.write(content)
+#     except OSError as err:
+#         core.logger.error("OS error: ", err)
+#         raise RuntimeError("Cannot save file: ") from err
 
 
-def rm_ext(file, ext):
-    return file[: -(len(ext) + 1)]
+def rm_ext(name: str, ext: str) -> str:
+    return name[: -(len(ext) + 1)]
 
 
 ##### IMAGE GENERATE METHOD #####
 # transform text to a png image file
-def drw_text_image(text, file):
+def drw_text_image(text: str | list, file: Path) -> None:
     size = 12
     try:
         font = ImageFont.truetype(
@@ -89,7 +92,7 @@ def drw_text_image(text, file):
 
     text = text.getvalue().replace('\t', '  ')
 
-    logging.debug(f"DRAWING:{text}")
+    core.logger.debug(f"DRAWING:{text}")
     with Image.new("RGB", (2000, 2000), color=(19, 20, 22)) as img:
         d1 = ImageDraw.Draw(img)
         d1.fontmode = "RGB"
@@ -112,14 +115,14 @@ def drw_text_image(text, file):
             d2.text((x, y), line.lstrip("\r").rstrip(" \r"), font=font)
             y += attSpacing
 
-        img_resize.save(file, format="PNG")
+        img_resize.save(str(file), format="PNG")
 
 
 ##### END OF IMAGE #####
 
 
 ##### BASE ######
-def run(command, tokenize):
+def run(command: str, tokenize: bool) -> (str, str, int):
     try:
         process = subprocess.Popen(
             command,
@@ -141,19 +144,19 @@ def run(command, tokenize):
     return stdout, stderr, returncode
 
 
-def cat(file, tokenize=False):
+def cat(file: Path, tokenize: bool = False) -> list | str:
     try:
-        command = ["cat", file]
+        command = ["cat", str(file)]
         stdout = run(command, tokenize)[0]
     except RuntimeError:
-        print("Cannot cat file: " + file)
+        print("Cannot cat file: " + str(file))
         raise
-    logging.debug(json.dumps(stdout, indent=2))
+    core.logger.debug(json.dumps(stdout, indent=2))
     return stdout
 
 
-def grep(path, regex, single_match, next=0):
-    logging.debug("GREP FILE: " + path)
+def grep(path: Path, regex: str, single_match: bool, next: int = 0) -> list | str:
+    core.logger.debug("GREP FILE: " + str(path))
     command = ["grep", "-e", regex, "--no-group-separator"]
 
     if single_match:
@@ -161,12 +164,12 @@ def grep(path, regex, single_match, next=0):
         command.extend(["-A", str(next)])
     else:
         command.extend(["-A", str(next)])
-    command.extend([path])
+    command.extend([str(path)])
 
     tokenize = not single_match
     stdout = run(command, tokenize)[0]
 
-    logging.debug(json.dumps(stdout, indent=2))
+    core.logger.debug(json.dumps(stdout, indent=2))
     return stdout
 
 
