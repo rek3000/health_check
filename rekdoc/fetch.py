@@ -8,7 +8,6 @@ import io
 import sys
 import datetime
 import shutil
-import glob
 import json
 import zipfile
 import tarfile
@@ -34,7 +33,9 @@ def debug(func):
 
 
 @debug
-def extract_file(file: Path, compress: str, force: bool, exclude: list | None = None) -> Path:
+def extract_file(
+        file: Path, compress: str, force: bool, exclude: list | None = None
+) -> Path:
     """
     Extract Files with filter (exclude list).
 Support "tar.gz", "gz" and "zip" files (ILOM, Explorer, OSWatcher)
@@ -158,12 +159,7 @@ Print a list of files in the 'dir' and let user choose file through number.
             except ValueError:
                 continue
 
-    # path = logs_dir + regex
-    # files = glob.glob(path, recursive=True)
     files = sorted(logs_dir.glob(regex), reverse=True)
-
-    if not files:
-        return ""
 
     try:
         print_files(files)
@@ -231,7 +227,7 @@ def drw_fault(path: Path, out_dir: Path, system_info: dict) -> None:
 
 def drw_temp(path: Path, out_dir: Path) -> None:
     temp = io.StringIO()
-    temp.write(str(path) +  "/" + const.TEMP + "\n")
+    temp.write(str(path) + "/" + const.TEMP + "\n")
     reg = "^ /System/Cooling$"
     stdout = tools.grep(path / const.TEMP, reg, False, 9)
     for line in stdout:
@@ -353,14 +349,15 @@ def drw_system_status(path: Path, out_dir: Path, system_info: dict) -> list:
         ]
 
 
-def drw_system_performance(path: Path, out_dir: Path, system_info: dict) -> list:
+def drw_system_performance(
+        path: Path, out_dir: Path, system_info: dict
+) -> list:
     """
     Draw System Performance Images (OSWatcher) from Extracted Logs
 Clarification: This just run the oswbba.jar file and
 generate images from OSWatcher.
     """
     try:
-        # log_name = os.path.split(path)[1]
         log_name = path.name
         command = ["java", "-jar", "/usr/share/java/oswbba.jar",
                    "-i", str(path),
@@ -548,9 +545,6 @@ def get_bonding(path: Path) -> str:
 
 def get_cpu_util(path: Path) -> (int, int):
     try:
-        # cpu_util_path = path / const.CPU_ULTILIZATION_SOL / '*.dat'
-        # files = glob.glob(cpu_util_path, recursive=True)
-
         cpu_util_path = path / const.CPU_ULTILIZATION_SOL
         regex = '*.dat'
         files = sorted(cpu_util_path.glob(regex), reverse=True)
@@ -569,9 +563,6 @@ def get_cpu_util(path: Path) -> (int, int):
 
         cpu_idle = round(sum(cpu_idle_alltime) / len(cpu_idle_alltime), 2)
         cpu_util = round(100 - cpu_idle, 2)
-
-        # core.logger.info("CPU_IDLE:" + str(cpu_idle))
-        # core.logger.info("CPU_UTIL:" + str(cpu_util))
 
         return [cpu_util, cpu_idle]
     except (RuntimeError, Exception) as err:
@@ -625,9 +616,9 @@ def get_mem_free(path: Path) -> dict:
     try:
         mem_free_path = path / const.MEM_SOL
         regex = "*.dat"
-        # files = glob.glob(mem_free_path, recursive=True)
         files = sorted(mem_free_path.glob(regex), reverse=True)
         core.logger.debug(files)
+
         total_mem = float(tools.grep(
             files[-1], "Memory", True).split()[1][:-1])
 
@@ -642,8 +633,6 @@ def get_mem_free(path: Path) -> dict:
             mem_free_perfile = sum(mem_free_perfile_list) / \
                 len(mem_free_perfile_list)
             mem_free_alltime.append(mem_free_perfile)
-            # core.logger.debug("MEM FREE")
-            # core.logger.debug(mem_free_perfile_list)
 
         mem_free = round(sum(mem_free_alltime) / len(mem_free_alltime))
 
@@ -652,9 +641,6 @@ def get_mem_free(path: Path) -> dict:
 
         mem_free_percent = round((mem_free / total_mem) * 100)
         mem_util_percent = round(100 - mem_free_percent, 2)
-
-        # core.logger.info("MEM_FREE:" + str(mem_free_percent))
-        # core.logger.info("MEM_UTIL:" + str(mem_util_percent))
 
         x["mem_free_percent"] = mem_free_percent
         x["mem_free"] = mem_free
@@ -672,7 +658,6 @@ def get_io_busy(path: Path) -> dict:
     try:
         io_busy_path = path / const.IO_SOL
         regex = "*.dat"
-        # files = glob.glob(io_busy_path, recursive=True)
         files = sorted(io_busy_path.glob(regex), reverse=True)
 
         devices = []
@@ -682,8 +667,6 @@ def get_io_busy(path: Path) -> dict:
             if "zzz" in line:
                 break
             devices.append(line.split()[-1])
-
-        # core.logger.debug(f"DEVICE_LIST:{devices}")
 
         average_alltime = [0] * len(devices)
         total_alltime = [0] * len(devices)
@@ -810,7 +793,9 @@ def get_system_perform(path: Path, platform: str, system_type: str) -> dict:
 # ------------------------------
 
 
-def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict) -> dict:
+def get_detail(
+        node: str, list_logs_dir: list, node_dir: Path, system_info: dict
+) -> dict:
     ilom = {}
     system_status = {}
     system_perform = {}
@@ -818,8 +803,8 @@ def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict
     create_dir(node_dir / "ilom")
     create_dir(node_dir / "status")
     create_dir(node_dir / "perform")
-    # core.logger.debug("PATH: " + list_logs_dir)
-    core.logger.debug("PATH: " + ','.join(map(str, list_logs_dir)))
+
+    core.logger.debug("PATH: " + ', '.join(map(str, list_logs_dir)))
 
     try:
         if str(list_logs_dir[0]) == "" and system_info["type"] == "baremetal":
@@ -831,7 +816,8 @@ def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict
 
         # OSWatcher
         if system_info["system_type"] == "standalone":
-            if str(list_logs_dir[1]) == "" and system_info["type"] == "baremetal":
+            if str(list_logs_dir[1]) == "" \
+                    and system_info["type"] == "baremetal":
                 system_status = {"image": "", "vol_avail": "",
                                  "raid_stat": "", "bonding": ""}
             elif str(list_logs_dir[1]) == "" and system_info["type"] == "vm":
@@ -840,7 +826,8 @@ def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict
                 system_status = get_system_status(list_logs_dir[1],
                                                   system_info["platform"],
                                                   system_info["type"])
-            if str(list_logs_dir[2]) == "" and system_info["type"] == "baremetal":
+            if str(list_logs_dir[2]) == "" \
+                    and system_info["type"] == "baremetal":
                 system_perform = {
                     "cpu_util": "",
                     "mem_free": "",
@@ -891,7 +878,6 @@ def get_detail(node: str, list_logs_dir: list, node_dir: Path, system_info: dict
     return [content]
 
 
-##### FETCH OVERVIEW #####
 def get_product(path):
     product = tools.grep(os.path.normpath(path + const.PRODUCT),
                          "product_name", True)
@@ -926,7 +912,10 @@ def get_overview(node, path):
     return content
 
 
-def compile(nodes_name: list, list_file_logs: list, system_info: dict, out_dir: Path, force: bool) -> list:
+def compile(
+        nodes_name: list, list_file_logs: list,
+        system_info: dict, out_dir: Path, force: bool
+) -> list:
     content_files = []
     print("CHOOSE FILE TO EXTRACT")
 
@@ -977,7 +966,10 @@ def compile(nodes_name: list, list_file_logs: list, system_info: dict, out_dir: 
     return content_files
 
 
-def create_dir(path: Path, parents: bool = False, exist_ok: bool = False, force: bool = False) -> None:
+def create_dir(
+        path: Path, parents: bool = False,
+        exist_ok: bool = False, force: bool = False
+) -> None:
     try:
         Path.mkdir(path, parents=parents, exist_ok=exist_ok)
         core.logger.info("Folder created: " + str(path))
@@ -1057,7 +1049,6 @@ def run(logs_dir: Path, out_dir: Path, force: bool) -> str:
         sys.exit()
     # Take client/customer name
     client = input("Enter client name: ")
-    # out_dir = os.path.join(out_dir, client)
     out_dir = Path(out_dir) / client
     # Root folder initialization
     root_dir = out_dir / datetime.datetime.utcnow().strftime('%Y-%m-%dT%H%M%S')
@@ -1065,9 +1056,6 @@ def run(logs_dir: Path, out_dir: Path, force: bool) -> str:
     create_dir(Path("temp"), parents=True, exist_ok=True)
     create_dir(out_dir, parents=True, exist_ok=True)
     create_dir(root_dir)
-    # Path.mkdir(Path("temp"), parents=True, exist_ok=True)
-    # Path.mkdir(out_dir, parents=True, exist_ok=True)
-    # Path.mkdir(root_dir)
 
     i = 0
     list_alltime_logs = []
@@ -1116,7 +1104,6 @@ def run(logs_dir: Path, out_dir: Path, force: bool) -> str:
         else:
             break
 
-    # core.logger.debug(list_alltime_logs)
     summary_content = []
     for time in range(0, i):
         try:
