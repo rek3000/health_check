@@ -1,24 +1,20 @@
-#!/usr/bin/env python
-###
 import sys
-import os
-# import core.logger
 import json
 import docx
 from pathlib import Path
-from rekdoc import core
 
 #
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.style import WD_STYLE_TYPE
 from docx.enum.text import WD_TAB_ALIGNMENT, WD_TAB_LEADER
-from docx.enum.style import WD_STYLE
+# from docx.enum.style import WD_STYLE
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
 from docx import Document
 
 #
+from rekdoc import core
 from rekdoc import tools
 
 TABLE_RED = "#C00000"
@@ -126,167 +122,122 @@ def list_number(doc, par, prev=None, level=None, num=True):
 
 
 def assert_fault(data: dict) -> list:
-    score = 0
-    # if data["fault"] == "":
-    #     score = ""
-    #     comment = [""]
-    if data["fault"] == "No faults found" or data["fault"] == "":
-        score = 5
-        comment = ["Lỗi: Không", "Đánh giá: " + ASSERTION[score]]
-    elif data["fault"] == "warning":
-        score = 3
-        comment = [
+    evaluation = {
+        "No faults found": (5, ["Lỗi: Không", f"Đánh giá: {ASSERTION[5]}"]),
+        "": (5, ["Lỗi: Không", f"Đánh giá: {ASSERTION[5]}"]),
+        "warning": (3, [
             "Lỗi không ảnh hưởng tới hiệu năng của hệ thống",
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    else:
-        score = 1
-        comment = [
-            "Lỗi ảnh hưởng tới hoạt động của hệ thống",
-            "Đánh giá: " + ASSERTION[score],
-        ]
+            f"Đánh giá: {ASSERTION[3]}",
+        ]),
+    }
 
+    default_comment = [
+        "Lỗi ảnh hưởng tới hoạt động của hệ thống",
+        f"Đánh giá: {ASSERTION[1]}",
+    ]
+
+    score, comment = evaluation.get(data["fault"], (1, default_comment))
     fault = [score, comment]
+
     core.logger.debug(json.dumps(fault, ensure_ascii=False))
+
     return fault
 
 
 def assert_temp(data: dict) -> list:
-    if data["inlet"] == "":
-        score = ""
-        comment = [""]
-        temp = [score, comment]
-        return temp
-    inlet_temp = data["inlet"].split()[0]
-    inlet_temp = int(inlet_temp)
-    score = 0
-    comment = [""]
+    if not data.get("inlet"):
+        return ["", [""]]
+
+    try:
+        inlet_temp = data["inlet"].split()[0]
+        inlet_temp = int(inlet_temp)
+    except ValueError:
+        core.logger.error("Invalid temperature format.")
+        return ["", ["Invalid temerature format."]]
+
     if inlet_temp <= 23:
         score = 5
-        comment = [
-            "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif inlet_temp > 23 and inlet_temp <= 26:
+    elif inlet_temp <= 26:
         score = 3
-        comment = [
-            "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[score],
-        ]
-    elif inlet_temp > 26:
+    else:
         score = 1
-        comment = [
-            "Nhiệt độ bên trong: " + str(inlet_temp),
-            "Đánh giá: " + ASSERTION[score],
-        ]
 
+    comment = [
+        f"Nhiệt độ bên trong: {inlet_temp}",
+        f"Đánh giá: {ASSERTION[score]}",
+    ]
     temp = [score, comment]
     core.logger.debug(json.dumps(temp, ensure_ascii=False))
     return temp
 
 
-def assert_firmware(data: dict) -> list:
-    latest = ""
-    if data["firmware"] == "":
-        firmware = ["", [""]]
-        core.logger.debug(json.dumps(firmware, ensure_ascii=False))
-        return firmware
+def get_user_score():
+    print("Đánh giá")
+    print("[0] Tốt")
+    print("[1] Cần lưu ý")
+    print("[2] Kém")
     while True:
         try:
-            sys.stdout.write("\033[?25h")
-            latest = (
-                input(
-                    "Enter latest ILOM version\n[" + data["firmware"] + "] "
-                )
-                or data["firmware"]
-            )
-        except KeyboardInterrupt:
-            print()
-            sys.exit()
+            choice = int(input("Chọn đánh giá [0-2]: ") or "0")
+            if choice in [0, 1, 2]:
+                return {0: 5, 1: 3, 2: 1}[choice]
+            else:
+                print("Invalid choice. Please enter 0, 1, or 2.")
         except ValueError:
-            continue
-        break
+            print("Invalid input. Please enter a numbr.")
+        except KeyboardInterrupt:
+            print("\nOperation cancelled by user.")
+            sys.exit()
 
-    if latest == data["firmware"]:
-        score = 5
-    else:
-        while True:
-            try:
-                print("Đánh giá")
-                print("[0] Tốt")
-                print("[1] Cần lưu ý")
-                print("[2] Kém")
-                choice = int(input("Chọn đánh giá\n [0] ") or "0")
-                if choice == 0:
-                    score = 5
-                elif choice == 1:
-                    score = 3
-                else:
-                    score = 1
-            except KeyboardInterrupt:
-                print()
-                sys.exit()
-            except ValueError:
-                continue
-            break
+
+def assert_firmware(data: dict) -> list:
+    if not data.get("firmware"):
+        return ["", [""]]
+
+    try:
+        sys.stdout.write("\033[?25h")  # Make cursor visible
+        latest = (
+            input(
+                f"Enter latest ILOM version\n[{data['firmware']}] "
+            ) or data["firmware"]
+        )
+    except KeyboardInterrupt:
+        print("\n Operation cancelled by uesr.")
+        sys.exit()
+
+    score = 5 if latest == data["firmware"] else get_user_score()
 
     comment = [
-        "Phiên bản ILOM hiện tại: " + data["firmware"],
-        "Phiên bản ILOM mới nhất: " + latest,
-        "Đánh giá: " + ASSERTION[score]
+        f"Phiên bản ILOM hiện tại: {data['firmware']}",
+        f"Phiên bản ILOM mới nhất: {latest}",
+        f"Đánh giá: {ASSERTION[score]}",
     ]
+
     firmware = [score, comment]
     core.logger.debug(json.dumps(firmware, ensure_ascii=False))
     return firmware
 
 
 def assert_image(data: dict) -> list:
-    score = 0
-    if data["image"] == "":
-        image = [score, [""]]
-        return image
+    if not data.get("image"):
+        return ["", [""]]
 
-    while True:
-        try:
-            sys.stdout.write("\033[?25h")
-            latest = (
-                input("Enter latest OS version\n[" + data["image"] + "] ")
-                or data["image"]
-            )
-        except KeyboardInterrupt:
-            print()
-            sys.exit()
-        except ValueError:
-            continue
-        break
+    try:
+        sys.stdout.write("\033[?25h")  # Make cursor visible
+        latest = (
+            input(
+                f"Enter latest OS version\n[{data['image']}] "
+            ) or data["image"]
+        )
+    except KeyboardInterrupt:
+        print("\n Operation cancelled by uesr.")
+        sys.exit()
 
-    if latest == data["image"]:
-        score = 5
-    else:
-        while True:
-            try:
-                print("Đánh giá")
-                print("[0] Tốt")
-                print("[1] Cần lưu ý")
-                print("[2] Kém")
-                choice = int(input("Chọn đánh giá\n [0] ") or "0")
-                if choice == 0:
-                    score = 5
-                elif choice == 1:
-                    score = 3
-                else:
-                    score = 1
-            except KeyboardInterrupt:
-                print()
-                sys.exit()
-            except ValueError:
-                continue
-            break
-
+    score = 5 if latest == data["image"] else get_user_score()
     comment = [
-        "Phiên bản OS hiện tại: " + data["image"],
-        "Phiên bản OS mới nhất: " + latest,
-        "Đánh giá: " + ASSERTION[score]
+        f"Phiên bản OS hiện tại: {data['image']}",
+        f"Phiên bản OS mới nhất: {latest}",
+        f"Đánh giá: {ASSERTION[score]}",
     ]
     image = [score, comment]
     core.logger.debug(json.dumps(image, ensure_ascii=False))
@@ -294,52 +245,31 @@ def assert_image(data: dict) -> list:
 
 
 def assert_vol(data: dict) -> list:
+    vol_avail = data.get("vol_avail", 0)
+    raid_stat = data.get("raid_stat", False)
+    comment = []
     score = 0
-    comment = [""]
-    if data["vol_avail"] == "":
-        score = ""
-        comment = [""]
-        vol = [score, comment]
-        return vol
-    elif system_info["type"] == "vm":
-        if data["vol_avail"] > 30:
-            score = 5
-        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30):
-            score = 3
-        elif data["vol_avail"] <= 15:
-            score = 1
-    else:
-        if data["vol_avail"] > 30 and data["raid_stat"] is True:
-            score = 5
-            comment = [
-                "Phân vùng OS được cấu hình RAID",
-            ]
-        elif (data["vol_avail"] > 15 and data["vol_avail"] <= 30) and data[
-            "raid_stat"
-        ] is True:
-            score = 3
-            comment = [
-                "Phân vùng OS được cấu hình RAID",
-            ]
-        elif data["vol_avail"] <= 15 and data["raid_stat"] is False:
-            score = 1
-            comment = [
-                "Phân vùng OS không được cấu hình RAID",
-            ]
-        elif data["vol_avail"] <= 15 and data["raid_stat"] is True:
-            score = 1
-            comment = [
-                "Phân vùng OS được cấu hình RAID",
-            ]
-        elif data["vol_avail"] > 30 and data["raid_stat"] is False:
-            score = 3
-            comment = [
-                "Phân vùng OS không được cấu hình RAID",
-            ]
 
-    comment.extend(["Dung lượng khả dụng: " +
-                    str(data["vol_avail"]) + "%",
-                    "Đánh giá: " + ASSERTION[score]])
+    if vol_avail == "":
+        return ["", [""]]
+
+    if system_info["type"] == "vm":
+        score = 5 if vol_avail > 30 else 3 if vol_avail > 15 else 1
+    else:
+        if vol_avail > 30:
+            score = 5 if raid_stat else 3
+        elif vol_avail > 15:
+            score = 3 if raid_stat else 2
+        else:
+            score = 1
+        raid_comment = "Phân vùng OS được cấu hình RAID" if raid_stat \
+            else "Phân vùng OS không được cấu hình RAID"
+        comment.append(raid_comment)
+
+    comment.extend([
+        f"Dung lượng khả dụng: {vol_avail}%",
+        f"Đánh giá: {ASSERTION[score]}"
+    ])
 
     vol = [score, comment]
     core.logger.debug(json.dumps(vol, ensure_ascii=False))
@@ -348,20 +278,17 @@ def assert_vol(data: dict) -> list:
 
 
 def assert_bonding(data: dict) -> list:
-    if data["bonding"] == "":
-        score = ""
-        comment = [""]
-        bonding = [score, comment]
-        return bonding
-    elif data["bonding"] == "none":
-        score = 1
-        comment = ["Network không được cấu hình bonding"]
-    elif data["bonding"] == "aggr":
-        score = 5
-        comment = ["Network được cấu hình bonding Aggregration"]
-    elif data["bonding"] == "ipmp":
-        score = 5
-        comment = ["Network được cấu hình bonding IPMP"]
+    if not data.get("bonding"):
+        return ["", [""]]
+
+    evaluation = {
+        "none": (1, ["Network không được cấu hình bonding"]),
+        "aggr": (5, ["Network được cấu hình bonding Aggregation"]),
+        "ipmp": (5, ["Network được cấu hình bonding IPMP"]),
+    }
+
+    score, comment = evaluation.get(
+        data.get("bonding"), (1, "Unknown network configuration"))
     comment.append("Đánh giá: " + ASSERTION[score])
 
     bonding = [score, comment]
@@ -371,69 +298,78 @@ def assert_bonding(data: dict) -> list:
 
 
 def assert_cpu_util(data: dict) -> list:
-    if data["cpu_util"] == "":
-        score = ""
-        comment = [""]
-        cpu_util = [score, comment]
-        return cpu_util
-    elif data["cpu_util"] <= 30:
+    if not data.get("cpu_util"):
+        return ["", [""]]
+
+    cpu_util = data["cpu_util"]
+    if cpu_util < 30:
         score = 5
-    elif data["cpu_util"] > 30 and data["cpu_util"] <= 70:
+    elif cpu_util <= 70:
         score = 3
     else:
         score = 1
-    comment = ["CPU Utilization khoảng " + str(data["cpu_util"]) + "%"]
-    comment.append("Đánh giá: " + ASSERTION[score])
 
-    cpu_util = [score, comment]
+    comment = [
+        f"CPU Utilization khoảng {data['cpu_util']}%",
+        f"Đánh giá: {ASSERTION[score]}",
+    ]
+
+    cpu_util_info = [score, comment]
     core.logger.debug(json.dumps(cpu_util, ensure_ascii=False))
 
-    return cpu_util
+    return cpu_util_info
 
 
 def assert_load(data: dict) -> list:
-    if data["load_avg"] == "":
-        score = ""
-        comment = [""]
-    elif data["load"]["load_avg_per"] <= 2:
+    if not data.get("load", {}).get("load_avg_per"):
+        return ["", [""]]
+
+    load_data = data["load"]
+    load_avg_per = load_data["load_avg_per"]
+
+    if load_avg_per <= 2:
         score = 5
-    elif 2 < data["load"]["load_avg_per"] <= 5:
+    elif load_avg_per <= 5:
         score = 3
     else:
         score = 1
+
     comment = [
-        "CPU Load Average: " + str(data["load"]["load_avg"]),
-        "Number of Cores: " + str(data["load"]["vcpu"]),
-        "CPU Load Average per core = CPU Load Average / Number of Cores = "
-        + str(data["load"]["load_avg_per"]),
-        "Đánh giá: " + ASSERTION[score]
+        f"CPU Load Average: {load_data['load_avg']}",
+        f"Number of Cores: {load_data['vcpu']})",
+        f"CPU Load Average per core = CPU Load Average \
+                / Number of Cores = {load_avg_per}",
+        f"Đánh giá: {ASSERTION[score]}"
     ]
 
-    load = [score, comment]
-    core.logger.debug(json.dumps(load, ensure_ascii=False))
+    load_info = [score, comment]
+    core.logger.debug(json.dumps(load_info, ensure_ascii=False))
 
-    return load
+    return load_info
 
 
 def assert_mem_free(data: dict) -> list:
-    # mem_free = 100 - data["mem_util"]
-    mem_free = data["mem_free"]["mem_free_percent"]
+    mem_free = data.get("mem_free", {}).get("mem_free_percent", "")
     if mem_free == "":
-        score = ""
-        comment = [""]
-        mem_free = [score, comment]
-        core.logger.debug(json.dumps(mem_free, ensure_ascii=False))
-        return mem_free
-    elif mem_free >= 20:
+        return ["", [""]]
+
+    if mem_free >= 20:
         score = 5
-    elif mem_free > 10 and mem_free < 20:
+    elif mem_free > 10:
         score = 3
     else:
         score = 1
-    comment = ["Total Memory: " + str(data["mem_free"]["total_mem"])]
-    comment.append("Memory Free in GB: " + str(data["mem_free"]["mem_free"]))
-    comment.append("Average physical memory free: " + str(mem_free) + "%")
-    comment.append("Đánh giá: " + ASSERTION[score])
+
+    mem_info = data["mem_free"]
+    # Provide a default value if not available
+    total_mem = mem_info.get("total_mem", "N/A")
+    mem_free_gb = mem_info.get("mem_free", "N/A")
+    comment = [
+        f"Total Memory: {total_mem}",
+        f"Memory Free in GB: {mem_free_gb}",
+        f"Average physical memory free: {mem_free}%",
+        f"Đánh giá: {ASSERTION[score]}"
+    ]
 
     mem_free = [score, comment]
     core.logger.debug(json.dumps(mem_free, ensure_ascii=False))
@@ -444,25 +380,24 @@ def assert_mem_free(data: dict) -> list:
 def assert_io_busy(data: dict) -> list:
     score = 0
     comment = []
-    if not data["io_busy"]:
-        score = ""
-        comment = [""]
-        io_busy = [score, comment]
-        return io_busy
-    elif data["io_busy"]["busy"] < 50:
+
+    if not data.get("io_busy"):
+        return ["", [""]]
+
+    busy_percentage = data["io_busy"].get("busy", 0)
+    if busy_percentage < 50:
         score = 5
-        comment = ["IO Busy: " + "< 50%"]
-    elif 50 <= data["io_busy"]["busy"] <= 70:
+        comment = ["IO Busy: < 50%"]
+    elif busy_percentage <= 70:
         score = 3
-        comment = ["IO Busy: " + ">= 50%" + " " + "và" + "<= 70%"]
+        comment = ["IO Busy: >= 50% và <= 70%"]
     else:
         score = 1
-        comment = ["IO Busy: " + "> 70%"]
+        comment = ["IO Busy: > 70%"]
 
-    # comment = ["Thiết bị IO Busy cao: " + data["io_busy"]["name"]]
-    # comment.append("IO Busy: " + str(data["io_busy"]["busy"]))
     comment.append("Đánh giá: " + ASSERTION[score])
     io_busy = [score, comment]
+    core.logger.debug(json.dumps(io_busy, ensure_ascii=False))
     return io_busy
 
 
@@ -493,6 +428,7 @@ def assert_ilom(data: dict) -> dict:
     except RuntimeError:
         print("Failed to assert ILOM")
         raise
+
     core.logger.debug(json.dumps(x, indent=2))
     return x
 
@@ -634,7 +570,10 @@ def get_score(asserted: dict) -> list:
 
 # This function table with last column cells may or may not contain
 # list of string
-def drw_table(doc: Document, checklist: list, row: int, col: int, info: bool = False):
+def drw_table(
+        doc: Document, checklist: list,
+        row: int, col: int, info: bool = False
+) -> None:
     if checklist == []:
         return -1
     tab = doc.add_table(row, col)
@@ -688,7 +627,7 @@ def drw_info(
         try:
             if isinstance(images_name[i], list):
                 for image in images_name[i]:
-                    path = images_root  / node / image
+                    path = images_root / node / image
                     doc.add_picture(str(path), width=Inches(6.27))
             else:
                 path = images_root / node / images_name[i]
