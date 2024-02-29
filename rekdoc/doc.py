@@ -2,9 +2,11 @@
 ###
 import sys
 import os
-import logging
+# import core.logger
 import json
 import docx
+from pathlib import Path
+from rekdoc import core
 
 #
 from docx.enum.table import WD_TABLE_ALIGNMENT
@@ -14,6 +16,7 @@ from docx.enum.style import WD_STYLE
 from docx.shared import Inches
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
+from docx import Document
 
 #
 from rekdoc import tools
@@ -122,7 +125,7 @@ def list_number(doc, par, prev=None, level=None, num=True):
     par._p.get_or_add_pPr().get_or_add_numPr().get_or_add_ilvl().val = level
 
 
-def assert_fault(data):
+def assert_fault(data: dict) -> list:
     score = 0
     # if data["fault"] == "":
     #     score = ""
@@ -144,11 +147,11 @@ def assert_fault(data):
         ]
 
     fault = [score, comment]
-    logging.debug(json.dumps(fault, ensure_ascii=False))
+    core.logger.debug(json.dumps(fault, ensure_ascii=False))
     return fault
 
 
-def assert_temp(data):
+def assert_temp(data: dict) -> list:
     if data["inlet"] == "":
         score = ""
         comment = [""]
@@ -178,15 +181,15 @@ def assert_temp(data):
         ]
 
     temp = [score, comment]
-    logging.debug(json.dumps(temp, ensure_ascii=False))
+    core.logger.debug(json.dumps(temp, ensure_ascii=False))
     return temp
 
 
-def assert_firmware(data):
+def assert_firmware(data: dict) -> list:
     latest = ""
     if data["firmware"] == "":
         firmware = ["", [""]]
-        logging.debug(json.dumps(firmware, ensure_ascii=False))
+        core.logger.debug(json.dumps(firmware, ensure_ascii=False))
         return firmware
     while True:
         try:
@@ -233,15 +236,14 @@ def assert_firmware(data):
         "Đánh giá: " + ASSERTION[score]
     ]
     firmware = [score, comment]
-    logging.debug(json.dumps(firmware, ensure_ascii=False))
+    core.logger.debug(json.dumps(firmware, ensure_ascii=False))
     return firmware
 
 
-def assert_image(data):
+def assert_image(data: dict) -> list:
     score = 0
     if data["image"] == "":
         image = [score, [""]]
-        # logging.debug(json.dumps(image, ensure_ascii=False))
         return image
 
     while True:
@@ -287,11 +289,11 @@ def assert_image(data):
         "Đánh giá: " + ASSERTION[score]
     ]
     image = [score, comment]
-    logging.debug(json.dumps(image, ensure_ascii=False))
+    core.logger.debug(json.dumps(image, ensure_ascii=False))
     return image
 
 
-def assert_vol(data):
+def assert_vol(data: dict) -> list:
     score = 0
     comment = [""]
     if data["vol_avail"] == "":
@@ -340,12 +342,12 @@ def assert_vol(data):
                     "Đánh giá: " + ASSERTION[score]])
 
     vol = [score, comment]
-    logging.debug(json.dumps(vol, ensure_ascii=False))
+    core.logger.debug(json.dumps(vol, ensure_ascii=False))
 
     return vol
 
 
-def assert_bonding(data):
+def assert_bonding(data: dict) -> list:
     if data["bonding"] == "":
         score = ""
         comment = [""]
@@ -363,12 +365,12 @@ def assert_bonding(data):
     comment.append("Đánh giá: " + ASSERTION[score])
 
     bonding = [score, comment]
-    logging.debug(json.dumps(bonding, ensure_ascii=False))
+    core.logger.debug(json.dumps(bonding, ensure_ascii=False))
 
     return bonding
 
 
-def assert_cpu_util(data):
+def assert_cpu_util(data: dict) -> list:
     if data["cpu_util"] == "":
         score = ""
         comment = [""]
@@ -384,12 +386,12 @@ def assert_cpu_util(data):
     comment.append("Đánh giá: " + ASSERTION[score])
 
     cpu_util = [score, comment]
-    logging.debug(json.dumps(cpu_util, ensure_ascii=False))
+    core.logger.debug(json.dumps(cpu_util, ensure_ascii=False))
 
     return cpu_util
 
 
-def assert_load(data):
+def assert_load(data: dict) -> list:
     if data["load_avg"] == "":
         score = ""
         comment = [""]
@@ -408,19 +410,19 @@ def assert_load(data):
     ]
 
     load = [score, comment]
-    logging.debug(json.dumps(load, ensure_ascii=False))
+    core.logger.debug(json.dumps(load, ensure_ascii=False))
 
     return load
 
 
-def assert_mem_free(data):
+def assert_mem_free(data: dict) -> list:
     # mem_free = 100 - data["mem_util"]
     mem_free = data["mem_free"]["mem_free_percent"]
     if mem_free == "":
         score = ""
         comment = [""]
         mem_free = [score, comment]
-        logging.debug(json.dumps(mem_free, ensure_ascii=False))
+        core.logger.debug(json.dumps(mem_free, ensure_ascii=False))
         return mem_free
     elif mem_free >= 20:
         score = 5
@@ -434,12 +436,12 @@ def assert_mem_free(data):
     comment.append("Đánh giá: " + ASSERTION[score])
 
     mem_free = [score, comment]
-    logging.debug(json.dumps(mem_free, ensure_ascii=False))
+    core.logger.debug(json.dumps(mem_free, ensure_ascii=False))
 
     return mem_free
 
 
-def assert_io_busy(data):
+def assert_io_busy(data: dict) -> list:
     score = 0
     comment = []
     if not data["io_busy"]:
@@ -464,7 +466,7 @@ def assert_io_busy(data):
     return io_busy
 
 
-def assert_swap_util(data):
+def assert_swap_util(data: dict) -> list:
     if data["swap_util"] <= 2:
         score = 5
     elif data["swap_util"] > 2 and data["swap_util"] <= 5:
@@ -474,12 +476,12 @@ def assert_swap_util(data):
     comment = ["SWAP Utilization: " + str(data["swap_util"]) + "%"]
 
     swap_util = [score, comment]
-    logging.debug(json.dumps(swap_util, ensure_ascii=False))
+    core.logger.debug(json.dumps(swap_util, ensure_ascii=False))
 
     return swap_util
 
 
-def assert_ilom(data):
+def assert_ilom(data: dict) -> dict:
     x = {}
     try:
         fault = assert_fault(data)
@@ -491,11 +493,11 @@ def assert_ilom(data):
     except RuntimeError:
         print("Failed to assert ILOM")
         raise
-    logging.debug(json.dumps(x, indent=2))
+    core.logger.debug(json.dumps(x, indent=2))
     return x
 
 
-def assert_system_status(data, server_type):
+def assert_system_status(data: dict, server_type: str) -> dict:
     x = {}
     try:
         image = assert_image(data)
@@ -511,7 +513,7 @@ def assert_system_status(data, server_type):
     return x
 
 
-def assert_system_perform(data, platform, system_type):
+def assert_system_perform(data: dict, platform: str, system_type: str) -> dict:
     x = {}
     try:
         if system_type == "standalone":
@@ -530,11 +532,11 @@ def assert_system_perform(data, platform, system_type):
     except RuntimeError:
         print("Failed to assert system performance")
         raise
-    logging.debug(json.dumps(x))
+    core.logger.debug(json.dumps(x))
     return x
 
 
-def assert_data(data):
+def assert_data(data: dict) -> dict:
     asserted = {}
     ilom = {}
 
@@ -578,11 +580,11 @@ def assert_data(data):
     # asserted["swap_util"][1].extend(swap_util[1])
 
     for field in asserted:
-        logging.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
+        core.logger.debug("ASSERTED:" + field + ": " + str(asserted[field][0]))
     return asserted
 
 
-def get_score(asserted):
+def get_score(asserted: dict) -> list:
     checklist = []
     if system_info["type"] == "baremetal" \
             and system_info["platform"] == "solaris":
@@ -624,7 +626,7 @@ def get_score(asserted):
         except Exception:
             score = asserted_score
         checklist[i][2][0] = score
-        logging.info(checklist[i][1] + ":" + str(score))
+        core.logger.info(checklist[i][1] + ":" + str(score))
         checklist[i][2][1] = comment
 
     return checklist
@@ -632,7 +634,7 @@ def get_score(asserted):
 
 # This function table with last column cells may or may not contain
 # list of string
-def drw_table(doc, checklist, row, col, info=False):
+def drw_table(doc: Document, checklist: list, row: int, col: int, info: bool = False):
     if checklist == []:
         return -1
     tab = doc.add_table(row, col)
@@ -673,7 +675,10 @@ def drw_table(doc, checklist, row, col, info=False):
 
 
 # def drw_image_to_doc(doc, node, images_root, images_name):
-def drw_info(doc, node, checklist, images_root, images_name=[]):
+def drw_info(
+        doc: Document, node: str, checklist: list,
+        images_root: Path, images_name: list = []
+) -> None:
     prev = doc.add_paragraph("Thông tin chi tiết", style="baocao4")
     for i in range(0, len(checklist)):
         # doc.add_paragraph(checklist[i][1], style="baocao5")
@@ -683,14 +688,12 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
         try:
             if isinstance(images_name[i], list):
                 for image in images_name[i]:
-                    path = os.path.normpath(
-                        images_root + "/" + node + "/" + image)
-                    doc.add_picture(path, width=Inches(6.27))
+                    path = images_root  / node / image
+                    doc.add_picture(str(path), width=Inches(6.27))
             else:
-                path = os.path.normpath(
-                    images_root + "/" + node + "/" + images_name[i])
+                path = images_root / node / images_name[i]
                 doc.add_picture(
-                    path,
+                    str(path),
                     width=Inches(6.27),
                 )
         except Exception:
@@ -701,13 +704,12 @@ def drw_info(doc, node, checklist, images_root, images_name=[]):
     doc.add_page_break()
 
 
-def define_doc(sample):
+def define_doc(sample: Path):
     try:
-        doc = docx.Document(os.path.normpath(sample))
+        return docx.Document(sample)
     except Exception:
-        print("Sample docx not found!")
-        raise
-    return doc
+        print(f"{str(sample)} docx not found!")
+        return None
 
 
 def drw_menu(doc, nodes):
@@ -730,12 +732,14 @@ system_info = {"system_type": "",
                "type": ""}
 
 
-def drw_doc_appendix(doc, checklist_list, nodes, images_root, images_name):
+def drw_doc_appendix(
+        doc: Document, checklist_list: list, nodes: list,
+        images_root: Path, images_name: list
+) -> None:
     for node in nodes:
         print("NODE:" + node["node_name"])
         print("RUNNING:GETTING SAVED IMAGES")
-        image_json = os.path.normpath(
-            images_root + "/" + node["node_name"] + "/images.json")
+        image_json = images_root / (node["node_name"] + "/images.json")
         images_name = tools.read_json(image_json)
         print("RUNNING:DRAWING OVERVIEW TABLE")
         doc.add_paragraph(
@@ -833,7 +837,10 @@ def drw_doc(doc, checklist_list, nodes):
     print()
 
 
-def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
+def compile(
+        doc: Document, appendix_doc: Document, input_file: Path, out_dir: Path,
+        images_root: Path, force: bool
+) -> Document:
     input_file_data = tools.read_json(input_file)
     # Wrap in a list if input_file_data contains only 1 dictionary
     if not isinstance(input_file_data, list):
@@ -849,44 +856,43 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
 
         images_name = []
         if nodes == -1:
-            return -1
+            raise RuntimeError(f"Nodes data not found in str{input_file}")
 
         asserted_list = []
         appendix_doc.add_page_break()
     # drw_menu(doc, nodes)
 
-        input_root = os.path.split(input_file)[0]
+        # input_root = os.path.split(input_file)[0]
+        input_root = input_file.parent
         print("RUNNING:ASSERTING DATA")
         for node in nodes:
             print("NODE:" + node["node_name"])
             asserted = assert_data(node)
 
             print("RUNNING:SAVING ASSERTED DATA")
-            asserted_file = os.path.normpath(input_root + "/" +
-                                             node["node_name"] + "/" +
-                                             node["node_name"] + "_asserted.json")
+            asserted_file = input_root / \
+                node["node_name"] / "asserted.json"
+
             asserted_list += [asserted_file]
-            tools.save_json(
-                os.path.normpath(asserted_file),
-                asserted,
-                False
-            )
+            tools.save_json(asserted_file, asserted, append=False)
             print("RUNNING:CREATING CHECKLIST")
             checklist = get_score(asserted)
             checklist_list[node["node_name"]] = checklist
             print("DONE")
             print()
-        logging.debug(json.dumps(asserted_list))
+        core.logger.debug(asserted_list)
         print("RUNNING:SAVING ASSERTED SUMMARY FILE")
         print()
 
-        file_name = os.path.normpath(tools.rm_ext(
-            input_file, "json") + f"_asserted-{time}.json")
+        file_name = Path(tools.rm_ext(str(input_file), "json") +
+                         f"_asserted-{time}.json")
+
         tools.save_json(
             file_name,
             system_info,
             False
         )
+
         tools.join_json(file_name, asserted_list)
         summary_content.append(tools.read_json(file_name))
 
@@ -908,8 +914,8 @@ def compile(doc, appendix_doc, input_file, out_dir, images_root, force):
         except Exception:
             pass
 
-    main_summary = os.path.normpath(tools.rm_ext(
-        input_file, "json") + "_asserted.json")
+    main_summary = Path(tools.rm_ext(
+        str(input_file), "json") + "_asserted.json")
     tools.save_json(main_summary, summary_content, append=False)
 
     return appendix_doc
@@ -923,18 +929,13 @@ def print_style(doc):
         print(style.name)
 
 
-def run(input_file, output_file, sample,
-        appendix_sample, images_dir, force=False):
-    doc = None
-    appendix_doc = None
-
-    try:
-        doc = define_doc(sample)
-    except Exception:
-        pass
+def run(input_file: Path, output_file: Path, sample: Path,
+        appendix_sample: Path, images_dir: Path, force: bool = False) -> list:
+    doc = define_doc(sample)
     appendix_doc = define_doc(appendix_sample)
 
-    out_dir = os.path.split(output_file)[0]
+    # out_dir = os.path.split(output_file)[0]
+    out_dir = output_file.parent
     print_style(appendix_doc)
     try:
         appendix_doc = compile(doc, appendix_doc, input_file,
@@ -943,24 +944,18 @@ def run(input_file, output_file, sample,
             return -1
     except Exception as err:
         print(err)
-        return -1
+        print("Exiting")
+        sys.exit()
 
-    output_base_name = tools.rm_ext(os.path.split(output_file)[1], "json")
+    output_base_name = tools.rm_ext(output_file.name, "json")
 
+    doc_name = ""
     if doc is not None:
-        doc_name = os.path.normpath(
-            out_dir + "/" + output_base_name + ".docx")
-    else:
-        doc_name = ""
-
-    appendix_doc_name = os.path.normpath(
-        out_dir + "/appendix-" + output_base_name + ".docx")
-
-    try:
+        doc_name = str(out_dir / (output_base_name + ".docx"))
         doc.save(doc_name)
-    except Exception:
-        pass
 
+    appendix_doc_name = str(
+        out_dir / ("appendix-" + output_base_name + ".docx"))
     appendix_doc.save(appendix_doc_name)
 
     return [doc_name, appendix_doc_name]

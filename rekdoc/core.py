@@ -89,7 +89,9 @@ def cli():
     help="Force replace if exist output file.",
     is_flag=True,
 )
-def fetch(logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool) -> None:
+def fetch(
+        logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool
+) -> None:
     """
     \b
     Fetch information to json and convert to images
@@ -123,11 +125,12 @@ def fetch(logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool) ->
 
     try:
         out_file = rekfetch.run(logs_dir, out_dir, force)
-    except RuntimeError:
-        rekfetch.clean_up_force("./temp/")
-        click.secho("Error found!", bg="red", fg="black")
+    except RuntimeError as err:
+        # rekfetch.clean_up_force("./temp/")
+        # click.secho("Error found!", bg="red", fg="black")
+        click.secho("Error found!" + err, bg="red", fg="black")
         sys.stdout.write("\033[?25h")
-        return -1
+        sys.exit()
 
     click.secho("Data File Created: " + str(out_file), fg="cyan")
 
@@ -142,30 +145,37 @@ def fetch(logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool) ->
     "--input",
     help="summary file.",
     type=click.Path(exists=True, file_okay=True,
-                    dir_okay=False, readable=True),
+                    dir_okay=False, readable=True,
+                    path_type=Path),
 )
 @click.option(
     "-m",
     "--image",
     help="image root path.",
-    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    type=click.Path(exists=True, file_okay=False,
+                    dir_okay=True, path_type=Path),
 )
 @click.option(
     "-s",
     "--sample",
     help="sample file.",
     required=False,
-    # type=click.Path(exists=True),
+    type=click.Path(path_type=Path),
+    # type=click.Path(path_type=Path),
     default="sample.docx",
 )
 @click.option(
     "-sa",
     "--sample-appendix",
     help="appendix sample file.",
-    type=click.Path(exists=True),
+    # type=click.Path(exists=True, path_type=Path),
+    type=click.Path(exists=True, file_okay=True,
+                    dir_okay=False, readable=True,
+                    path_type=Path),
     default="appendix-sample.docx",
 )
-@click.option("-o", "--output", help="output file.", type=click.STRING)
+@click.option("-o", "--output", help="output file.",
+              type=click.Path(path_type=Path))
 @click.option("-v", "--verbose", "log", default=False, flag_value="VERBOSE")
 @click.option("--debug", "log", default=False, flag_value="DEBUG")
 @click.option(
@@ -201,7 +211,8 @@ def doc(input, output, sample, sample_appendix, image, log, force):
         output = input
         # output = "output/"
     if image is None:
-        images_root = os.path.split(input)[0]
+        # images_root = os.path.split(input)[0]
+        images_root = input.parent
     else:
         images_root = image
 
