@@ -151,7 +151,7 @@ def cat(file: Path, tokenize: bool = False) -> list | str:
     except RuntimeError:
         print("Cannot cat file: " + str(file))
         raise
-    core.logger.debug(json.dumps(stdout, indent=2))
+    # core.logger.debug(json.dumps(stdout, indent=2))
     return stdout
 
 
@@ -169,7 +169,7 @@ def grep(path: Path, regex: str, single_match: bool, next: int = 0) -> list | st
     tokenize = not single_match
     stdout = run(command, tokenize)[0]
 
-    core.logger.debug(json.dumps(stdout, indent=2))
+    # core.logger.debug(json.dumps(stdout, indent=2))
     return stdout
 
 

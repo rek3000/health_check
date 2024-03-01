@@ -25,14 +25,14 @@ from rekdoc import const
 def debug(func):
     def _debug(*args, **kwargs):
         result = func(*args, **kwargs)
-        core.logger.info(
+        core.logger.debug(
             f"{func.__name__}(args: {args}, kwargs: {kwargs}) -> {result}")
         return result
 
     return _debug
 
 
-@debug
+# @debug
 def extract_file(
         file: Path, compress: str, force: bool, exclude: list | None = None
 ) -> Path:
@@ -141,7 +141,7 @@ def get_file(regex: str, logs_dir: Path) -> Path:
     Choose a file from list of files
 Print a list of files in the 'dir' and let user choose file through number.
     """
-    core.logger.debug(logs_dir)
+    # core.logger.debug(str(logs_dir))
 
     def print_files(files: list):
         for i, file in enumerate(files):
@@ -472,7 +472,7 @@ def get_ilom(path: Path, system_info: dict) -> dict:
         "firmware": firmware,
     }
 
-    core.logger.debug(json.dumps(ilom, ensure_ascii=False))
+    core.logger.debug(json.dumps(ilom, indent=2, ensure_ascii=False))
 
     return ilom
 # ------------------------------
@@ -617,7 +617,7 @@ def get_mem_free(path: Path) -> dict:
         mem_free_path = path / const.MEM_SOL
         regex = "*.dat"
         files = sorted(mem_free_path.glob(regex), reverse=True)
-        core.logger.debug(files)
+        # core.logger.debug(map(str, files))
 
         total_mem = float(tools.grep(
             files[-1], "Memory", True).split()[1][:-1])
@@ -796,71 +796,38 @@ def get_system_perform(path: Path, platform: str, system_type: str) -> dict:
 def get_detail(
         node: str, list_logs_dir: list, node_dir: Path, system_info: dict
 ) -> dict:
-    ilom = {}
-    system_status = {}
-    system_perform = {}
+    # ilom = {}
+    # system_status = {}
+    # system_perform = {}
+    ilom = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
+    system_status = {"image": "", "vol_avail": "",
+                     "raid_stat": "", "bonding": ""}
+    system_perform = {"cpu_util": "", "mem_free": "",
+                      "io_busy": {"name": "", "busy": ""}}
 
-    create_dir(node_dir / "ilom")
-    create_dir(node_dir / "status")
-    create_dir(node_dir / "perform")
+    for subdir in ["ilom", "status", "perform"]:
+        create_dir(node_dir / subdir)
 
-    core.logger.debug("PATH: " + ', '.join(map(str, list_logs_dir)))
+    core.logger.debug(
+        "PATH: " + json.dumps(list(map(str, list_logs_dir)), indent=2))
 
     try:
-        if str(list_logs_dir[0]) == "" and system_info["type"] == "baremetal":
-            ilom = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
-        elif system_info["type"] == "baremetal":
-            ilom = get_ilom(list_logs_dir[0], system_info)
-        else:
-            ilom = {"fault": get_fault(list_logs_dir[1], system_info)}
-
+        if system_info["type"] == "baremetal":
+            ilom.update(get_ilom(list_logs_dir[0], system_info)
+                        if list_logs_dir[0] else {})
         # OSWatcher
-        if system_info["system_type"] == "standalone":
-            if str(list_logs_dir[1]) == "" \
-                    and system_info["type"] == "baremetal":
-                system_status = {"image": "", "vol_avail": "",
-                                 "raid_stat": "", "bonding": ""}
-            elif str(list_logs_dir[1]) == "" and system_info["type"] == "vm":
-                system_status = {"image": "", "vol_avail": ""}
-            else:
-                system_status = get_system_status(list_logs_dir[1],
-                                                  system_info["platform"],
-                                                  system_info["type"])
-            if str(list_logs_dir[2]) == "" \
-                    and system_info["type"] == "baremetal":
-                system_perform = {
-                    "cpu_util": "",
-                    "mem_free": "",
-                    "io_busy": {"name": "",
-                                "busy": ""}
-                }
-            elif str(list_logs_dir[1]) == "" and system_info["type"] == "vm":
-                system_perform = {
-                    "cpu_util": "",
-                    "mem_free": "",
-                    "io_busy": {"name": "",
-                                "busy": ""}
-                }
-            else:
-                system_perform = get_system_perform(list_logs_dir[2],
-                                                    system_info["platform"],
-                                                    system_info["system_type"])
-        # ExaWatcher
-        elif system_info["system_type"] == "exa":
-            if str(list_logs_dir[1]) == "":
-                system_status = {"image": "", "vol_avail": "",
-                                 "raid_stat": "", "bonding": ""}
-            else:
-                system_status = get_system_status(list_logs_dir[1],
-                                                  system_info["system_type"],
-                                                  system_info["type"])
-            if str(list_logs_dir[2]) == "":
-                system_perform = {"cpu_util": "", "mem_free": ""}
-            else:
-                system_perform = get_system_perform(list_logs_dir[2],
-                                                    system_info["platform"],
-                                                    system_info["system_type"])
-    except RuntimeError:
+        if system_info["system_type"] in ["standalone", "exa"]:
+            if list_logs_dir[1]:
+                system_status.update(get_system_status(list_logs_dir[1],
+                                                       system_info["platform"],
+                                                       system_info["type"]))
+            if list_logs_dir[2]:
+                system_perform.update(
+                    get_system_perform(list_logs_dir[2],
+                                       system_info["platform"],
+                                       system_info["system_type"]))
+    except RuntimeError as err:
+        core.logger.error(err)
         raise
     name = node
 
@@ -869,7 +836,9 @@ def get_detail(
                **system_status,
                **system_perform}
     core.logger.info("JSON file: " +
-                     json.dumps(content, indent=2, ensure_ascii=False))
+                     json.dumps(content,
+                                indent=2,
+                                ensure_ascii=False))
     # Save information
     tools.save_json(node_dir / "ilom" / "ilom.json", ilom)
     tools.save_json(node_dir / "status" / "status.json", system_status)
@@ -946,7 +915,7 @@ def compile(
         list_logs_dir = [Path(f"temp/{logs_dir}/")
                          if logs_dir != Path("temp") else Path("")
                          for logs_dir in list_logs_dir]
-        core.logger.info(list_logs_dir)
+        core.logger.info(json.dumps(list(map(str, list_logs_dir)), indent=2))
 
         try:
             print("RUNNING:GET DETAILS")

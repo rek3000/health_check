@@ -25,6 +25,7 @@ handler = RotatingFileHandler(
     maxBytes=log_size,
     backupCount=log_numbackups,
 )
+logger.addHandler(logging.StreamHandler())
 
 
 # ------------------------------
