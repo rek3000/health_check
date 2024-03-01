@@ -7,8 +7,8 @@ from logging import Formatter, getLogger
 from pathlib import Path
 import click
 from dotenv import load_dotenv
-from rekdoc import fetch as rekfetch
-from rekdoc import doc as rekdoc
+from rekdoc.data import fetch as rekfetch
+from rekdoc.data import doc as rekdoc
 from rekdoc import push as rekpush
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
