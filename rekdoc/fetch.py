@@ -60,10 +60,10 @@ def unzip(file: Path, force: bool, exclude: list | None = None):
     Helper function to decompress zip file with filter.
     """
     if not zipfile.is_zipfile(file):
-        core.logger.error("Error: Not a zip file")
+        core.logger.error(f"ERROR: {file} is NOT a ZIP file")
         return -1
 
-    core.logger.info("Extracting: " + file.name)
+    core.logger.info("EXTRACTING: " + file.name)
 
     try:
         with zipfile.ZipFile(file, "r") as zip_file:
@@ -91,10 +91,10 @@ def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
         exclude = []
 
     if not tarfile.is_tarfile(file):
-        core.logger.error("Error: Not a tar file")
+        core.logger.error(f"ERROR: {file} is Not a TAR file")
         return -1
 
-    core.logger.info("Extracting: " + file.name)
+    core.logger.info("EXTRACTING: " + file.name)
     filename = os.path.split(file)[-1]
     folder_name = tools.rm_ext(filename, compress)
 
@@ -184,9 +184,9 @@ def clean_files(dir):
                 os.remove(file_path)
             elif os.path.isdir(file_path):
                 shutil.rmtree(file_path)
-            core.logger.info("Deleted: " + file_path)
+            core.logger.info("DELETED: " + file_path)
         except Exception as err:
-            core.logger.error(f"Failed to delete {file_path}. Reason: {err}")
+            core.logger.error(f"FAILED to delete {file_path}. Reason: {err}")
 
 
 def clean_up(path, prompt="Remove files?", force=False):
@@ -419,7 +419,7 @@ def get_fault(path: Path, type: str) -> str:
 
             return fault
         except (RuntimeError, Exception) as err:
-            print(f"Failed to fetch fault data: {err}")
+            print(f"FAILED to fetch fault data: {err}")
 
     return fault
 
@@ -439,7 +439,7 @@ def get_temp(path: Path) -> (str, str):
 
         return inlet_temp, exhaust_temp
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch temperature: {err}")
+        print(f"FAILED to fetch temperature: {err}")
 
     return inlet_temp, exhaust_temp
 
@@ -452,7 +452,7 @@ def get_firmware(path: Path) -> str:
         firmware = " ".join(firmware_tokens[1:])
         return firmware
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch firmware: {err}")
+        print(f"FAILED to fetch firmware: {err}")
     return firmware
 
 
@@ -494,7 +494,7 @@ def get_image(path: Path, platform: str) -> str:
                 break
         return image
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch image: {err}")
+        print(f"FAILED to fetch image: {err}")
         return ""
 
 
@@ -505,7 +505,7 @@ def get_vol(path: Path, platform: str) -> int:
         vol = 100 - int(vol[:-1])
         return vol
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch volume: {err}")
+        print(f"FAILED to fetch volume: {err}")
         return ""
 
 
@@ -516,7 +516,7 @@ def get_raid(path: Path) -> bool:
         return raid_stat
 
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch raid: {err}")
+        print(f"FAILED to fetch raid: {err}")
         return False
 
 
@@ -539,7 +539,7 @@ def get_bonding(path: Path) -> str:
 
         return bonding
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch bonding status: {err}")
+        print(f"FAILED to fetch bonding status: {err}")
         return ""
 
 
@@ -566,7 +566,7 @@ def get_cpu_util(path: Path) -> (int, int):
 
         return [cpu_util, cpu_idle]
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch cpu utilization: {err}")
+        print(f"FAILED to fetch cpu utilization: {err}")
         return [-1, -1]
 
 
@@ -578,7 +578,7 @@ def get_load_avg(path: Path) -> float:
 
         return load_avg
     except (RuntimeError, Exception) as err:
-        print(f"Failed to get load average: {err}")
+        print(f"FAILED to get load average: {err}")
         return ""
 
 
@@ -592,7 +592,7 @@ def get_vcpu(path: Path) -> int:
 
         return vcpu
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch VCPU: {err}")
+        print(f"FAILED to fetch VCPU: {err}")
         return ""
 
 
@@ -605,7 +605,7 @@ def get_load(path: Path) -> float:
 
         return load_avg, vcpu, load_avg_per
     except (RuntimeError, Exception) as err:
-        print(f"Failed to fetch load: {err}")
+        print(f"FAILED to fetch load: {err}")
         return -1, -1, -1
 
 
@@ -650,7 +650,7 @@ def get_mem_free(path: Path) -> dict:
     except RuntimeError:
         return x
     except Exception as err:
-        print(f"Failed to fetch memory util: {err}")
+        print(f"FAILED to fetch memory util: {err}")
         raise
 
 
@@ -730,7 +730,7 @@ def get_swap_util(path: Path):
 
         return swap_free, swap_util
     except RuntimeError:
-        print("Failed to get swap util")
+        print("FAILED to get swap util")
         raise
 
 
@@ -749,11 +749,11 @@ def get_system_status(path: Path, platform: str, server_type: str) -> dict:
         elif platform == "exa":
             pass
         else:
-            print("Failed to fetch OS information")
+            print("FAILED to fetch OS information")
             raise RuntimeError()
 
     except RuntimeError:
-        print("Failed to fetch OS information")
+        print("FAILED to fetch OS information")
         raise
 
     return x
@@ -784,7 +784,7 @@ def get_system_perform(path: Path, platform: str, system_type: str) -> dict:
             pass
 
     except RuntimeError:
-        print("Failed to fetch OS information")
+        print("FAILED to fetch OS information")
         raise
 
     return x
@@ -835,7 +835,7 @@ def get_detail(
                **ilom,
                **system_status,
                **system_perform}
-    core.logger.info("JSON file: " +
+    core.logger.info("FETCHED: " +
                      json.dumps(content,
                                 indent=2,
                                 ensure_ascii=False))
@@ -890,9 +890,8 @@ def compile(
 
     print("-----------------------------")
     for node in nodes_name:
-        # node_dir = os.path.join(out_dir, node)
         node_dir = Path(out_dir) / node
-        print(node)
+        print(f"FETCHING:{node}")
         list_logs_dir = [None, None, None]
         print("RUNNING:EXTRACT FILES")
         file_logs = list_file_logs[nodes_name.index(node)]
@@ -941,7 +940,7 @@ def create_dir(
 ) -> None:
     try:
         Path.mkdir(path, parents=parents, exist_ok=exist_ok)
-        core.logger.info("Folder created: " + str(path))
+        core.logger.info("FOLDER CREATED: " + str(path))
     except FileExistsError:
         if not path.iterdir():
             return

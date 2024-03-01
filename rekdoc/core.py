@@ -20,12 +20,18 @@ logger = getLogger(__package__)
 log_path = Path("./rd.log")
 log_size = 10000000
 log_numbackups = 1
+formatter = Formatter("%(levelname)s:%(message)s")
 handler = RotatingFileHandler(
     log_path,
     maxBytes=log_size,
     backupCount=log_numbackups,
 )
-logger.addHandler(logging.StreamHandler())
+handler.setFormatter(formatter)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.setLevel(logging.WARNING)
+logger.addHandler(handler)
+logger.addHandler(stream_handler)
 
 
 # ------------------------------
@@ -103,15 +109,12 @@ def fetch(
 
     Default Output Directory: /var/rd/<CustomName>/<CurrentTimeStamp>
     """
-    formatter = Formatter("%(levelname)s:%(message)s")
     if log == "VERBOSE":
         logger.setLevel("INFO")
     elif log == "DEBUG":
         logger.setLevel("DEBUG")
     else:
         logger.setLevel("WARNING")
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
     print("Logs directory: " + str(logs_dir))
     print("Output directory: " + str(out_dir))
     print("----------------------------")
