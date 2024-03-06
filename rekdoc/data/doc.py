@@ -1,3 +1,7 @@
+"""**SYSTEM DATA DOCUMENTER**
+
+Create document from system data
+"""
 import sys
 import json
 import docx
@@ -900,9 +904,9 @@ def run(input_file: Path, output_file: Path, sample: Path,
     return [doc_name, appendix_doc_name]
 
 
-def main():
-    run()
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     run()
+#
+#
+# if __name__ == "__main__":
+#     main()

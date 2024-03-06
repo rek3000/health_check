@@ -1,5 +1,7 @@
 import json
+import os
 import subprocess
+import shutil
 from pathlib import Path
 from PIL import Image
 from PIL import ImageDraw
@@ -172,5 +174,56 @@ def grep(path: Path, regex: str, single_match: bool, next: int = 0) -> list | st
     # core.logger.debug(json.dumps(stdout, indent=2))
     return stdout
 
+
+def clean_files(dir):
+    """
+    Remove all files in "dir"
+    """
+    for filename in os.listdir(dir):
+        file_path = os.path.join(dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+            core.logger.info("DELETED: " + file_path)
+        except Exception as err:
+            core.logger.error(f"FAILED to delete {file_path}. Reason: {err}")
+
+
+def clean_up(path, prompt="Remove files?", force=False):
+    if force or input(f"{prompt} [y/n] ").lower() in ["y", "yes"]:
+        clean_files(path)
+
+
+def clean_up_force(path):
+    core.logger.error("FORCE CLEAN UP DUE TO ERROR!")
+    clean_files(path)
+    return -1
+
+
+def create_dir(
+        path: Path, parents: bool = False,
+        exist_ok: bool = False, force: bool = False
+) -> None:
+    try:
+        Path.mkdir(path, parents=parents, exist_ok=exist_ok)
+        core.logger.info("FOLDER CREATED: " + str(path))
+    except FileExistsError:
+        if not path.iterdir():
+            return
+        if force:
+            clean_up(
+                path=os.path.normpath(path),
+                prompt="Do you want to replace it?",
+                force=force,
+            )
+        else:
+            print(str(path) + " folder exist!")
+            clean_up(
+                path=os.path.normpath(path),
+                prompt="Do you want to replace it?",
+                force=force,
+            )
 
 ##### END BASE #####

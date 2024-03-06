@@ -1,3 +1,8 @@
+"""**rekdoc** is a toolset allows user fetch useful information from logs file of servers,
+generate *images* from them, analyze them pump to a document *docx* file. Moreover, it supports
+pushing those information to *SQL* server.
+
+"""
 import os
 import sys
 import logging
@@ -9,6 +14,7 @@ import click
 from dotenv import load_dotenv
 from rekdoc.data import fetch as rekfetch
 from rekdoc.data import doc as rekdoc
+from rekdoc import tools as tools
 from rekdoc import push as rekpush
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
@@ -45,9 +51,7 @@ logger.addHandler(stream_handler)
 )
 @click.group(context_settings=CONTEXT_SETTINGS)
 def cli():
-    """
-    \b
-    rekdoc - fetch, analyze and draw report document.
+    """rekdoc - fetch, analyze and draw report document.
 
     \b
     A toolset allows user to get useful information from logs file of servers,
@@ -99,9 +103,7 @@ def cli():
 def fetch(
         logs_dir: Path, out_dir: Path, log: str, force: bool, dryrun: bool
 ) -> None:
-    """
-    \b
-    Fetch information to json and convert to images
+    """Fetch information to json and convert to images
 
     This command (module) examine the logs directory to get list of logs
     then unpack log files to get necessary information
@@ -119,7 +121,7 @@ def fetch(
     print("Output directory: " + str(out_dir))
     print("----------------------------")
     if dryrun:
-        rekfetch.clean_up(
+        tools.clean_up(
             "./temp/",
             prompt="Remove "
             + click.style("temp/", fg="cyan")
@@ -190,9 +192,7 @@ def fetch(
     is_flag=True,
 )
 def doc(input, output, sample, sample_appendix, image, log, force):
-    """
-    \b
-    Generate report from JSON file
+    """Generate report from JSON file
     Require to have a sample docx file with defined styling rules
     to generate the document
 
@@ -230,7 +230,7 @@ def doc(input, output, sample, sample_appendix, image, log, force):
 
     click.secho("CREATED REPORT FILE: " +
                 click.style(doc_names, fg="cyan"))
-    rekfetch.clean_up(
+    tools.clean_up(
         "./temp/",
         prompt=click.style("REMOVE ", fg="red")
         + click.style("EXTRACTED LOGS?", fg="cyan")
@@ -243,9 +243,7 @@ def doc(input, output, sample, sample_appendix, image, log, force):
 @click.command(no_args_is_help=True, short_help="push data to database")
 @click.option("-i", "--input", required=True, help="data json file.")
 def push(input):
-    """
-    \b
-    Insert data to SQL database
+    """Insert data to SQL database
 
     \b
     Environment Variables
@@ -273,8 +271,7 @@ def push(input):
 @click.command(short_help="show rules")
 def rule():
     click.echo(
-        """
-    DOCUMENT SAMPLE RULES (These must be defined on 'docx' office software):
+        """DOCUMENT SAMPLE RULES (These must be defined on 'docx' office software):
         1. Header
             /   TYPE    |  NAME   \\
             |a. Header 1: 'baocao1'|
