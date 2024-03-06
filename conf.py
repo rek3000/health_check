@@ -15,11 +15,12 @@ author = 'rek3000'
 release = '1.0'
 
 # sys.path.insert(0, os.path.join(os.path.dirname(__file__), "rekdoc"))
-sys.path.insert(0, os.path.abspath("rekdoc"))
+sys.path.insert(0, os.path.abspath("rekdoc/"))
+sys.path.insert(1, os.path.abspath("rekdoc/data"))
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# autodoc_mock_imports = ["rekdoc"]
+autodoc_mock_imports = ["rekdoc"]
 extensions = ["sphinx.ext.autodoc"]
 
 templates_path = ['_templates']
@@ -30,5 +31,5 @@ exclude_patterns = ['_build', 'Thumbs.db',
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'classic'
 html_static_path = ['_static']
