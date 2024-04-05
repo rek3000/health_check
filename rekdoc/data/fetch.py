@@ -95,11 +95,11 @@ def unzip(file: Path, force: bool, exclude: list | None = None):
                         zip_file.extract(member, path=folder_name)
                 except (Exception, IOError) as err:
                     core.logger.error(err)
-                    return -1
+                    raise
 
     except IOError as err:
         core.logger.error(err)
-        return -1
+        raise
 
 
 def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
@@ -140,7 +140,7 @@ def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
                                     path=extract_folder)
                 except (Exception, IOError) as err:
                     core.logger.error(err)
-                    return -1
+                    raise
 
         if compress == "gz":
             archive_folder = os.path.join(extract_folder, 'archive')
@@ -158,8 +158,6 @@ def untar(file: Path, compress: str, force: bool, exclude: list | None = None):
     except IOError as err:
         core.logger.error(err)
         raise
-
-    return 0
 
 
 # Find the file matched with keyword(regular expression)
@@ -182,11 +180,12 @@ Print a list of files in the 'dir' and let user choose file through number.
     def get_user_input(files: list):
         while True:
             try:
-                choice = int(input("Which file?\n [0] ") or "0")
+                choice = int(
+                    input("Which file?\n [0] [Ctrl-C to reselect this node]") or "0")
                 if choice == -1 or (0 <= choice < len(files)):
                     return choice
             except KeyboardInterrupt:
-                print()
+                raise KeyboardInterrupt
             except ValueError:
                 continue
 
@@ -196,7 +195,10 @@ Print a list of files in the 'dir' and let user choose file through number.
         print_files(files)
     except Exception:
         return ""
-    choice = get_user_input(files)
+    try:
+        choice = get_user_input(files)
+    except KeyboardInterrupt:
+        raise KeyboardInterrupt
 
     if choice == -1:
         return ""
@@ -514,12 +516,32 @@ def run(
                 file_logs = ["", "", ""]
                 print("NODE:" + node)
                 print("-----------------------------")
-                print("ILOM SNAPSHOT")
-                file_logs[0] = get_file("**/*.zip", logs_dir)
-                print("EXPLORER")
-                file_logs[1] = get_file("**/*.tar.gz", logs_dir)
-                print("OSWATCHER")
-                file_logs[2] = get_file("**/*.gz", logs_dir)
+                while True:
+                    print("ILOM SNAPSHOT")
+                    try:
+                        file_logs[0] = get_file("**/*.zip", logs_dir)
+                        break
+                    except KeyboardInterrupt:
+                        print()
+                        continue
+
+                while True:
+                    print("EXPLORER")
+                    try:
+                        file_logs[1] = get_file("**/*.tar.gz", logs_dir)
+                        break
+                    except KeyboardInterrupt:
+                        print()
+                        continue
+
+                while True:
+                    print("OSWATCHER")
+                    try:
+                        file_logs[2] = get_file("**/*.gz", logs_dir)
+                        break
+                    except KeyboardInterrupt:
+                        print()
+                        continue
 
                 list_file_logs.append(file_logs)
                 print()
