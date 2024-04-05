@@ -95,10 +95,10 @@ cd ./test_env
 - [x] Fix bug handling system. (critical)
 - [x] Enhance program flow.
 - [x] Rewrite system layout
-- [ ] Fix bug relating to oswatcher image generation
-- [ ] Rewrite system input
-    - [ ] Output as /var/tmp/rd/
-    - [ ] Add configuration parsing 'config.ini'
+- [x] Fix bug relating to oswatcher image generation
+- [x] Rewrite system input
+    - [x] Output as /var/tmp/rd/
+    - [x] Add configuration parsing 'env.conf'
 - [ ] Expand the document generate to adapt to more type of report. (TODO: to be determined)
 
 Crafted with passion.
