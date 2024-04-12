@@ -282,8 +282,6 @@ def assert_vol(data: dict) -> list:
 
 
 def assert_bonding(data: dict) -> list:
-    if not data.get("bonding"):
-        return ["", [""]]
 
     evaluation = {
         "none": (1, ["Network không được cấu hình bonding"]),
@@ -454,7 +452,9 @@ def assert_system_status(data: dict, server_type: str) -> dict:
 
 
 def assert_system_perform(data: dict, platform: str, system_type: str) -> dict:
-    x = {}
+    x = {"cpu_util": ["", [""]],
+         "mem_free": ["", [""]],
+         "io_busy": ["", [""]]}
     try:
         if system_type == "standalone":
             if platform == "solaris":
@@ -469,9 +469,8 @@ def assert_system_perform(data: dict, platform: str, system_type: str) -> dict:
                 pass
         elif system_type == "exa":
             pass
-    except RuntimeError:
+    except Exception:
         print("Failed to assert system performance")
-        raise
     core.logger.debug(json.dumps(x))
     return x
 

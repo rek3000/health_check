@@ -56,12 +56,15 @@ def extract_file(
     if not file:
         return ""
 
-    if compress in ["tar.gz", "gz"]:
-        untar(file, compress, force, exclude=exclude)
-        uncompressed = Path(tools.rm_ext(str(file), compress)).name
-    elif compress == "zip":
-        unzip(file, force, exclude=exclude)
-        uncompressed = Path(tools.rm_ext(str(file), compress)).name
+    try:
+        if compress in ["tar.gz", "gz"]:
+            untar(file, compress, force, exclude=exclude)
+            uncompressed = Path(tools.rm_ext(str(file), compress)).name
+        elif compress == "zip":
+            unzip(file, force, exclude=exclude)
+            uncompressed = Path(tools.rm_ext(str(file), compress)).name
+    except Exception as err:
+        core.logger.error(err)
 
     return uncompressed
 
@@ -286,9 +289,6 @@ def get_detail(
         System Information of the machine.
 
     """
-    # ilom = {}
-    # system_status = {}
-    # system_perform = {}
     ilom_status = {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
     system_status = {"image": "", "vol_avail": "",
                      "raid_stat": "", "bonding": ""}
@@ -303,24 +303,20 @@ def get_detail(
 
     try:
         if system_info["type"] == "baremetal":
-            ilom_status.update(ilom.get_ilom(list_logs_dir[0], system_info)
-                               if list_logs_dir[0] else {})
+            ilom_status.update(ilom.get_ilom(list_logs_dir[0], system_info))
         elif system_info["type"] == "vm":
             ilom_status.update(ilom.get_fault(
                 list_logs_dir[1], system_info["type"]))
         # OSWatcher
-        # if system_info["system_type"] in ["standalone", "exa"]:
         if system_info["platform"] == "solaris":
-            if list_logs_dir[1]:
-                system_status.update(
-                    solaris.get_system_status(
-                        list_logs_dir[1], system_info["type"]))
-            if list_logs_dir[2]:
-                system_perform.update(
-                    solaris.get_system_perform(list_logs_dir[2]))
-    except RuntimeError as err:
+            system_status.update(
+                solaris.get_system_status(
+                    list_logs_dir[1], system_info["type"]))
+            system_perform.update(
+                solaris.get_system_perform(list_logs_dir[2]))
+    except Exception as err:
         core.logger.error(err)
-        raise
+
     name = node
 
     content = {"node_name": name,
@@ -420,8 +416,10 @@ def compile(
             tools.save_json(node_dir / f"{node}.json", content)
             print("DONE")
             print()
-        except RuntimeError:
-            raise
+        except Exception as err:
+            print(err)
+            # tools.save_json(node_dir / f"{node}.json", content)
+
     sys.stdout.write("\033[?25h")
     return content_files
 

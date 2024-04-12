@@ -102,6 +102,8 @@ def get_fault(path: Path, type: str) -> str:
 
 
 def get_ilom(path: Path, system_info: dict) -> dict:
+    if not path.is_dir():
+        return {"fault": "", "inlet": "", "exhaust": "", "firmware": ""}
     try:
         fault = get_fault(path, system_info["type"])
         inlet_temp, exhaust_temp = get_temp(path)

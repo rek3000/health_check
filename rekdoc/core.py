@@ -7,7 +7,6 @@ import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-# from logging import Logger
 from logging import Formatter, getLogger
 from pathlib import Path
 import click
@@ -43,8 +42,6 @@ logger.addHandler(stream_handler)
 # ------------------------------
 # CORE
 # ------------------------------
-
-
 @click.version_option(
     version="1.0", prog_name="Rekdoc",
     message="%(prog)s:VERSION:%(version)s"

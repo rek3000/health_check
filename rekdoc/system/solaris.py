@@ -245,6 +245,8 @@ def get_io_busy(path: Path) -> dict:
 
 def get_system_status(path: Path, type: str) -> dict:
     x = {}
+    if not path.is_dir():
+        return x
     try:
         x["image"] = get_image(path)
         x["vol_avail"] = get_vol(path)
@@ -260,6 +262,8 @@ def get_system_status(path: Path, type: str) -> dict:
 
 def get_system_perform(path: Path) -> dict:
     x = {}
+    if not path.is_dir():
+        return x
     try:
         x["cpu_util"] = get_cpu_util(path)[0]
         x["mem_free"] = get_mem_free(path)
@@ -346,6 +350,10 @@ def drw_system_status(path: Path, out_dir: Path, type: str) -> list:
     system_info: dict
         System Information of the machine.
     """
+    if not path.is_dir():
+        return ["",
+                ["", ""],
+                "", ]
     if type == "baremetal":
         drw_image(path, out_dir)
         drw_vol(path, out_dir)
@@ -379,6 +387,8 @@ generate images from OSWatcher.
     system_info: dict
         System Information of the machine.
     """
+    if not path.is_dir():
+        return ["", "", ""]
     try:
         log_name = path.name
         command = ["java", "-jar", "/usr/share/java/oswbba.jar",
@@ -397,9 +407,3 @@ generate images from OSWatcher.
     return ["perform/OSWg_OS_Cpu_Util.jpg",
             "perform/OSWg_OS_Memory_Free.jpg",
             "perform/OSWg_OS_IO_PB.jpg"]
-    # return [
-    #     "cpu_idle.png",
-    #     "load.png",
-    #     "mem.png",
-    #     "swap.png",
-    # ]
